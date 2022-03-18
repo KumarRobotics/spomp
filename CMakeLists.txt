@@ -7,17 +7,43 @@ set(CMAKE_CXX_STANDARD 17)
 ## Export compile_commands.json for semantic autocompletion
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
+  roslib
+  rosbag
+  cv_bridge
+  sensor_msgs
+  geometry_msgs
+  visualization_msgs
+  nav_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  image_transport
+  message_filters
+  actionlib_msgs
+  grid_map_core
+  grid_map_ros
+  grid_map_msgs
+  grid_map_comp
+  semantics_manager
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
-
+find_package(Eigen3 REQUIRED NO_MODULE)
+find_package(TBB)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs highgui)
+find_package(GTSAM)
+find_package(mlpack)
+# Needed for mlpack
+find_package(Armadillo)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -49,11 +75,14 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  LocalReachability.msg
+  LocalReachabilityArray.msg
+  TraversabilityGraph.msg
+  ClaimedGoal.msg
+  ClaimedGoalArray.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -63,17 +92,19 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
-#   Action1.action
-#   Action2.action
-# )
+add_action_files(
+  DIRECTORY action
+  FILES GlobalNavigate.action
+)
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  actionlib_msgs
+  geometry_msgs
+  sensor_msgs
+  std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -105,12 +136,12 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES spomp
-#  CATKIN_DEPENDS roscpp rospy
-#  DEPENDS system_lib
+  INCLUDE_DIRS include
+  LIBRARIES spomp_local spomp_global spomp_mapper
+  CATKIN_DEPENDS roscpp rospy actionlib_msgs message_runtime
 )
 
+if(TBB_FOUND AND GTSAM_FOUND AND mlpack_FOUND AND Armadillo_FOUND)
 ###########
 ## Build ##
 ###########
@@ -118,39 +149,215 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
+###############################################################
+# SPOMP-Local
+###############################################################
+
 ## Declare a C++ library
-# add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/spomp.cpp
-# )
+add_library(${PROJECT_NAME}_local
+  src/local.cpp
+  src/timer.cpp
+  src/terrain_pano.cpp
+  src/pano_planner.cpp
+  src/controller.cpp
+  src/reachability.cpp
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME}_local 
+  ${${PROJECT_NAME}_EXPORTED_TARGETS} 
+  ${catkin_EXPORTED_TARGETS}
+)
+
+target_link_libraries(${PROJECT_NAME}_local
+  Eigen3::Eigen
+  TBB::tbb
+  opencv_core
+  opencv_imgproc
+  opencv_imgcodecs
+  opencv_highgui
+  ${catkin_LIBRARIES}
+)
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/spomp_node.cpp)
+add_executable(${PROJECT_NAME}_play_local 
+  src/play_local.cpp
+  src/remote.cpp
+  src/local_wrapper.cpp
+)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
 ## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
-# set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
+set_target_properties(${PROJECT_NAME}_play_local PROPERTIES OUTPUT_NAME play_local PREFIX "")
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME}_play_local ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(${PROJECT_NAME}_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(${PROJECT_NAME}_play_local
+  ${PROJECT_NAME}_local
+)
+
+## Declare a C++ executable
+## With catkin_make all packages are built within a single CMake context
+## The recommended prefix ensures that target names across packages don't collide
+add_executable(${PROJECT_NAME}_node_local 
+  src/node_local.cpp
+  src/remote.cpp
+  src/local_wrapper.cpp
+)
+
+## Rename C++ executable without prefix
+## The above recommended prefix causes long target names, the following renames the
+## target back to the shorter version for ease of user use
+## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
+set_target_properties(${PROJECT_NAME}_node_local PROPERTIES OUTPUT_NAME node_local PREFIX "")
+
+## Add cmake target dependencies of the executable
+## same as for the library above
+add_dependencies(${PROJECT_NAME}_node_local ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(${PROJECT_NAME}_node_local
+  ${PROJECT_NAME}_local
+)
+
+###############################################################
+# SPOMP-Mapper
+###############################################################
+
+## Declare a C++ library
+add_library(${PROJECT_NAME}_mapper
+  src/mapper.cpp
+  src/timer.cpp
+  src/pose_graph.cpp
+  src/keyframe.cpp
+  src/metric_map.cpp
+  src/reachability.cpp
+)
+
+## Add cmake target dependencies of the library
+## as an example, code may need to be generated before libraries
+## either from message generation or dynamic reconfigure
+add_dependencies(${PROJECT_NAME}_mapper
+  ${${PROJECT_NAME}_EXPORTED_TARGETS} 
+  ${catkin_EXPORTED_TARGETS}
+)
+
+target_link_libraries(${PROJECT_NAME}_mapper
+  Eigen3::Eigen
+  TBB::tbb
+  opencv_core
+  opencv_imgproc
+  opencv_imgcodecs
+  opencv_highgui
+  gtsam
+  ${catkin_LIBRARIES}
+)
+
+## Declare a C++ executable
+## With catkin_make all packages are built within a single CMake context
+## The recommended prefix ensures that target names across packages don't collide
+add_executable(${PROJECT_NAME}_node_mapper
+  src/node_mapper.cpp
+  src/mapper_wrapper.cpp
+)
+
+## Rename C++ executable without prefix
+## The above recommended prefix causes long target names, the following renames the
+## target back to the shorter version for ease of user use
+## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
+set_target_properties(${PROJECT_NAME}_node_mapper PROPERTIES OUTPUT_NAME node_mapper PREFIX "")
+
+## Add cmake target dependencies of the executable
+## same as for the library above
+add_dependencies(${PROJECT_NAME}_node_mapper ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(${PROJECT_NAME}_node_mapper
+  ${PROJECT_NAME}_mapper
+)
+
+###############################################################
+# SPOMP-Global
+###############################################################
+
+## Declare a C++ library
+add_library(${PROJECT_NAME}_global
+  src/timer.cpp
+  src/trav_graph.cpp
+  src/trav_map.cpp
+  src/aerial_map.cpp
+  src/mlp_model.cpp
+  src/waypoint_manager.cpp
+  src/global.cpp
+  src/reachability.cpp
+)
+
+## Add cmake target dependencies of the library
+## as an example, code may need to be generated before libraries
+## either from message generation or dynamic reconfigure
+add_dependencies(${PROJECT_NAME}_global
+  ${${PROJECT_NAME}_EXPORTED_TARGETS} 
+  ${catkin_EXPORTED_TARGETS}
+)
+
+target_link_libraries(${PROJECT_NAME}_global
+  Eigen3::Eigen
+  TBB::tbb
+  opencv_core
+  opencv_imgproc
+  opencv_imgcodecs
+  opencv_highgui
+  yaml-cpp
+  ${ARMADILLO_LIBRARIES}
+  ${catkin_LIBRARIES}
+)
+
+# MLPACK has a dated Findmlpack.cmake, so we use the older header include method
+target_include_directories(${PROJECT_NAME}_global PRIVATE
+  ${MLPACK_INCLUDE_DIRECTORIES}
+)
+
+## Declare a C++ executable
+## With catkin_make all packages are built within a single CMake context
+## The recommended prefix ensures that target names across packages don't collide
+add_executable(${PROJECT_NAME}_node_global
+  src/node_global.cpp
+  src/global_wrapper.cpp
+)
+
+## Rename C++ executable without prefix
+## The above recommended prefix causes long target names, the following renames the
+## target back to the shorter version for ease of user use
+## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
+set_target_properties(${PROJECT_NAME}_node_global PROPERTIES OUTPUT_NAME node_global PREFIX "")
+
+## Add cmake target dependencies of the executable
+## same as for the library above
+add_dependencies(${PROJECT_NAME}_node_global ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(${PROJECT_NAME}_node_global
+  ${PROJECT_NAME}_global
+)
+
+else()
+
+message(WARNING "Not all dependencies found, only building messages")
+
+endif()
 
 #############
 ## Install ##
@@ -199,10 +406,46 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_spomp.cpp)
-# if(TARGET ${PROJECT_NAME}-test)
-#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
-# endif()
+if(CATKIN_ENABLE_TESTING)
+  catkin_add_gtest(${PROJECT_NAME}-test 
+    test/test.cpp
+    test/test_terrain_pano.cpp
+    test/test_pano_planner.cpp
+    test/test_controller.cpp
+    test/test_pose_graph.cpp
+    test/test_trav_graph_map.cpp
+    test/test_aerial_map.cpp
+    test/test_keyframe.cpp
+    test/test_metric_map.cpp
+  )
+  
+  catkin_add_gtest(${PROJECT_NAME}-bench
+    test/bench.cpp
+    test/test_terrain_pano.cpp
+    test/test_pano_planner.cpp
+    test/test_controller.cpp
+    test/test_keyframe.cpp
+  )
 
-## Add folders to be run by python nosetests
-# catkin_add_nosetests(test)
+  find_package(benchmark)
+
+  if (benchmark_FOUND)
+    target_link_libraries(${PROJECT_NAME}-bench
+      ${PROJECT_NAME}_local
+      ${PROJECT_NAME}_mapper
+      benchmark::benchmark
+      ${catkin_LIBRARIES}
+    )
+
+    target_link_libraries(${PROJECT_NAME}-test 
+      ${PROJECT_NAME}_local
+      ${PROJECT_NAME}_mapper
+      ${PROJECT_NAME}_global
+      benchmark::benchmark
+      ${catkin_LIBRARIES}
+    )
+  else()
+    message(WARNING "Google bench not found, not building benchmarks")
+  endif()
+endif()
+

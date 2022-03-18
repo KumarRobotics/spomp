@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <arg name="output" default="screen"/>
+
+  <arg name="world_config_path" default="$(find semantics_manager)/config/config.yaml"/>
+  <arg name="robot_list" default="robot"/>
+  <arg name="this_robot" default="robot"/>
+  <arg name="aerial_map_ns" default="titan"/>
+
+  <arg name="G_max_num_recovery_reset" default="1"/>
+  <arg name="G_timeout_duration_s_per_m" default="3"/>
+  <arg name="G_replan_hysteresis" default="10"/>
+  <arg name="G_num_new_reach_to_pub" default="10"/>
+
+  <arg name="TM_learn_trav" default="False"/>
+  <arg name="TM_uniform_node_sampling" default="False"/>
+  <arg name="TM_no_max_terrain_in_graph" default="True"/>
+  <arg name="TM_max_hole_fill_size_m" default="1"/>
+  <arg name="TM_min_region_size_m" default="1"/>
+  <arg name="TM_vis_dist_m" default="10"/>
+  <arg name="TM_unvis_start_thresh" default="0"/>
+  <arg name="TM_unvis_stop_thresh" default="0.001"/>
+  <arg name="TM_prune" default="True"/>
+  <arg name="TM_max_prune_edge_dist_m" default="20"/>
+  <arg name="TM_recover_reset_dist_m" default="10"/>
+  <arg name="TM_reach_dist_thresh_m" default="2"/>
+
+  <arg name="TG_reach_node_max_dist_m" default="4"/>
+  <arg name="TG_trav_window_rad" default="0.1"/>
+  <arg name="TG_max_trav_discontinuity_m" default="2"/>
+  <arg name="TG_num_edge_exp_before_mark" default="2"/>
+  <arg name="TG_trav_edge_prob_trav" default="0.99"/>
+
+  <arg name="AM_inference_thread_period_ms" default="10000"/>
+  <arg name="AM_trav_thresh" default="3"/>
+  <arg name="AM_not_trav_thresh" default="3"/>
+  <arg name="AM_not_trav_range_m" default="3"/>
+  <arg name="AM_max_frac_unknown" default="0.5"/>
+
+  <arg name="MLP_hidden_layer_size" default="10"/>
+  <arg name="MLP_regularization" default="0.01"/>
+
+  <arg name="WM_waypoint_thresh_m" default="2.5"/>
+  <arg name="WM_final_waypoint_thresh_m" default="5"/>
+  <arg name="WM_shortcut_thresh_m" default="0.5"/>
+
+  <node pkg="spomp" type="node_global" name="spomp_global" output="$(arg output)">
+    <!-- Remappings -->
+    <remap from="~aerial_map" to="$(arg aerial_map_ns)/asoom/map"/>
+    <remap from="~goal_simple" to="/move_base_simple/goal"/>
+    <remap from="~pose" to="os_node/rofl_odom/pose"/>
+    <remap from="~reachability" to="spomp_local/reachability"/>
+
+    <!-- Params -->
+    <param name="world_config_path" value="$(arg world_config_path)"/>
+    <param name="robot_list" value="$(arg robot_list)"/>
+    <param name="this_robot" value="$(arg this_robot)"/>
+
+    <param name="G_max_num_recovery_reset" value="$(arg G_max_num_recovery_reset)"/>
+    <param name="G_timeout_duration_s_per_m" value="$(arg G_timeout_duration_s_per_m)"/>
+    <param name="G_replan_hysteresis" value="$(arg G_replan_hysteresis)"/>
+    <param name="G_num_new_reach_to_pub" value="$(arg G_num_new_reach_to_pub)"/>
+
+    <param name="TM_learn_trav" value="$(arg TM_learn_trav)"/>
+    <param name="TM_uniform_node_sampling" value="$(arg TM_uniform_node_sampling)"/>
+    <param name="TM_no_max_terrain_in_graph" value="$(arg TM_no_max_terrain_in_graph)"/>
+    <param name="TM_max_hole_fill_size_m" value="$(arg TM_max_hole_fill_size_m)"/>
+    <param name="TM_min_region_size_m" value="$(arg TM_min_region_size_m)"/>
+    <param name="TM_vis_dist_m" value="$(arg TM_vis_dist_m)"/>
+    <param name="TM_unvis_start_thresh" value="$(arg TM_unvis_start_thresh)"/>
+    <param name="TM_unvis_stop_thresh" value="$(arg TM_unvis_stop_thresh)"/>
+    <param name="TM_prune" value="$(arg TM_prune)"/>
+    <param name="TM_max_prune_edge_dist_m" value="$(arg TM_max_prune_edge_dist_m)"/>
+    <param name="TM_recover_reset_dist_m" value="$(arg TM_recover_reset_dist_m)"/>
+    <param name="TM_reach_dist_thresh_m" value="$(arg TM_reach_dist_thresh_m)"/>
+
+    <param name="TG_reach_node_max_dist_m" value="$(arg TG_reach_node_max_dist_m)"/>
+    <param name="TG_trav_window_rad" value="$(arg TG_trav_window_rad)"/>
+    <param name="TG_max_trav_discontinuity_m" value="$(arg TG_max_trav_discontinuity_m)"/>
+    <param name="TG_num_edge_exp_before_mark" value="$(arg TG_num_edge_exp_before_mark)"/>
+    <param name="TG_trav_edge_prob_trav" value="$(arg TG_trav_edge_prob_trav)"/>
+
+    <param name="AM_inference_thread_period_ms" value="$(arg AM_inference_thread_period_ms)"/>
+    <param name="AM_trav_thresh" value="$(arg AM_trav_thresh)"/>
+    <param name="AM_not_trav_thresh" value="$(arg AM_not_trav_thresh)"/>
+    <param name="AM_not_trav_range_m" value="$(arg AM_not_trav_range_m)"/>
+    <param name="AM_max_frac_unknown" value="$(arg AM_max_frac_unknown)"/>
+
+    <param name="MLP_hidden_layer_size" value="$(arg MLP_hidden_layer_size)"/>
+    <param name="MLP_regularization" value="$(arg MLP_regularization)"/>
+
+    <param name="WM_waypoint_thresh_m" value="$(arg WM_waypoint_thresh_m)"/>
+    <param name="WM_final_waypoint_thresh_m" value="$(arg WM_final_waypoint_thresh_m)"/>
+    <param name="WM_shortcut_thresh_m" value="$(arg WM_shortcut_thresh_m)"/>
+  </node>
+</launch>
