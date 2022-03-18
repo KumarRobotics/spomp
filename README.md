@@ -1,1 +1,1 @@
-# SPOMP: Smenaitc Panoramic Online Mapping and Planning
+# SPOMP: Semantic Panoramic Online Mapping and Planning
