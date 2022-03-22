@@ -99,17 +99,30 @@ class PanoPlan:
         smoothed_vert_range = np.cos(elevs)[:, None] * smoothed_dist
         smoothed_vert_alt = np.abs(np.sin(elevs)[:, None]) * smoothed_dist
 
+        noise = 0.05
+        max_slope = 0.5
+
         #horizontal deriv
-        alt_delta = np.maximum(np.abs(np.roll(smoothed_vert_alt, -2, axis=1) - np.roll(smoothed_vert_alt, 2, axis=1)) - 0.05 * np.abs(np.sin(elevs[:, None])), 0) / (azi_delta * smoothed_vert_range * 5)
+        alt_delta = np.maximum(np.abs(np.roll(smoothed_vert_alt, -2, axis=1) - np.roll(smoothed_vert_alt, 2, axis=1)) - noise*np.abs(np.sin(elevs[:, None])), 0) / (azi_delta * smoothed_vert_range * 5)
 
         #find short vertical obstacles
-        alt_delta_vert = np.maximum(np.abs((smoothed_vert_alt - np.roll(smoothed_vert_alt, 1, axis=0))) - 0.05 * np.abs(np.sin(elevs[:, None])), 0) / \
-                (np.abs(smoothed_vert_range - np.roll(smoothed_vert_range, 1, axis=0)) + 0.05*np.abs(np.cos(elevs[:, None])))
+        alt_delta_vert = np.maximum(np.abs((smoothed_vert_alt - np.roll(smoothed_vert_alt, 1, axis=0))) - noise*np.abs(np.sin(elevs[:, None])), 0) / \
+                (np.abs(smoothed_vert_range - np.roll(smoothed_vert_range, 1, axis=0)) + noise*np.abs(np.cos(elevs[:, None])))
         #find shallower obstacles
-        alt_delta_vert += (np.maximum(np.abs((smoothed_vert_alt - np.roll(smoothed_vert_alt, 3, axis=0))) - 0.05 * np.abs(np.sin(elevs[:, None])), 0) / \
-                (np.abs(smoothed_vert_range - np.roll(smoothed_vert_range, 3, axis=0)) + 0.05*np.abs(np.cos(elevs[:, None]))))
+        for row_ind in reversed(range(smoothed_vert_alt.shape[0])):
+            # LiDAR ~0.4m above ground
+            lidar_h = 0.4
+            pred_range = lidar_h / np.tan(-elevs[row_ind])
+            delta = 3
+            new_pred_range = lidar_h / np.tan(-elevs[row_ind - delta])
+            while new_pred_range - pred_range < 0.5 and row_ind - (delta + 1) > 0 and new_pred_range > 0:
+                delta += 1
+                new_pred_range = lidar_h / np.tan(-elevs[row_ind - delta])
 
-        obs = np.sqrt(alt_delta**2 + alt_delta_vert**2) > 0.25
+            alt_delta_vert[row_ind, :] += np.maximum(np.abs((smoothed_vert_alt[row_ind, :] - smoothed_vert_alt[row_ind-delta, :])) - noise*np.abs(np.sin(elevs[row_ind, None])), 0) / \
+                    (np.abs(smoothed_vert_range[row_ind, :] - smoothed_vert_range[row_ind-delta, :]) + noise*np.abs(np.cos(elevs[row_ind, None])))
+
+        obs = np.sqrt(alt_delta**2 + alt_delta_vert**2) > max_slope
         obs = np.nan_to_num(obs)
         obs = morphology.remove_small_objects(obs, 10)
 
@@ -144,6 +157,9 @@ class PanoPlan:
                         obs_inf[row_ind, col_ind] = 2
                     elif last_range != 0:
                         break
+
+        #visualize rough regions
+        obs_inf[np.sqrt(alt_delta**2 + alt_delta_vert**2) > 0.15] = np.maximum(2.5, obs_inf[np.sqrt(alt_delta**2 + alt_delta_vert**2) > 0.15])
 
         #VISUALIZATION
         #ROS viz
@@ -191,10 +207,10 @@ class PanoPlan:
 
         #self.viz_img(dists, 'dists')
         #self.viz_img(smoothed_dist, 'dists_smoothed')
-        self.viz_img(np.minimum(alt_delta, 1), 'alt_delta')
-        self.viz_img(np.minimum(alt_delta_vert, 1), 'alt_delta_vert')
-        self.viz_img(obs_inf, 'obs')
-        plt.show()
+        #self.viz_img(np.minimum(alt_delta, 1), 'alt_delta')
+        #self.viz_img(np.minimum(alt_delta_vert, 1), 'alt_delta_vert')
+        #self.viz_img(obs_inf, 'obs')
+        #plt.show()
 
     def viz_img(self, img, name=''):
         plt.figure()
