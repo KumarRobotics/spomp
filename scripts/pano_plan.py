@@ -61,14 +61,14 @@ class PanoPlan:
                     before = nonzero_inds[nonzero_inds < ind]
                     after = nonzero_inds[nonzero_inds > ind]
                     if len(before) == 0:
-                        if after[0] < 10:
+                        if after[0] < 100:
                             dists[row_ind, ind] = row[after[0]]
                     elif len(after) == 0:
-                        if len(row) - before[-1] < 10:
+                        if len(row) - before[-1] < 100:
                             dists[row_ind, ind] = row[before[-1]]
                     else:
                         #linear interp
-                        if after[0] - before[-1] < 10:
+                        if after[0] - before[-1] < 100:
                             dists[row_ind, ind] = ((ind - before[-1]) * row[after[0]] + (after[0] - ind) * row[before[-1]]) / (after[0] - before[-1])
 
         zs = np.sin(elevs)[:, None] * dists
@@ -96,12 +96,12 @@ class PanoPlan:
             nans_d = cv2.dilate(nans.astype(np.uint8), np.ones(int(window_size)))
             smoothed_dist[ind, nans_d[:, 0]>0] = np.nan
 
-        alt_delta = np.maximum(np.abs(np.roll(smoothed_dist, -2, axis=1) - np.roll(smoothed_dist, 2, axis=1)) - 0.05, 0) / (azi_delta * ranges * 5) * np.abs(np.sin(elevs[:, None]))
-
         smoothed_vert_range = np.cos(elevs)[:, None] * smoothed_dist
-        smoothed_vert_alt = np.sin(elevs)[:, None] * smoothed_dist
-        #smoothed_vert_alt = ndimage.median_filter(smoothed_vert_alt, (3, 5))
-        #smoothed_vert_range = ndimage.median_filter(smoothed_vert_range, (3, 5))
+        smoothed_vert_alt = np.abs(np.sin(elevs)[:, None]) * smoothed_dist
+
+        #horizontal deriv
+        alt_delta = np.maximum(np.abs(np.roll(smoothed_vert_alt, -2, axis=1) - np.roll(smoothed_vert_alt, 2, axis=1)) - 0.05 * np.abs(np.sin(elevs[:, None])), 0) / (azi_delta * smoothed_vert_range * 5)
+
         #find short vertical obstacles
         alt_delta_vert = np.maximum(np.abs((smoothed_vert_alt - np.roll(smoothed_vert_alt, 1, axis=0))) - 0.05 * np.abs(np.sin(elevs[:, None])), 0) / \
                 (np.abs(smoothed_vert_range - np.roll(smoothed_vert_range, 1, axis=0)) + 0.05*np.abs(np.cos(elevs[:, None])))
@@ -191,10 +191,10 @@ class PanoPlan:
 
         #self.viz_img(dists, 'dists')
         #self.viz_img(smoothed_dist, 'dists_smoothed')
-        #self.viz_img(np.minimum(alt_delta, 1), 'alt_delta')
-        #self.viz_img(np.minimum(alt_delta_vert, 1), 'alt_delta_vert')
-        #self.viz_img(obs_inf, 'obs')
-        #plt.show()
+        self.viz_img(np.minimum(alt_delta, 1), 'alt_delta')
+        self.viz_img(np.minimum(alt_delta_vert, 1), 'alt_delta_vert')
+        self.viz_img(obs_inf, 'obs')
+        plt.show()
 
     def viz_img(self, img, name=''):
         plt.figure()
