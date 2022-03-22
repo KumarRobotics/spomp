@@ -3,7 +3,7 @@
 import rosbag
 import argparse
 import numpy as np
-from vedo import Points, show
+#from vedo import Points, show
 from scipy import ndimage
 import cv2
 import rospy
@@ -47,6 +47,7 @@ class PanoPlan:
         azis = np.arange(0, np.pi*2, azi_delta)
         
         #fill holes
+        robot_elev = 0.4
         for row_ind, row in enumerate(dists):
             if elevs[row_ind] > np.deg2rad(-5):
                 #ignore the top half
@@ -54,8 +55,14 @@ class PanoPlan:
             nonzero_inds = np.nonzero(row)[0]
             if len(nonzero_inds) < len(row)/10:
                 # not meaningful enough to fill in
-                dists[row_ind, :] = 0 
+                if elevs[row_ind] < np.deg2rad(-5):
+                    dists[row_ind, :] = robot_elev / np.sin(-elevs[row_ind])
+                else:
+                    dists[row_ind, :] = 0 
                 continue
+            else:
+                robot_elev = np.median(np.sin(-elevs[row_ind]) * row[nonzero_inds])
+
             for ind, dist in enumerate(row):
                 if dist == 0:
                     before = nonzero_inds[nonzero_inds < ind]
