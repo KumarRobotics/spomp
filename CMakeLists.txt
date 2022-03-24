@@ -118,14 +118,14 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
-# add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/spomp.cpp
-# )
+add_library(${PROJECT_NAME}
+  src/pano_analyzer.cpp
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -199,10 +199,27 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_spomp.cpp)
-# if(TARGET ${PROJECT_NAME}-test)
-#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
-# endif()
+if(CATKIN_ENABLE_TESTING)
+  catkin_add_gtest(${PROJECT_NAME}-test 
+    test/test.cpp
+    test/test_pano_analyzer.cpp
+  )
+  
+  catkin_add_gtest(${PROJECT_NAME}-bench
+    test/bench.cpp
+  )
+
+  find_package(benchmark REQUIRED)
+
+  target_link_libraries(${PROJECT_NAME}-bench
+    ${PROJECT_NAME}
+    benchmark::benchmark
+  )
+
+  target_link_libraries(${PROJECT_NAME}-test 
+    ${PROJECT_NAME}
+  )
+endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
