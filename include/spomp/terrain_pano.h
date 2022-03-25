@@ -11,6 +11,7 @@ namespace spomp {
 class TerrainPano {
   public:
     struct Params {
+      int tbb = -1;
     };
 
     TerrainPano(const Params& params);

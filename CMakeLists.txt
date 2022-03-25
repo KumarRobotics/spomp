@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 find_package(Eigen3 REQUIRED NO_MODULE)
+find_package(TBB REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -136,6 +137,7 @@ add_dependencies(${PROJECT_NAME}_local
 
 target_link_libraries(${PROJECT_NAME}_local
   Eigen3::Eigen
+  TBB::tbb
   ${catkin_LIBRARIES}
 )
 
