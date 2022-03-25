@@ -44,8 +44,21 @@ void TerrainPano::fillHoles(Eigen::ArrayXXf& pano) const {
 }
 
 //! Compute the gradient across the panorama
-Eigen::ArrayXXi TerrainPano::computeGradient(const Eigen::ArrayXXf& pano) const {
-  return {};
+Eigen::ArrayXXf TerrainPano::computeGradient(const Eigen::ArrayXXf& pano) const {
+  // Compute horizonal gradient
+  Eigen::ArrayXXf grad_h = Eigen::ArrayXXf(pano.rows(), pano.cols());
+  for (int row_i=0; row_i<pano.rows(); ++row_i) {
+  }
+
+  // Compute vertical gradient
+  Eigen::ArrayXXf grad_v = Eigen::ArrayXXf(pano.rows(), pano.cols());
+  for (int col_i=0; col_i<pano.cols(); ++col_i) {
+    // Placeholder for now
+    grad_v.col(col_i) = 0;
+  }
+
+  // Combine gradients
+  return (grad_h.pow(2) + grad_v.pow(2)).sqrt();
 }
 
 //! Threshold the gradient into obstacles and filter

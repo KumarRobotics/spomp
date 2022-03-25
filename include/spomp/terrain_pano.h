@@ -35,7 +35,7 @@ class TerrainPano {
     void fillHoles(Eigen::ArrayXXf& pano) const;
 
     //! Compute the gradient across the panorama
-    Eigen::ArrayXXi computeGradient(const Eigen::ArrayXXf& pano) const;
+    Eigen::ArrayXXf computeGradient(const Eigen::ArrayXXf& pano) const;
 
     //! Threshold the gradient into obstacles and filter
     Eigen::ArrayXXi threshold(const Eigen::ArrayXXf& grad_pano) const;
