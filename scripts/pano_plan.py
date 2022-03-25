@@ -102,25 +102,36 @@ class PanoPlan:
             nans = np.isnan(row)
             nans_d = cv2.dilate(nans.astype(np.uint8), np.ones(int(window_size)))
             smoothed_dist[ind, nans_d[:, 0]>0] = np.nan
+        #smoothed_dist = dists
 
         smoothed_vert_range = np.cos(elevs)[:, None] * smoothed_dist
         smoothed_vert_alt = np.abs(np.sin(elevs)[:, None]) * smoothed_dist
 
         noise = 0.05
-        max_slope = 0.5
+        max_slope = 0.15
 
         #horizontal deriv
-        alt_delta = np.maximum(np.abs(np.roll(smoothed_vert_alt, -2, axis=1) - np.roll(smoothed_vert_alt, 2, axis=1)) - noise*np.abs(np.sin(elevs[:, None])), 0) / (azi_delta * smoothed_vert_range * 5)
+        alt_delta = np.empty(alts.shape, dtype=np.float32)
+        alt_delta[:] = np.nan
+        for ind, row in enumerate(smoothed_vert_alt):
+            avg_dist = np.nanmedian(ranges[ind, :])
+            if np.isnan(avg_dist):
+                continue
+            window_size = 0.5 / (avg_dist * azi_delta)
+            ws_n = int(np.maximum(window_size/2, 1))
+            alt_delta[ind, :] = np.maximum(np.abs(np.roll(smoothed_vert_alt[ind, :], -ws_n) - np.roll(smoothed_vert_alt[ind, :], ws_n)) - noise*np.abs(np.sin(elevs[ind, None])), 0) / (azi_delta * smoothed_vert_range[ind, :] * (ws_n*2+1))
+        #alt_delta = np.maximum(np.abs(np.roll(smoothed_vert_alt, -2, axis=1) - np.roll(smoothed_vert_alt, 2, axis=1)) - noise*np.abs(np.sin(elevs[:, None])), 0) / (azi_delta * smoothed_vert_range * 5)
 
         #find short vertical obstacles
-        alt_delta_vert = np.maximum(np.abs((smoothed_vert_alt - np.roll(smoothed_vert_alt, 1, axis=0))) - noise*np.abs(np.sin(elevs[:, None])), 0) / \
-                (np.abs(smoothed_vert_range - np.roll(smoothed_vert_range, 1, axis=0)) + noise*np.abs(np.cos(elevs[:, None])))
+        #alt_delta_vert = np.maximum(np.abs((smoothed_vert_alt - np.roll(smoothed_vert_alt, 1, axis=0))) - noise*np.abs(np.sin(elevs[:, None])), 0) / \
+        #        (np.abs(smoothed_vert_range - np.roll(smoothed_vert_range, 1, axis=0)) + noise*np.abs(np.cos(elevs[:, None])))
+        alt_delta_vert = np.zeros(alts.shape, dtype=np.float32)
         #find shallower obstacles
         for row_ind in reversed(range(smoothed_vert_alt.shape[0])):
             # LiDAR ~0.4m above ground
             lidar_h = 0.4
             pred_range = lidar_h / np.tan(-elevs[row_ind])
-            delta = 3
+            delta = 1
             new_pred_range = lidar_h / np.tan(-elevs[row_ind - delta])
             while new_pred_range - pred_range < 0.5 and row_ind - (delta + 1) > 0 and new_pred_range > 0:
                 delta += 1
