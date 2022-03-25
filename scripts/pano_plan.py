@@ -89,26 +89,26 @@ class PanoPlan:
         alts = zs.copy()
         alts[alts == 0] = np.nan
 
-        smoothed_dist = np.empty(alts.shape, dtype=np.float32)
-        smoothed_dist[:] = np.nan
-        for ind, row in enumerate(dists):
-            avg_dist = np.nanmedian(ranges[ind, :])
-            if np.isnan(avg_dist):
-                continue
-            window_size = 0.5 / (avg_dist * azi_delta)
-            smoothed_dist[ind, :] = ndimage.median_filter(row, np.maximum(1, int(window_size)))
+        #smoothed_dist = np.empty(alts.shape, dtype=np.float32)
+        #smoothed_dist[:] = np.nan
+        #for ind, row in enumerate(dists):
+        #    avg_dist = np.nanmedian(ranges[ind, :])
+        #    if np.isnan(avg_dist):
+        #        continue
+        #    window_size = 0.5 / (avg_dist * azi_delta)
+        #    smoothed_dist[ind, :] = ndimage.median_filter(row, np.maximum(1, int(window_size)))
 
-            #median_filter doesn't handle nans properly
-            nans = np.isnan(row)
-            nans_d = cv2.dilate(nans.astype(np.uint8), np.ones(int(window_size)))
-            smoothed_dist[ind, nans_d[:, 0]>0] = np.nan
-        #smoothed_dist = dists
+        #    #median_filter doesn't handle nans properly
+        #    nans = np.isnan(row)
+        #    nans_d = cv2.dilate(nans.astype(np.uint8), np.ones(int(window_size)))
+        #    smoothed_dist[ind, nans_d[:, 0]>0] = np.nan
+        smoothed_dist = dists
 
         smoothed_vert_range = np.cos(elevs)[:, None] * smoothed_dist
         smoothed_vert_alt = np.abs(np.sin(elevs)[:, None]) * smoothed_dist
 
         noise = 0.05
-        max_slope = 0.15
+        max_slope = 0.25
 
         #horizontal deriv
         alt_delta = np.empty(alts.shape, dtype=np.float32)
