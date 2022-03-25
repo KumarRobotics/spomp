@@ -16,8 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
-
+find_package(Eigen3 REQUIRED NO_MODULE)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -123,14 +122,22 @@ include_directories(
 )
 
 ## Declare a C++ library
-add_library(${PROJECT_NAME}
-  src/pano_analyzer.cpp
+add_library(${PROJECT_NAME}_local
+  src/terrain_pano.cpp
 )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME}_local 
+  ${${PROJECT_NAME}_EXPORTED_TARGETS} 
+  ${catkin_EXPORTED_TARGETS}
+)
+
+target_link_libraries(${PROJECT_NAME}_local
+  Eigen3::Eigen
+  ${catkin_LIBRARIES}
+)
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
@@ -202,7 +209,7 @@ add_library(${PROJECT_NAME}
 if(CATKIN_ENABLE_TESTING)
   catkin_add_gtest(${PROJECT_NAME}-test 
     test/test.cpp
-    test/test_pano_analyzer.cpp
+    test/test_terrain_pano.cpp
   )
   
   catkin_add_gtest(${PROJECT_NAME}-bench
@@ -212,12 +219,12 @@ if(CATKIN_ENABLE_TESTING)
   find_package(benchmark REQUIRED)
 
   target_link_libraries(${PROJECT_NAME}-bench
-    ${PROJECT_NAME}
+    ${PROJECT_NAME}_local
     benchmark::benchmark
   )
 
   target_link_libraries(${PROJECT_NAME}-test 
-    ${PROJECT_NAME}
+    ${PROJECT_NAME}_local
   )
 endif()
 
