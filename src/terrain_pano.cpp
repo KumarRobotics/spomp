@@ -1,6 +1,5 @@
 #include <tbb/parallel_for.h>
 #include "spomp/terrain_pano.h"
-#include "spomp/utils.h"
 
 namespace spomp {
 
@@ -52,6 +51,32 @@ void TerrainPano::fillHoles(Eigen::ArrayXXf& pano) const {
 }
 
 void TerrainPano::computeCloud() {
+  Eigen::VectorXf alts = Eigen::VectorXf::LinSpaced(pano_.rows(), 
+      params_.v_fov_rad/2, -params_.v_fov_rad/2);
+  Eigen::VectorXf azs = Eigen::VectorXf::LinSpaced(pano_.cols(), 
+      0, 2*pi*(1 - 1./pano_.cols()));
+
+  Eigen::VectorXf alts_c = alts.array().cos();
+  Eigen::VectorXf alts_s = alts.array().sin();
+
+  // Initialize
+  for (auto& axis : cloud_) {
+    axis = Eigen::ArrayXXf(pano_.rows(), pano_.cols());
+  }
+
+  int gsize = params_.tbb <= 0 ? pano_.cols() : params_.tbb;
+
+  tbb::parallel_for(tbb::blocked_range<int>(0, pano_.cols(), gsize), 
+    [&](tbb::blocked_range<int> range) {
+      for (int col_i=range.begin(); col_i<range.end(); ++col_i) {
+        // Loop through cols because Eigen stores col-major
+        // This means we access more contiguous blocks of memory
+        cloud_[0].col(col_i) = pano_.col(col_i) * alts_c.array();
+        cloud_[1].col(col_i) = cloud_[0].col(col_i) * sin(azs(col_i));
+        cloud_[0].col(col_i) = cloud_[0].col(col_i) * cos(azs(col_i));
+        cloud_[2].col(col_i) = pano_.col(col_i) * alts_s.array();
+      }
+    });
 }
 
 //! Compute the gradient across the panorama

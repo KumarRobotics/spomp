@@ -2,6 +2,7 @@
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include "spomp/utils.h"
 
 namespace spomp {
 
@@ -12,6 +13,7 @@ class TerrainPano {
   public:
     struct Params {
       int tbb = -1;
+      float v_fov_rad = deg2rad(90);
     };
 
     TerrainPano(const Params& params);

@@ -11,6 +11,7 @@ namespace spomp {
 class TerrainPanoTester : TerrainPano {
   public:
     TerrainPanoTester(const TerrainPano::Params& p) : TerrainPano(p) {}
+    using TerrainPano::updatePano;
     using TerrainPano::fillHoles;
     using TerrainPano::computeCloud;
     using TerrainPano::computeGradient;
@@ -46,6 +47,30 @@ TEST(terrain_pano, test_fill_holes) {
   ASSERT_TRUE((pano != pano_copy).any());
   tp.fillHoles(pano);
   ASSERT_TRUE(((pano - pano_copy).abs() < 0.001).all());
+}
+
+TEST(terrain_pano, test_compute_cloud) {
+  TerrainPano tp({});
+  Eigen::ArrayXXf pano = Eigen::ArrayXXf::Ones(101, 8);
+  pano(0,0) = 10;
+  tp.updatePano(pano, {});
+  const auto& cloud = tp.getCloud();
+
+  ASSERT_NEAR(cloud[0](50, 0), 1, 1e-10);
+  ASSERT_NEAR(cloud[1](50, 0), 0, 1e-10);
+  ASSERT_NEAR(cloud[2](50, 0), 0, 1e-10);
+
+  ASSERT_NEAR(cloud[0](0, 0), 10*sqrt(2)/2, 1e-5);
+  ASSERT_NEAR(cloud[0](0, 0), cloud[2](0, 0), 1e-5);
+  ASSERT_NEAR(cloud[0](100, 0), -cloud[2](100, 0), 1e-5);
+
+  ASSERT_NEAR(cloud[0](50, 2), 0, 1e-5);
+  ASSERT_NEAR(cloud[1](50, 2), 1, 1e-5);
+  ASSERT_NEAR(cloud[2](50, 2), 0, 1e-5);
+
+  ASSERT_NEAR(cloud[0](50, 4), -1, 1e-5);
+  ASSERT_NEAR(cloud[1](50, 4), 0, 1e-5);
+  ASSERT_NEAR(cloud[2](50, 4), 0, 1e-5);
 }
 
 static void BM_mod(benchmark::State& state) {
@@ -88,5 +113,18 @@ static void BM_terrain_pano_fill_holes(benchmark::State& state) {
   }
 }
 BENCHMARK(BM_terrain_pano_fill_holes);
+
+static void BM_terrain_pano_compute_cloud(benchmark::State& state) {
+  TerrainPanoTester tp({});
+  Eigen::ArrayXXf pano = Eigen::ArrayXXf::Ones(128, 1024);
+  for (int row=0; row<pano.rows(); ++row) {
+    pano.row(row).setLinSpaced(1024, 1, 1024);
+  }
+  tp.updatePano(pano, {});
+  for (auto _ : state) {
+    tp.computeCloud();
+  }
+}
+BENCHMARK(BM_terrain_pano_compute_cloud);
 
 } // namespace spomp
