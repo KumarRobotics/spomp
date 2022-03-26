@@ -30,24 +30,25 @@ class TerrainPano {
     const std::array<Eigen::ArrayXXf, 3>& getCloud() const {
       return cloud_;
     }
-
+    
+  protected:
+    /*********************************************************
+     * LOCAL FUNCTIONS
+     *********************************************************/
     //! Fills small holes in the panorama, modifies pano in-place
     void fillHoles(Eigen::ArrayXXf& pano) const;
 
+    //! Compute cartesian point for each point in the cloud
+    void computeCloud();
+
     //! Compute the gradient across the panorama
-    Eigen::ArrayXXf computeGradient(const Eigen::ArrayXXf& pano) const;
+    Eigen::ArrayXXf computeGradient() const;
 
     //! Threshold the gradient into obstacles and filter
     Eigen::ArrayXXi threshold(const Eigen::ArrayXXf& grad_pano) const;
 
     //! Inflate obstacles, modifies in place
     void inflate(Eigen::ArrayXXi& trav_pano) const;
-    
-  private:
-    /*********************************************************
-     * LOCAL FUNCTIONS
-     *********************************************************/
-    void computeCloud();
 
     /*********************************************************
      * LOCAL CONSTANTS

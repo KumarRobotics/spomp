@@ -4,11 +4,19 @@
 
 namespace spomp {
 
-TerrainPano::TerrainPano(const Params& params) : params_(params) {}
+TerrainPano::TerrainPano(const Params& params) : params_(params) {
+}
 
 void TerrainPano::updatePano(const Eigen::ArrayXXf& pano, 
     const Eigen::Isometry3f& pose) 
-{}
+{
+  pano_ = pano;
+  fillHoles(pano_);
+  computeCloud();
+  Eigen::ArrayXXf grad = computeGradient();
+  traversability_pano_ = threshold(grad);
+  inflate(traversability_pano_);
+}
 
 void TerrainPano::fillHoles(Eigen::ArrayXXf& pano) const {
   int gsize = params_.tbb <= 0 ? pano.rows() : params_.tbb;
@@ -43,16 +51,21 @@ void TerrainPano::fillHoles(Eigen::ArrayXXf& pano) const {
     });
 }
 
+void TerrainPano::computeCloud() {
+}
+
 //! Compute the gradient across the panorama
-Eigen::ArrayXXf TerrainPano::computeGradient(const Eigen::ArrayXXf& pano) const {
+Eigen::ArrayXXf TerrainPano::computeGradient() const {
   // Compute horizonal gradient
-  Eigen::ArrayXXf grad_h = Eigen::ArrayXXf(pano.rows(), pano.cols());
-  for (int row_i=0; row_i<pano.rows(); ++row_i) {
+  Eigen::ArrayXXf grad_h = Eigen::ArrayXXf(pano_.rows(), pano_.cols());
+  for (int row_i=0; row_i<pano_.rows(); ++row_i) {
+    for (int col_i=0; col_i<pano_.cols(); ++col_i) {
+    }  
   }
 
   // Compute vertical gradient
-  Eigen::ArrayXXf grad_v = Eigen::ArrayXXf(pano.rows(), pano.cols());
-  for (int col_i=0; col_i<pano.cols(); ++col_i) {
+  Eigen::ArrayXXf grad_v = Eigen::ArrayXXf(pano_.rows(), pano_.cols());
+  for (int col_i=0; col_i<pano_.cols(); ++col_i) {
     // Placeholder for now
     grad_v.col(col_i) = 0;
   }

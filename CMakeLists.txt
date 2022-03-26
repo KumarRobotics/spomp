@@ -218,6 +218,7 @@ if(CATKIN_ENABLE_TESTING)
   
   catkin_add_gtest(${PROJECT_NAME}-bench
     test/bench.cpp
+    test/test_terrain_pano.cpp
   )
 
   find_package(benchmark REQUIRED)
@@ -229,6 +230,7 @@ if(CATKIN_ENABLE_TESTING)
 
   target_link_libraries(${PROJECT_NAME}-test 
     ${PROJECT_NAME}_local
+    benchmark::benchmark
   )
 endif()
 
