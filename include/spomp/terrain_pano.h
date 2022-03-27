@@ -15,6 +15,7 @@ class TerrainPano {
       int tbb = -1;
       float v_fov_rad = deg2rad(90);
       float target_dist_xy = 0.5;
+      float noise_m = 0.05;
     };
 
     TerrainPano(const Params& params);

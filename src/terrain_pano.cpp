@@ -82,14 +82,26 @@ void TerrainPano::computeCloud() {
 
 //! Compute the gradient across the panorama
 Eigen::ArrayXXf TerrainPano::computeGradient() const {
-  Eigen::VectorXf alts_c = Eigen::VectorXf::LinSpaced(pano_.rows(), 
-      params_.v_fov_rad/2, -params_.v_fov_rad/2).array().cos();
+  Eigen::VectorXf alts = Eigen::VectorXf::LinSpaced(pano_.rows(), 
+      params_.v_fov_rad/2, -params_.v_fov_rad/2);
+  Eigen::VectorXf alts_c = alts.array().cos();
+  Eigen::VectorXf alts_s = alts.array().sin();
+
+  // LiDAR at ~0.4m off ground
+  Eigen::VectorXf pred_ranges = 0.4 / (-alts).array().tan();
 
   // Compute horizonal gradient
   Eigen::ArrayXXf grad_h = Eigen::ArrayXXf::Zero(pano_.rows(), pano_.cols());
   Eigen::ArrayXXf grad_v = Eigen::ArrayXXf::Zero(pano_.rows(), pano_.cols());
 
-  for (int row_i=0; row_i<pano_.rows(); ++row_i) {
+  for (int row_i=0; row_i<pano_.rows() - 1; ++row_i) {
+    // Calculate vertical spacing
+    int delta = 0;
+    do {
+      ++delta;
+    } while (abs(pred_ranges[row_i] - pred_ranges[row_i - delta]) < params_.target_dist_xy &&
+             pred_ranges[row_i - delta] > 0 && row_i - (delta + 1) > 0);
+
     for (int col_i=0; col_i<pano_.cols(); ++col_i) {
       if (cloud_[2](row_i, col_i) != 0) {
         // Horizontal grad
@@ -102,12 +114,21 @@ Eigen::ArrayXXf TerrainPano::computeGradient() const {
         int col_i1 = fast_mod(col_i - window + pano_.cols(), pano_.cols());
         int col_i2 = fast_mod(col_i + window, pano_.cols());
 
+        float v_noise = params_.noise_m*alts_s[row_i];
+        float h_noise = params_.noise_m*alts_c[row_i];
         if (cloud_[2](row_i, col_i1) != 0 && cloud_[2](row_i, col_i2) != 0) {
-          grad_h(row_i, col_i) = abs(cloud_[2](row_i, col_i1) - cloud_[2](row_i, col_i2)) / 
-           (arc_length * (window * 2 + 1));
+          grad_h(row_i, col_i) = std::max<float>(
+              abs(cloud_[2](row_i, col_i1) - cloud_[2](row_i, col_i2)) - v_noise, 0) / 
+              (arc_length * (window * 2 + 1));
         }
         
         // Vertical grad
+        if (cloud_[2](row_i - delta, col_i) != 0) {
+          grad_v(row_i, col_i) = std::max<float>(
+              abs(cloud_[2](row_i, col_i) - cloud_[2](row_i - delta, col_i)) - v_noise, 0) /
+            std::max<float>(
+              abs(xy_range - alts_c[row_i - delta] * pano_(row_i - delta, col_i)) + h_noise, 0);
+        }
       }
     }  
   }
