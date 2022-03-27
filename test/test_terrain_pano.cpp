@@ -26,6 +26,30 @@ class TerrainPanoTester : TerrainPano {
     using TerrainPano::inflate;
 };
 
+static void BM_mod(benchmark::State& state) {
+  for (auto _ : state) {
+    for (int a=0; a<100; a++) {
+      for (int b=0; b<a*2; b++) {
+        int res = b % a;
+        benchmark::DoNotOptimize(res);
+      }
+    }
+  }
+}
+BENCHMARK(BM_mod);
+
+static void BM_mod_fast(benchmark::State& state) {
+  for (auto _ : state) {
+    for (int a=0; a<100; a++) {
+      for (int b=0; b<a*2; b++) {
+        int res = fast_mod(b, a);
+        benchmark::DoNotOptimize(res);
+      }
+    }
+  }
+}
+BENCHMARK(BM_mod_fast);
+
 TEST(terrain_pano, test_fill_holes) {
   Eigen::ArrayXXf pano = Eigen::ArrayXXf::Ones(3, 100);
   pano.row(0).setLinSpaced(100, 1, 100);
@@ -56,6 +80,23 @@ TEST(terrain_pano, test_fill_holes) {
   ASSERT_TRUE(((pano - pano_copy).abs() < 0.001).all());
 }
 
+static void BM_terrain_pano_fill_holes(benchmark::State& state) {
+  TerrainPanoTester tp({});
+  Eigen::ArrayXXf pano = Eigen::ArrayXXf::Ones(128, 1024);
+  for (int row=0; row<pano.rows(); ++row) {
+    pano.row(row).setLinSpaced(1024, 1, 1024);
+  }
+  Eigen::ArrayXXf pano_copy = pano;
+  // Create hole
+  for (int cnt=0; cnt<1000; cnt++) {
+    pano.block<3, 10>(rand() % 128, rand() % 1000) = 0;
+  }
+  for (auto _ : state) {
+    tp.fillHoles(pano);
+  }
+}
+BENCHMARK(BM_terrain_pano_fill_holes);
+
 TEST(terrain_pano, test_compute_cloud) {
   TerrainPano tp({});
   Eigen::ArrayXXf pano = Eigen::ArrayXXf::Ones(101, 8);
@@ -80,69 +121,6 @@ TEST(terrain_pano, test_compute_cloud) {
   ASSERT_NEAR(cloud[2](50, 4), 0, 1e-5);
 }
 
-TEST(terrain_pano, test_compute_gradient) {
-  cv::Mat pano = cv::imread(ros::package::getPath("spomp") + 
-                           "/test/pano.png", cv::IMREAD_ANYDEPTH);
-  Eigen::MatrixXf pano_eig;
-  cv::cv2eigen(pano, pano_eig);
-  pano_eig /= 512;
-
-  TerrainPanoTester tp({});
-  tp.updatePano(pano_eig, {});
-  Eigen::MatrixXf grad = tp.computeGradient().matrix();
-
-  cv::Mat grad_cv;
-  cv::eigen2cv(grad, grad_cv);
-  grad_cv *= 256;
-  cv::imwrite("grad.png", grad_cv);
-
-  Eigen::MatrixXf filled = tp.getPano().matrix();
-  cv::Mat filled_cv;
-  cv::eigen2cv(filled, filled_cv);
-  cv::imwrite("filled.png", filled_cv);
-}
-
-static void BM_mod(benchmark::State& state) {
-  for (auto _ : state) {
-    for (int a=0; a<100; a++) {
-      for (int b=0; b<a*2; b++) {
-        int res = b % a;
-        benchmark::DoNotOptimize(res);
-      }
-    }
-  }
-}
-BENCHMARK(BM_mod);
-
-static void BM_mod_fast(benchmark::State& state) {
-  for (auto _ : state) {
-    for (int a=0; a<100; a++) {
-      for (int b=0; b<a*2; b++) {
-        int res = fast_mod(b, a);
-        benchmark::DoNotOptimize(res);
-      }
-    }
-  }
-}
-BENCHMARK(BM_mod_fast);
-
-static void BM_terrain_pano_fill_holes(benchmark::State& state) {
-  TerrainPanoTester tp({});
-  Eigen::ArrayXXf pano = Eigen::ArrayXXf::Ones(128, 1024);
-  for (int row=0; row<pano.rows(); ++row) {
-    pano.row(row).setLinSpaced(1024, 1, 1024);
-  }
-  Eigen::ArrayXXf pano_copy = pano;
-  // Create hole
-  for (int cnt=0; cnt<1000; cnt++) {
-    pano.block<3, 10>(rand() % 128, rand() % 1000) = 0;
-  }
-  for (auto _ : state) {
-    tp.fillHoles(pano);
-  }
-}
-BENCHMARK(BM_terrain_pano_fill_holes);
-
 static void BM_terrain_pano_compute_cloud(benchmark::State& state) {
   TerrainPanoTester tp({});
   Eigen::ArrayXXf pano = Eigen::ArrayXXf::Ones(128, 1024);
@@ -155,5 +133,42 @@ static void BM_terrain_pano_compute_cloud(benchmark::State& state) {
   }
 }
 BENCHMARK(BM_terrain_pano_compute_cloud);
+
+TEST(terrain_pano, test_compute_gradient) {
+  cv::Mat pano = cv::imread(ros::package::getPath("spomp") + 
+                           "/test/pano.png", cv::IMREAD_ANYDEPTH);
+  Eigen::MatrixXf pano_eig;
+  cv::cv2eigen(pano, pano_eig);
+  pano_eig /= 512;
+
+  TerrainPanoTester tp({});
+  tp.updatePano(pano_eig, {});
+  Eigen::MatrixXf grad = tp.computeGradient().matrix();
+
+  // This is kind of cheating.  Just write the image to disk
+  // and manually review for correctness
+  cv::Mat grad_cv;
+  cv::eigen2cv(grad, grad_cv);
+  grad_cv *= 256;
+  cv::imwrite("grad.png", grad_cv);
+
+  Eigen::MatrixXf filled = tp.getPano().matrix();
+  cv::Mat filled_cv;
+  cv::eigen2cv(filled, filled_cv);
+  cv::imwrite("filled.png", filled_cv);
+}
+
+static void BM_terrain_pano_compute_gradient(benchmark::State& state) {
+  TerrainPanoTester tp({});
+  Eigen::ArrayXXf pano = Eigen::ArrayXXf::Ones(256, 1024);
+  for (int row=0; row<pano.rows(); ++row) {
+    pano.row(row).setLinSpaced(1024, 1, 1024);
+  }
+  tp.updatePano(pano, {});
+  for (auto _ : state) {
+    tp.computeGradient();
+  }
+}
+BENCHMARK(BM_terrain_pano_compute_gradient);
 
 } // namespace spomp

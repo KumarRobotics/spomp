@@ -94,44 +94,48 @@ Eigen::ArrayXXf TerrainPano::computeGradient() const {
   Eigen::ArrayXXf grad_h = Eigen::ArrayXXf::Zero(pano_.rows(), pano_.cols());
   Eigen::ArrayXXf grad_v = Eigen::ArrayXXf::Zero(pano_.rows(), pano_.cols());
 
-  for (int row_i=0; row_i<pano_.rows() - 1; ++row_i) {
-    // Calculate vertical spacing
-    int delta = 0;
-    do {
-      ++delta;
-    } while (abs(pred_ranges[row_i] - pred_ranges[row_i - delta]) < params_.target_dist_xy &&
-             pred_ranges[row_i - delta] > 0 && row_i - (delta + 1) > 0);
+  int gsize = params_.tbb <= 0 ? pano_.rows() : params_.tbb;
+  tbb::parallel_for(tbb::blocked_range<int>(0, pano_.rows(), gsize), 
+    [&](tbb::blocked_range<int> range) {
+      for (int row_i=range.begin(); row_i<range.end(); ++row_i) {
+        // Calculate vertical spacing
+        int delta = 0;
+        do {
+          ++delta;
+        } while (abs(pred_ranges[row_i] - pred_ranges[row_i - delta]) < params_.target_dist_xy &&
+                 pred_ranges[row_i - delta] > 0 && row_i - (delta + 1) > 0);
 
-    for (int col_i=0; col_i<pano_.cols(); ++col_i) {
-      if (cloud_[2](row_i, col_i) != 0) {
-        // Horizontal grad
-        float xy_range = alts_c[row_i] * pano_(row_i, col_i);
-        float arc_length = xy_range * 2 * pi / pano_.cols();
-        int window = std::min<int>(params_.target_dist_xy / arc_length, pano_.cols() / 20);
-        window = window / 2 + 1; // half size
-        
-        // Add cols to force positive
-        int col_i1 = fast_mod(col_i - window + pano_.cols(), pano_.cols());
-        int col_i2 = fast_mod(col_i + window, pano_.cols());
+        for (int col_i=0; col_i<pano_.cols(); ++col_i) {
+          if (cloud_[2](row_i, col_i) != 0) {
+            // Horizontal grad
+            float xy_range = alts_c[row_i] * pano_(row_i, col_i);
+            float arc_length = xy_range * 2 * pi / pano_.cols();
+            int window = std::min<int>(params_.target_dist_xy / arc_length, pano_.cols() / 20);
+            window = window / 2 + 1; // half size
+            
+            // Add cols to force positive
+            int col_i1 = fast_mod(col_i - window + pano_.cols(), pano_.cols());
+            int col_i2 = fast_mod(col_i + window, pano_.cols());
 
-        float v_noise = params_.noise_m*alts_s[row_i];
-        float h_noise = params_.noise_m*alts_c[row_i];
-        if (cloud_[2](row_i, col_i1) != 0 && cloud_[2](row_i, col_i2) != 0) {
-          grad_h(row_i, col_i) = std::max<float>(
-              abs(cloud_[2](row_i, col_i1) - cloud_[2](row_i, col_i2)) - v_noise, 0) / 
-              (arc_length * (window * 2 + 1));
-        }
-        
-        // Vertical grad
-        if (cloud_[2](row_i - delta, col_i) != 0) {
-          grad_v(row_i, col_i) = std::max<float>(
-              abs(cloud_[2](row_i, col_i) - cloud_[2](row_i - delta, col_i)) - v_noise, 0) /
-            std::max<float>(
-              abs(xy_range - alts_c[row_i - delta] * pano_(row_i - delta, col_i)) + h_noise, 0);
-        }
+            float v_noise = params_.noise_m*alts_s[row_i];
+            float h_noise = params_.noise_m*alts_c[row_i];
+            if (cloud_[2](row_i, col_i1) != 0 && cloud_[2](row_i, col_i2) != 0) {
+              grad_h(row_i, col_i) = std::max<float>(
+                  abs(cloud_[2](row_i, col_i1) - cloud_[2](row_i, col_i2)) - v_noise, 0) / 
+                  (arc_length * (window * 2 + 1));
+            }
+            
+            // Vertical grad
+            if (cloud_[2](row_i - delta, col_i) != 0) {
+              grad_v(row_i, col_i) = std::max<float>(
+                  abs(cloud_[2](row_i, col_i) - cloud_[2](row_i - delta, col_i)) - v_noise, 0) /
+                std::max<float>(
+                  abs(xy_range - alts_c[row_i - delta] * pano_(row_i - delta, col_i)) + h_noise, 0);
+            }
+          }
+        }  
       }
-    }  
-  }
+    });
 
   // Combine gradients
   return (grad_h.pow(2) + grad_v.pow(2)).sqrt();
