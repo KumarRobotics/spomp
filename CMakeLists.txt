@@ -15,11 +15,13 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
+  roslib
 )
 
 ## System dependencies are found with CMake's conventions
 find_package(Eigen3 REQUIRED NO_MODULE)
 find_package(TBB REQUIRED)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -140,6 +142,9 @@ add_dependencies(${PROJECT_NAME}_local
 target_link_libraries(${PROJECT_NAME}_local
   Eigen3::Eigen
   TBB::tbb
+  opencv_core
+  opencv_imgproc
+  opencv_imgcodecs
   ${catkin_LIBRARIES}
 )
 
@@ -226,11 +231,13 @@ if(CATKIN_ENABLE_TESTING)
   target_link_libraries(${PROJECT_NAME}-bench
     ${PROJECT_NAME}_local
     benchmark::benchmark
+    ${catkin_LIBRARIES}
   )
 
   target_link_libraries(${PROJECT_NAME}-test 
     ${PROJECT_NAME}_local
     benchmark::benchmark
+    ${catkin_LIBRARIES}
   )
 endif()
 

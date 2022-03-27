@@ -1,4 +1,10 @@
 #include <iostream>
+#include <ros/package.h>
+#include <opencv2/imgcodecs/imgcodecs.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <Eigen/Dense>
+#include <opencv2/core/eigen.hpp>
+
 #include <gtest/gtest.h>
 #include <benchmark/benchmark.h>
 
@@ -11,6 +17,7 @@ namespace spomp {
 class TerrainPanoTester : TerrainPano {
   public:
     TerrainPanoTester(const TerrainPano::Params& p) : TerrainPano(p) {}
+    using TerrainPano::getPano;
     using TerrainPano::updatePano;
     using TerrainPano::fillHoles;
     using TerrainPano::computeCloud;
@@ -71,6 +78,28 @@ TEST(terrain_pano, test_compute_cloud) {
   ASSERT_NEAR(cloud[0](50, 4), -1, 1e-5);
   ASSERT_NEAR(cloud[1](50, 4), 0, 1e-5);
   ASSERT_NEAR(cloud[2](50, 4), 0, 1e-5);
+}
+
+TEST(terrain_pano, test_compute_gradient) {
+  cv::Mat pano = cv::imread(ros::package::getPath("spomp") + 
+                           "/test/pano.png", cv::IMREAD_ANYDEPTH);
+  Eigen::MatrixXf pano_eig;
+  cv::cv2eigen(pano, pano_eig);
+  pano_eig /= 512;
+
+  TerrainPanoTester tp({});
+  tp.updatePano(pano_eig, {});
+  Eigen::MatrixXf grad = tp.computeGradient().matrix();
+
+  cv::Mat grad_cv;
+  cv::eigen2cv(grad, grad_cv);
+  grad_cv *= 256;
+  cv::imwrite("grad.png", grad_cv);
+
+  Eigen::MatrixXf filled = tp.getPano().matrix();
+  cv::Mat filled_cv;
+  cv::eigen2cv(filled, filled_cv);
+  cv::imwrite("filled.png", filled_cv);
 }
 
 static void BM_mod(benchmark::State& state) {

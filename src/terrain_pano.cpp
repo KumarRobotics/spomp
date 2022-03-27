@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <tbb/parallel_for.h>
 #include "spomp/terrain_pano.h"
 
@@ -81,18 +82,34 @@ void TerrainPano::computeCloud() {
 
 //! Compute the gradient across the panorama
 Eigen::ArrayXXf TerrainPano::computeGradient() const {
+  Eigen::VectorXf alts_c = Eigen::VectorXf::LinSpaced(pano_.rows(), 
+      params_.v_fov_rad/2, -params_.v_fov_rad/2).array().cos();
+
   // Compute horizonal gradient
-  Eigen::ArrayXXf grad_h = Eigen::ArrayXXf(pano_.rows(), pano_.cols());
+  Eigen::ArrayXXf grad_h = Eigen::ArrayXXf::Zero(pano_.rows(), pano_.cols());
+  Eigen::ArrayXXf grad_v = Eigen::ArrayXXf::Zero(pano_.rows(), pano_.cols());
+
   for (int row_i=0; row_i<pano_.rows(); ++row_i) {
     for (int col_i=0; col_i<pano_.cols(); ++col_i) {
-    }  
-  }
+      if (cloud_[2](row_i, col_i) != 0) {
+        // Horizontal grad
+        float xy_range = alts_c[row_i] * pano_(row_i, col_i);
+        float arc_length = xy_range * 2 * pi / pano_.cols();
+        int window = std::min<int>(params_.target_dist_xy / arc_length, pano_.cols() / 20);
+        window = window / 2 + 1; // half size
+        
+        // Add cols to force positive
+        int col_i1 = fast_mod(col_i - window + pano_.cols(), pano_.cols());
+        int col_i2 = fast_mod(col_i + window, pano_.cols());
 
-  // Compute vertical gradient
-  Eigen::ArrayXXf grad_v = Eigen::ArrayXXf(pano_.rows(), pano_.cols());
-  for (int col_i=0; col_i<pano_.cols(); ++col_i) {
-    // Placeholder for now
-    grad_v.col(col_i) = 0;
+        if (cloud_[2](row_i, col_i1) != 0 && cloud_[2](row_i, col_i2) != 0) {
+          grad_h(row_i, col_i) = abs(cloud_[2](row_i, col_i1) - cloud_[2](row_i, col_i2)) / 
+           (arc_length * (window * 2 + 1));
+        }
+        
+        // Vertical grad
+      }
+    }  
   }
 
   // Combine gradients
