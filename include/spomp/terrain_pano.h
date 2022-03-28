@@ -13,9 +13,12 @@ class TerrainPano {
   public:
     struct Params {
       int tbb = -1;
+      int max_hole_fill_size = 100;
+      int min_noise_size = 3;
       float v_fov_rad = deg2rad(90);
       float target_dist_xy = 0.5;
       float noise_m = 0.05;
+      float slope_thresh = 0.3;
     };
 
     TerrainPano(const Params& params);

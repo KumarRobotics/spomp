@@ -30,7 +30,9 @@ void TerrainPano::fillHoles(Eigen::ArrayXXf& pano) const {
         for (int col_i=0; col_i<=first_nonzero + pano.cols(); ++col_i) {
           float val = pano(row_i, fast_mod(col_i, pano.cols()));
           if (val > 0) {
-            if (col_i - last_nonzero > 1 && col_i - last_nonzero < 100 && last_nonzero >= 0) {
+            if (col_i - last_nonzero > 1 && col_i - last_nonzero < params_.max_hole_fill_size && 
+                last_nonzero >= 0) 
+            {
               // Found a hole small enough to fill
               float last_val = pano(row_i, fast_mod(last_nonzero, pano.cols()));
               for (int fill_col_i=last_nonzero+1; fill_col_i<col_i; ++fill_col_i) {
@@ -143,7 +145,40 @@ Eigen::ArrayXXf TerrainPano::computeGradient() const {
 
 //! Threshold the gradient into obstacles and filter
 Eigen::ArrayXXi TerrainPano::threshold(const Eigen::ArrayXXf& grad_pano) const {
-  return {};
+  Eigen::ArrayXXi thresh_pano = (grad_pano > params_.slope_thresh).cast<int>();
+
+  // Find small obstacles
+  int gsize = params_.tbb <= 0 ? thresh_pano.rows() : params_.tbb;
+  tbb::parallel_for(tbb::blocked_range<int>(0, thresh_pano.rows(), gsize), 
+    [&](tbb::blocked_range<int> range) {
+      for (int row_i=range.begin(); row_i<range.end(); ++row_i) {
+        // This is very similar to the hole removal code, essentially the same idea
+        // but in reverse
+        int first_zero = -1;
+        int last_zero = -1;
+        // Loop around back to starting first nonzero to make sure we wrap around
+        for (int col_i=0; col_i<=first_zero + thresh_pano.cols(); ++col_i) {
+          int val = thresh_pano(row_i, fast_mod(col_i, thresh_pano.cols()));
+          if (val == 0) {
+            if (col_i - last_zero > 1 && col_i - last_zero <= params_.min_noise_size && 
+                last_zero >= 0) 
+            {
+              // Found a hole small enough to fill
+              for (int clear_col_i=last_zero+1; clear_col_i<col_i; ++clear_col_i) {
+                thresh_pano(row_i, fast_mod(clear_col_i, thresh_pano.cols())) = 0;
+              }
+            }
+            
+            last_zero = col_i;
+            if (first_zero < 0) {
+              first_zero = last_zero;
+            }
+          }
+        }
+      }
+    });
+
+  return thresh_pano;
 }
 
 //! Inflate obstacles, modifies in place

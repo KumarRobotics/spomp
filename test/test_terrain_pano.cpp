@@ -82,14 +82,14 @@ TEST(terrain_pano, test_fill_holes) {
 
 static void BM_terrain_pano_fill_holes(benchmark::State& state) {
   TerrainPanoTester tp({});
-  Eigen::ArrayXXf pano = Eigen::ArrayXXf::Ones(128, 1024);
+  Eigen::ArrayXXf pano = Eigen::ArrayXXf::Ones(256, 1024);
   for (int row=0; row<pano.rows(); ++row) {
     pano.row(row).setLinSpaced(1024, 1, 1024);
   }
   Eigen::ArrayXXf pano_copy = pano;
   // Create hole
   for (int cnt=0; cnt<1000; cnt++) {
-    pano.block<3, 10>(rand() % 128, rand() % 1000) = 0;
+    pano.block<3, 10>(rand() % 256, rand() % 1000) = 0;
   }
   for (auto _ : state) {
     tp.fillHoles(pano);
@@ -123,7 +123,7 @@ TEST(terrain_pano, test_compute_cloud) {
 
 static void BM_terrain_pano_compute_cloud(benchmark::State& state) {
   TerrainPanoTester tp({});
-  Eigen::ArrayXXf pano = Eigen::ArrayXXf::Ones(128, 1024);
+  Eigen::ArrayXXf pano = Eigen::ArrayXXf::Ones(256, 1024);
   for (int row=0; row<pano.rows(); ++row) {
     pano.row(row).setLinSpaced(1024, 1, 1024);
   }
@@ -134,7 +134,7 @@ static void BM_terrain_pano_compute_cloud(benchmark::State& state) {
 }
 BENCHMARK(BM_terrain_pano_compute_cloud);
 
-TEST(terrain_pano, test_compute_gradient) {
+TEST(terrain_pano, test_grad_thresh) {
   cv::Mat pano = cv::imread(ros::package::getPath("spomp") + 
                            "/test/pano.png", cv::IMREAD_ANYDEPTH);
   Eigen::MatrixXf pano_eig;
@@ -144,6 +144,7 @@ TEST(terrain_pano, test_compute_gradient) {
   TerrainPanoTester tp({});
   tp.updatePano(pano_eig, {});
   Eigen::MatrixXf grad = tp.computeGradient().matrix();
+  Eigen::MatrixXi thresh = tp.threshold(grad.array()).matrix();
 
   // This is kind of cheating.  Just write the image to disk
   // and manually review for correctness
@@ -151,6 +152,11 @@ TEST(terrain_pano, test_compute_gradient) {
   cv::eigen2cv(grad, grad_cv);
   grad_cv *= 256;
   cv::imwrite("grad.png", grad_cv);
+
+  cv::Mat thresh_cv;
+  cv::eigen2cv(thresh, thresh_cv);
+  thresh_cv *= 256;
+  cv::imwrite("thresh.png", thresh_cv);
 
   Eigen::MatrixXf filled = tp.getPano().matrix();
   cv::Mat filled_cv;
@@ -170,5 +176,18 @@ static void BM_terrain_pano_compute_gradient(benchmark::State& state) {
   }
 }
 BENCHMARK(BM_terrain_pano_compute_gradient);
+
+static void BM_terrain_pano_thresh(benchmark::State& state) {
+  TerrainPanoTester tp({});
+  Eigen::ArrayXXf pano = Eigen::ArrayXXf::Zero(256, 1024);
+  // Create noise
+  for (int cnt=0; cnt<1000; cnt++) {
+    pano.block<1, 2>(rand() % 256, rand() % 1000) = 100;
+  }
+  for (auto _ : state) {
+    tp.threshold(pano);
+  }
+}
+BENCHMARK(BM_terrain_pano_thresh);
 
 } // namespace spomp
