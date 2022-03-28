@@ -145,6 +145,8 @@ TEST(terrain_pano, test_grad_thresh) {
   tp.updatePano(pano_eig, {});
   Eigen::MatrixXf grad = tp.computeGradient().matrix();
   Eigen::MatrixXi thresh = tp.threshold(grad.array()).matrix();
+  Eigen::ArrayXXi inflate = thresh.array(); 
+  tp.inflate(inflate);
 
   // This is kind of cheating.  Just write the image to disk
   // and manually review for correctness
@@ -157,6 +159,12 @@ TEST(terrain_pano, test_grad_thresh) {
   cv::eigen2cv(thresh, thresh_cv);
   thresh_cv *= 256;
   cv::imwrite("thresh.png", thresh_cv);
+
+  cv::Mat inflate_cv;
+  Eigen::MatrixXi inflate_mat = inflate;
+  cv::eigen2cv(inflate_mat, inflate_cv);
+  inflate_cv *= 100;
+  cv::imwrite("inflate.png", inflate_cv);
 
   Eigen::MatrixXf filled = tp.getPano().matrix();
   cv::Mat filled_cv;
@@ -189,5 +197,25 @@ static void BM_terrain_pano_thresh(benchmark::State& state) {
   }
 }
 BENCHMARK(BM_terrain_pano_thresh);
+
+static void BM_terrain_pano_inflate(benchmark::State& state) {
+  TerrainPanoTester tp({});
+  Eigen::ArrayXXf pano = Eigen::ArrayXXf::Zero(256, 1024);
+  for (int col=0; col<pano.cols(); ++col) {
+    pano.col(col).setLinSpaced(256, 50, 1);
+  }
+  Eigen::ArrayXXi obs = Eigen::ArrayXXi::Zero(256, 1024);
+  Eigen::ArrayXXi obs_copy;
+  // Create obstacles
+  for (int cnt=0; cnt<1000; cnt++) {
+    obs.block<1, 2>(rand() % 256, rand() % 1000) = 1;
+  }
+  tp.updatePano(pano, {});
+  for (auto _ : state) {
+    obs_copy = obs;
+    tp.inflate(obs_copy);
+  }
+}
+BENCHMARK(BM_terrain_pano_inflate);
 
 } // namespace spomp

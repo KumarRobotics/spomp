@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <tbb/parallel_for.h>
+#include <iostream>
 #include "spomp/terrain_pano.h"
 
 namespace spomp {
@@ -183,6 +184,54 @@ Eigen::ArrayXXi TerrainPano::threshold(const Eigen::ArrayXXf& grad_pano) const {
 
 //! Inflate obstacles, modifies in place
 void TerrainPano::inflate(Eigen::ArrayXXi& trav_pano) const {
+  Eigen::VectorXf alts_c = Eigen::VectorXf::LinSpaced(pano_.rows(), 
+      params_.v_fov_rad/2, -params_.v_fov_rad/2).array().cos();
+
+  // Inflate first along altitude
+  int gsize = params_.tbb <= 0 ? trav_pano.cols() : params_.tbb;
+  tbb::parallel_for(tbb::blocked_range<int>(0, trav_pano.cols(), gsize), 
+    [&](tbb::blocked_range<int> range) {
+      for (int col_i=range.begin(); col_i<range.end(); ++col_i) {
+        float min_obs_range = std::numeric_limits<float>::infinity();
+        for (int row_i=0; row_i<trav_pano.rows(); ++row_i) {
+          if (trav_pano(row_i, col_i) > 0 && pano_(row_i, col_i) < min_obs_range &&
+              pano_(row_i, col_i) > 0) 
+          {
+            min_obs_range = pano_(row_i, col_i);
+          }
+          if (abs(pano_(row_i, col_i) - min_obs_range) < params_.inflation_m && 
+              trav_pano(row_i, col_i) == 0) {
+            trav_pano(row_i, col_i) = 2;
+          }
+        }        
+      }
+    });
+
+  // Now inflate along azimuth
+  gsize = params_.tbb <= 0 ? trav_pano.rows() : params_.tbb;
+  tbb::parallel_for(tbb::blocked_range<int>(0, trav_pano.rows(), gsize), 
+    [&](tbb::blocked_range<int> range) {
+      for (int row_i=range.begin(); row_i<range.end(); ++row_i) {
+        for (int col_i=0; col_i<trav_pano.cols(); ++col_i) {
+          if (trav_pano(row_i, col_i) == 1 && pano_(row_i, col_i) > 0) {
+            float xy_range = alts_c[row_i] * pano_(row_i, col_i);
+            float arc_length = xy_range * 2 * pi / pano_.cols();
+            int window = params_.inflation_m / arc_length;
+            
+            // Make sure col_i_b - window is nonnegative
+            int col_i_b = col_i; 
+            if (col_i_b < window) col_i_b += pano_.cols();
+
+            for (int inf_col=col_i_b-window; inf_col<col_i_b+window; ++inf_col) {
+              int inf_col_bounds = fast_mod(inf_col, pano_.cols());
+              if (trav_pano(row_i, inf_col_bounds) == 0 && pano_(row_i, inf_col_bounds) > 0) {
+                trav_pano(row_i, inf_col_bounds) = 2;
+              }
+            }
+          }
+        }
+      }
+    });
 }
 
 } // namespace spomp

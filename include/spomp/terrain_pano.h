@@ -19,6 +19,7 @@ class TerrainPano {
       float target_dist_xy = 0.5;
       float noise_m = 0.05;
       float slope_thresh = 0.3;
+      float inflation_m = 0.5;
     };
 
     TerrainPano(const Params& params);
