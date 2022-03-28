@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <tbb/parallel_for.h>
-#include <iostream>
 #include "spomp/terrain_pano.h"
 
 namespace spomp {
