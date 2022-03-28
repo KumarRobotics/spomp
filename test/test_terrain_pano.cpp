@@ -18,6 +18,7 @@ class TerrainPanoTester : TerrainPano {
   public:
     TerrainPanoTester(const TerrainPano::Params& p) : TerrainPano(p) {}
     using TerrainPano::getPano;
+    using TerrainPano::getTraversability;
     using TerrainPano::updatePano;
     using TerrainPano::fillHoles;
     using TerrainPano::computeCloud;
@@ -145,8 +146,7 @@ TEST(terrain_pano, test_grad_thresh) {
   tp.updatePano(pano_eig, {});
   Eigen::MatrixXf grad = tp.computeGradient().matrix();
   Eigen::MatrixXi thresh = tp.threshold(grad.array()).matrix();
-  Eigen::ArrayXXi inflate = thresh.array(); 
-  tp.inflate(inflate);
+  Eigen::MatrixXi inflate = tp.getTraversability().matrix(); 
 
   // This is kind of cheating.  Just write the image to disk
   // and manually review for correctness
@@ -161,8 +161,7 @@ TEST(terrain_pano, test_grad_thresh) {
   cv::imwrite("thresh.png", thresh_cv);
 
   cv::Mat inflate_cv;
-  Eigen::MatrixXi inflate_mat = inflate;
-  cv::eigen2cv(inflate_mat, inflate_cv);
+  cv::eigen2cv(inflate, inflate_cv);
   inflate_cv *= 100;
   cv::imwrite("inflate.png", inflate_cv);
 
@@ -217,5 +216,21 @@ static void BM_terrain_pano_inflate(benchmark::State& state) {
   }
 }
 BENCHMARK(BM_terrain_pano_inflate);
+
+static void BM_terrain_pano_update(benchmark::State& state) {
+  TerrainPanoTester tp({});
+  Eigen::ArrayXXf pano = Eigen::ArrayXXf::Zero(256, 1024);
+  for (int col=0; col<pano.cols(); ++col) {
+    pano.col(col).setLinSpaced(256, 50, 1);
+  }
+  // Create obstacles
+  for (int cnt=0; cnt<100; cnt++) {
+    pano.block<1, 2>(rand() % 256, rand() % 1000) = 10;
+  }
+  for (auto _ : state) {
+    tp.updatePano(pano, {});
+  }
+}
+BENCHMARK(BM_terrain_pano_update);
 
 } // namespace spomp
