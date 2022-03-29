@@ -38,6 +38,10 @@ class LocalWrapper {
     Local local_;
 
     Remote remote_;
+
+    // Timers
+    Timer* viz_pano_t_{};
+    Timer* viz_cloud_t_{};
 };
 
 }

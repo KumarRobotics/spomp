@@ -12,6 +12,10 @@ namespace spomp {
 LocalWrapper::LocalWrapper(ros::NodeHandle& nh) : 
   nh_(nh), local_(createLocal(nh)), remote_(50) 
 {
+  auto& tm = TimerManager::getGlobal();
+  viz_pano_t_ = tm.get("LW_viz_pano");
+  viz_cloud_t_ = tm.get("LW_viz_cloud");
+
   obs_pano_viz_pub_ = nh_.advertise<sensor_msgs::Image>("obs_pano_viz", 1);
   obs_cloud_viz_pub_ = nh_.advertise<sensor_msgs::PointCloud2>("obs_cloud_viz", 1);
 }
@@ -73,6 +77,8 @@ void LocalWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg) {
 }
 
 void LocalWrapper::visualizePano(const ros::Time& stamp) {
+  viz_pano_t_->start();
+
   const Eigen::MatrixXi& pano = local_.getPano().getTraversability().matrix();
   cv::Mat pano_viz;
   cv::eigen2cv(pano, pano_viz);
@@ -82,9 +88,13 @@ void LocalWrapper::visualizePano(const ros::Time& stamp) {
   header.stamp = stamp;
   sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "mono8", pano_viz).toImageMsg();
   obs_pano_viz_pub_.publish(msg);
+
+  viz_pano_t_->end();
 }
 
 void LocalWrapper::visualizeCloud(const ros::Time& stamp) {
+  viz_cloud_t_->start();
+
   // Grab data
   const auto& cloud = local_.getPano().getCloud();
   const auto& trav = local_.getPano().getTraversability();
@@ -147,6 +157,8 @@ void LocalWrapper::visualizeCloud(const ros::Time& stamp) {
       trav.data(), trav.size()).cast<float>();
 
   obs_cloud_viz_pub_.publish(cloud_msg);
+
+  viz_cloud_t_->end();
 }
 
 void LocalWrapper::printTimings() {
