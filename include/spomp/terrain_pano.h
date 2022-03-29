@@ -14,8 +14,8 @@ class TerrainPano {
   public:
     struct Params {
       int tbb = -1;
-      float max_hole_fill_size = 0.5;
-      int min_noise_size = 3;
+      float max_hole_fill_size = 0.1;
+      float min_noise_size = 0.3;
       float v_fov_rad = deg2rad(90);
       float target_dist_xy = 0.5;
       float noise_m = 0.05;
@@ -59,10 +59,13 @@ class TerrainPano {
     //! Inflate obstacles, modifies in place
     void inflate(Eigen::ArrayXXi& trav_pano) const;
 
+    //! Get the window size for a given distance
+    int getWindow(float dist_m, int row_i, int col_i) const;
+
     /*********************************************************
      * LOCAL CONSTANTS
      *********************************************************/
-    const Params params_;
+    Params params_;
 
     /*********************************************************
      * LOCAL VARIABLES
