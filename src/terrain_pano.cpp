@@ -41,8 +41,13 @@ void TerrainPano::fillHoles(Eigen::ArrayXXf& pano) const {
         // Loop around back to starting first nonzero to make sure we wrap around holes
         for (int col_i=0; col_i<=first_nonzero + pano.cols(); ++col_i) {
           float val = pano(row_i, fast_mod(col_i, pano.cols()));
+
+          // Scale max window size with distance
+          float arc_length = val * 2 * pi / pano_.cols();
+          int window = std::min<int>(params_.max_hole_fill_size / arc_length, pano_.cols() / 5);
+
           if (val > 0) {
-            if (col_i - last_nonzero > 1 && col_i - last_nonzero < params_.max_hole_fill_size && 
+            if (col_i - last_nonzero > 1 && col_i - last_nonzero < window && 
                 last_nonzero >= 0) 
             {
               // Found a hole small enough to fill
@@ -115,10 +120,10 @@ Eigen::ArrayXXf TerrainPano::computeGradient() const {
   Eigen::ArrayXXf grad_v = Eigen::ArrayXXf::Zero(pano_.rows(), pano_.cols());
 
   int gsize = params_.tbb <= 0 ? pano_.rows() : params_.tbb;
-  tbb::parallel_for(tbb::blocked_range<int>(0, pano_.rows(), gsize), 
+  // Add 1 here so we can compute vertical delta
+  tbb::parallel_for(tbb::blocked_range<int>(1, pano_.rows(), gsize), 
     [&](tbb::blocked_range<int> range) {
-      // Add 1 here so we can compute vertical delta
-      for (int row_i=range.begin()+1; row_i<range.end(); ++row_i) {
+      for (int row_i=range.begin(); row_i<range.end(); ++row_i) {
         // Calculate vertical spacing
         int delta = 0;
         do {

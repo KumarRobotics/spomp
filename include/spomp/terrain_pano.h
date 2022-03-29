@@ -14,7 +14,7 @@ class TerrainPano {
   public:
     struct Params {
       int tbb = -1;
-      int max_hole_fill_size = 10;
+      float max_hole_fill_size = 0.5;
       int min_noise_size = 3;
       float v_fov_rad = deg2rad(90);
       float target_dist_xy = 0.5;

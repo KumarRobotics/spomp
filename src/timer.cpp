@@ -1,5 +1,6 @@
-#include "spomp/timer.h"
 #include <array>
+#include <iomanip>
+#include "spomp/timer.h"
 
 namespace spomp {
 
@@ -41,10 +42,12 @@ std::ostream& operator<<(std::ostream& os, const Timer& t) {
   }
 
   std::string unit = units[unit_i];
-  os << "[" << t.name_ << "] mean: " << mean << unit << 
-        " last: " << last << unit <<
-        " std: " << std << unit <<
-        " count: " << t.count();
+  using namespace std;
+  os << "[" << left << setw(20) << t.name_ << "]" << 
+        " mean: " << setw(10) << mean << unit << 
+        " last: " << setw(10) << last << unit <<
+        " std: " << setw(10) << std << unit <<
+        " count: " << setw(10) << t.count();
   return os;
 }
 
