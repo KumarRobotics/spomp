@@ -16,12 +16,16 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   roslib
+  rosbag
+  cv_bridge
+  sensor_msgs
+  geometry_msgs
 )
 
 ## System dependencies are found with CMake's conventions
 find_package(Eigen3 REQUIRED NO_MODULE)
 find_package(TBB REQUIRED)
-find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs highgui)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -146,6 +150,7 @@ target_link_libraries(${PROJECT_NAME}_local
   opencv_core
   opencv_imgproc
   opencv_imgcodecs
+  opencv_highgui
   ${catkin_LIBRARIES}
 )
 
@@ -154,6 +159,7 @@ target_link_libraries(${PROJECT_NAME}_local
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME}_play_local 
   src/play_local.cpp
+  src/remote.cpp
   src/local_wrapper.cpp
 )
 
