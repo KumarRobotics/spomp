@@ -3,7 +3,8 @@
 #include <chrono>
 #include <list>
 #include <string>
-#include <iostream>
+#include <ostream>
+#include <cmath>
 
 namespace spomp {
 
@@ -21,12 +22,9 @@ class Timer {
 
     void end();
 
-    long avg_us() const {
-      if (n_ == 0) {
-        return 0;
-      }
-      return t_/n_;
-    }
+    double avg_us() const;
+
+    double std_us() const;
 
     double last_us() const {
       return last_t_;
@@ -40,7 +38,9 @@ class Timer {
 
   private:
     std::string name_{};
-    long t_{0};
+    // These things integrate us (or squared us), so make big
+    long long t_sum_{0};
+    long long t_sq_sum_{0};
     long last_t_{0};
     int n_{0};
     std::chrono::time_point<std::chrono::system_clock> start_t_{};
