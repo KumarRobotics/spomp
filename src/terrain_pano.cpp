@@ -112,7 +112,7 @@ Eigen::ArrayXXf TerrainPano::computeGradient() const {
             // Horizontal grad
             float xy_range = alts_c[row_i] * pano_(row_i, col_i);
             float arc_length = xy_range * 2 * pi / pano_.cols();
-            int window = std::min<int>(params_.target_dist_xy / arc_length, pano_.cols() / 20);
+            int window = std::min<int>(params_.target_dist_xy / arc_length, pano_.cols() / 5);
             window = window / 2 + 1; // half size
             
             // Add cols to force positive

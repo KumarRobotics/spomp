@@ -1,8 +1,10 @@
 #include "spomp/local_wrapper.h"
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/eigen.hpp>
+#include <opencv2/highgui/highgui.hpp>
 #include <cv_bridge/cv_bridge.h>
 
 namespace spomp {
@@ -11,6 +13,7 @@ LocalWrapper::LocalWrapper(ros::NodeHandle& nh) :
   nh_(nh), local_(createLocal(nh)), remote_(50) 
 {
   obs_pano_viz_pub_ = nh_.advertise<sensor_msgs::Image>("obs_pano_viz", 1);
+  obs_cloud_viz_pub_ = nh_.advertise<sensor_msgs::PointCloud2>("obs_cloud_viz", 1);
 }
 
 Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
@@ -41,6 +44,7 @@ void LocalWrapper::play() {
 
         panoCallback(pano);
         visualizePano(pano->header.stamp);
+        visualizeCloud(pano->header.stamp);
       }
     }
     ros::spinOnce();
@@ -74,6 +78,71 @@ void LocalWrapper::visualizePano(const ros::Time& stamp) {
   header.stamp = stamp;
   sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "mono8", pano_viz).toImageMsg();
   obs_pano_viz_pub_.publish(msg);
+}
+
+void LocalWrapper::visualizeCloud(const ros::Time& stamp) {
+  // Grab data
+  const auto& cloud = local_.getPano().getCloud();
+  const auto& trav = local_.getPano().getTraversability();
+
+  sensor_msgs::PointCloud2 cloud_msg;
+  cloud_msg.header.stamp = stamp;
+  cloud_msg.header.frame_id = "map";
+  cloud_msg.height = 1;
+  cloud_msg.width = cloud[0].size();
+
+  {
+    sensor_msgs::PointField field;
+    field.name = "x";
+    field.offset = 0;
+    field.datatype = sensor_msgs::PointField::FLOAT32;
+    field.count = 1;
+    cloud_msg.fields.push_back(field);
+  }
+  {
+    sensor_msgs::PointField field;
+    field.name = "y";
+    field.offset = 4;
+    field.datatype = sensor_msgs::PointField::FLOAT32;
+    field.count = 1;
+    cloud_msg.fields.push_back(field);
+  }
+  {
+    sensor_msgs::PointField field;
+    field.name = "z";
+    field.offset = 8;
+    field.datatype = sensor_msgs::PointField::FLOAT32;
+    field.count = 1;
+    cloud_msg.fields.push_back(field);
+  }
+  {
+    sensor_msgs::PointField field;
+    field.name = "data";
+    field.offset = 12;
+    field.datatype = sensor_msgs::PointField::FLOAT32;
+    field.count = 1;
+    cloud_msg.fields.push_back(field);
+  }
+
+  cloud_msg.point_step = 16;
+  cloud_msg.row_step = cloud_msg.point_step * cloud_msg.width;
+  cloud_msg.is_dense = true;
+
+  cloud_msg.data.resize(cloud_msg.row_step*cloud_msg.height);
+
+  // Map eigen array onto pc data
+  Eigen::Map<Eigen::ArrayXXf> cloud_packed(reinterpret_cast<float*>(cloud_msg.data.data()), 
+      4, cloud[0].size());
+
+  // Copy data over
+  for (int axis=0; axis<3; ++axis) {
+    cloud_packed.row(axis) = Eigen::Map<const Eigen::VectorXf>(
+        cloud[axis].data(), cloud[axis].size());
+  }
+  cloud_packed.row(3) = Eigen::Map<const Eigen::VectorXi>(
+      trav.data(), trav.size()).cast<float>();
+
+  obs_cloud_viz_pub_.publish(cloud_msg);
 }
 
 } // namespace spomp
