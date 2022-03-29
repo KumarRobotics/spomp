@@ -4,21 +4,33 @@
 
 namespace spomp {
 
-TerrainPano::TerrainPano(const Params& params) : params_(params) {
+TerrainPano::TerrainPano(const Params& params) : 
+  params_(params)
+{
+  auto& tm = TimerManager::getGlobal();
+  pano_update_t_ = tm.get("TP");
+  fill_holes_t_ = tm.get("TP_fill_holes");
+  compute_cloud_t_ = tm.get("TP_compute_cloud");
+  compute_grad_t_ = tm.get("TP_compute_grad"); 
+  thresh_t_ = tm.get("TP_thresh");
+  inflate_t_ = tm.get("TP_inflate");
 }
 
 void TerrainPano::updatePano(const Eigen::ArrayXXf& pano, 
     const Eigen::Isometry3f& pose) 
 {
+  pano_update_t_->start();
   pano_ = pano;
   fillHoles(pano_);
   computeCloud();
   Eigen::ArrayXXf grad = computeGradient();
   traversability_pano_ = threshold(grad);
   inflate(traversability_pano_);
+  pano_update_t_->end();
 }
 
 void TerrainPano::fillHoles(Eigen::ArrayXXf& pano) const {
+  fill_holes_t_->start();
   int gsize = params_.tbb <= 0 ? pano.rows() : params_.tbb;
 
   tbb::parallel_for(tbb::blocked_range<int>(0, pano.rows(), gsize), 
@@ -51,9 +63,12 @@ void TerrainPano::fillHoles(Eigen::ArrayXXf& pano) const {
         }
       }
     });
+  fill_holes_t_->end();
 }
 
 void TerrainPano::computeCloud() {
+  compute_cloud_t_->start();
+
   Eigen::VectorXf alts = Eigen::VectorXf::LinSpaced(pano_.rows(), 
       params_.v_fov_rad/2, -params_.v_fov_rad/2);
   Eigen::VectorXf azs = Eigen::VectorXf::LinSpaced(pano_.cols(), 
@@ -80,10 +95,13 @@ void TerrainPano::computeCloud() {
         cloud_[2].col(col_i) = pano_.col(col_i) * alts_s.array();
       }
     });
+  compute_cloud_t_->end();
 }
 
 //! Compute the gradient across the panorama
 Eigen::ArrayXXf TerrainPano::computeGradient() const {
+  compute_grad_t_->start();
+
   Eigen::VectorXf alts = Eigen::VectorXf::LinSpaced(pano_.rows(), 
       params_.v_fov_rad/2, -params_.v_fov_rad/2);
   Eigen::VectorXf alts_c = alts.array().cos();
@@ -99,7 +117,8 @@ Eigen::ArrayXXf TerrainPano::computeGradient() const {
   int gsize = params_.tbb <= 0 ? pano_.rows() : params_.tbb;
   tbb::parallel_for(tbb::blocked_range<int>(0, pano_.rows(), gsize), 
     [&](tbb::blocked_range<int> range) {
-      for (int row_i=range.begin(); row_i<range.end(); ++row_i) {
+      // Add 1 here so we can compute vertical delta
+      for (int row_i=range.begin()+1; row_i<range.end(); ++row_i) {
         // Calculate vertical spacing
         int delta = 0;
         do {
@@ -139,12 +158,14 @@ Eigen::ArrayXXf TerrainPano::computeGradient() const {
       }
     });
 
+  compute_grad_t_->end();
   // Combine gradients
   return (grad_h.pow(2) + grad_v.pow(2)).sqrt();
 }
 
 //! Threshold the gradient into obstacles and filter
 Eigen::ArrayXXi TerrainPano::threshold(const Eigen::ArrayXXf& grad_pano) const {
+  thresh_t_->start();
   Eigen::ArrayXXi thresh_pano = (grad_pano > params_.slope_thresh).cast<int>();
 
   // Find small obstacles
@@ -178,11 +199,14 @@ Eigen::ArrayXXi TerrainPano::threshold(const Eigen::ArrayXXf& grad_pano) const {
       }
     });
 
+  thresh_t_->end();
   return thresh_pano;
 }
 
 //! Inflate obstacles, modifies in place
 void TerrainPano::inflate(Eigen::ArrayXXi& trav_pano) const {
+  inflate_t_->start();
+
   Eigen::VectorXf alts_c = Eigen::VectorXf::LinSpaced(pano_.rows(), 
       params_.v_fov_rad/2, -params_.v_fov_rad/2).array().cos();
 
@@ -193,12 +217,12 @@ void TerrainPano::inflate(Eigen::ArrayXXi& trav_pano) const {
       for (int col_i=range.begin(); col_i<range.end(); ++col_i) {
         float min_obs_range = std::numeric_limits<float>::infinity();
         for (int row_i=0; row_i<trav_pano.rows(); ++row_i) {
-          if (trav_pano(row_i, col_i) > 0 && pano_(row_i, col_i) < min_obs_range &&
-              pano_(row_i, col_i) > 0) 
+          float depth = pano_(row_i, col_i);
+          if (trav_pano(row_i, col_i) > 0 && depth < min_obs_range &&
+              depth > 0) 
           {
-            min_obs_range = pano_(row_i, col_i);
-          }
-          if (abs(pano_(row_i, col_i) - min_obs_range) < params_.inflation_m && 
+            min_obs_range = depth;
+          } else if (abs(depth - min_obs_range) < params_.inflation_m && 
               trav_pano(row_i, col_i) == 0) {
             trav_pano(row_i, col_i) = 2;
           }
@@ -231,6 +255,8 @@ void TerrainPano::inflate(Eigen::ArrayXXi& trav_pano) const {
         }
       }
     });
+  
+  inflate_t_->end();
 }
 
 } // namespace spomp

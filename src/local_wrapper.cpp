@@ -17,7 +17,10 @@ LocalWrapper::LocalWrapper(ros::NodeHandle& nh) :
 }
 
 Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
-  return Local(TerrainPano::Params());
+  TerrainPano::Params params{};
+  nh.getParam("tbb", params.tbb);
+
+  return Local(params);
 }
 
 void LocalWrapper::play() {
@@ -45,6 +48,7 @@ void LocalWrapper::play() {
         panoCallback(pano);
         visualizePano(pano->header.stamp);
         visualizeCloud(pano->header.stamp);
+        printTimings();
       }
     }
     ros::spinOnce();
@@ -143,6 +147,10 @@ void LocalWrapper::visualizeCloud(const ros::Time& stamp) {
       trav.data(), trav.size()).cast<float>();
 
   obs_cloud_viz_pub_.publish(cloud_msg);
+}
+
+void LocalWrapper::printTimings() {
+  ROS_INFO_STREAM("\033[34m" << TimerManager::getGlobal() << "\033[0m");
 }
 
 } // namespace spomp

@@ -19,6 +19,7 @@ class TerrainPanoTester : TerrainPano {
     TerrainPanoTester(const TerrainPano::Params& p) : TerrainPano(p) {}
     using TerrainPano::getPano;
     using TerrainPano::getTraversability;
+    using TerrainPano::getCloud;
     using TerrainPano::updatePano;
     using TerrainPano::fillHoles;
     using TerrainPano::computeCloud;
@@ -60,7 +61,9 @@ TEST(terrain_pano, test_fill_holes) {
   pano.block<3, 5>(0, 10) = 0;
   ASSERT_TRUE((pano != pano_copy).any());
 
-  TerrainPanoTester tp({});
+  TerrainPano::Params params{};
+  params.max_hole_fill_size = 100;
+  TerrainPanoTester tp(params);
   tp.fillHoles(pano);
 
   ASSERT_TRUE(((pano - pano_copy).abs() < 0.001).all());
@@ -99,7 +102,7 @@ static void BM_terrain_pano_fill_holes(benchmark::State& state) {
 BENCHMARK(BM_terrain_pano_fill_holes);
 
 TEST(terrain_pano, test_compute_cloud) {
-  TerrainPano tp({});
+  TerrainPanoTester tp({});
   Eigen::ArrayXXf pano = Eigen::ArrayXXf::Ones(101, 8);
   pano(0,0) = 10;
   tp.updatePano(pano, {});

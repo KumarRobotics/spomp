@@ -134,6 +134,7 @@ include_directories(
 add_library(${PROJECT_NAME}_local
   src/terrain_pano.cpp
   src/local.cpp
+  src/timer.cpp
 )
 
 ## Add cmake target dependencies of the library

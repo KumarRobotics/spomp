@@ -3,6 +3,7 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include "spomp/utils.h"
+#include "spomp/timer.h"
 
 namespace spomp {
 
@@ -70,6 +71,14 @@ class TerrainPano {
     Eigen::ArrayXXi traversability_pano_;
 
     std::array<Eigen::ArrayXXf, 3> cloud_;
+
+    //! Timers
+    Timer* pano_update_t_{};
+    Timer* fill_holes_t_{};
+    Timer* compute_cloud_t_{};
+    Timer* compute_grad_t_{};
+    Timer* thresh_t_{};
+    Timer* inflate_t_{};
 };
 
 } // namespace spomp

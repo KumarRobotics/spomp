@@ -19,10 +19,18 @@ class LocalWrapper {
     void initialize();
 
   private:
+    /*********************************************************
+     * LOCAL FUNCTIONS
+     *********************************************************/
     void panoCallback(const sensor_msgs::Image::ConstPtr& img_msg);
     void visualizePano(const ros::Time& stamp);
     void visualizeCloud(const ros::Time& stamp);
 
+    void printTimings();
+
+    /*********************************************************
+     * LOCAL VARIABLES
+     *********************************************************/
     ros::NodeHandle nh_;
     ros::Publisher obs_pano_viz_pub_;
     ros::Publisher obs_cloud_viz_pub_;
