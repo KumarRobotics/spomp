@@ -28,6 +28,22 @@ class TerrainPano {
     //! Update the internal depth panorama
     void updatePano(const Eigen::ArrayXXf& pano, const Eigen::Isometry3f& pose);
 
+    const int rows() const {
+      return pano_.rows();
+    }
+
+    const int cols() const {
+      return pano_.cols();
+    }
+
+    const float rangeAt(int row, int col) const {
+      return pano_(row, col) * alts_c_[row];
+    }
+
+    const bool traversableAt(int row, int col) const {
+      return traversability_pano_(row, col) == 0;
+    }
+
     const auto& getTraversability() const {
       return traversability_pano_;
     }
@@ -68,6 +84,8 @@ class TerrainPano {
      *********************************************************/
     Params params_;
 
+    Eigen::VectorXf alts_, azs_, alts_c_, alts_s_;
+
     /*********************************************************
      * LOCAL VARIABLES
      *********************************************************/
@@ -76,7 +94,7 @@ class TerrainPano {
 
     std::array<Eigen::ArrayXXf, 3> cloud_;
 
-    //! Timers
+    // Timers
     Timer* pano_update_t_{};
     Timer* fill_holes_t_{};
     Timer* compute_cloud_t_{};

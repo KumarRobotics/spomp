@@ -195,6 +195,7 @@ static void BM_terrain_pano_thresh(benchmark::State& state) {
   for (int cnt=0; cnt<1000; cnt++) {
     pano.block<1, 2>(rand() % 256, rand() % 1000) = 100;
   }
+  tp.updatePano(pano, {});
   for (auto _ : state) {
     tp.threshold(pano);
   }

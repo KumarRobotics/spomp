@@ -7,6 +7,8 @@ namespace spomp {
 class PanoPlanner {
   public:
     struct Params {
+      int tbb = -1;
+      float max_spacing_m = 0.5;
     };
 
     PanoPlanner(const Params& params);
@@ -27,7 +29,10 @@ class PanoPlanner {
      * LOCAL VARIABLES
      *********************************************************/
     //! Vector of distances with respect to angle
-    Eigen::VectorXi reachability_;
+    Eigen::VectorXf reachability_;
+
+    // Timers
+    Timer* pano_update_t_{};
 };
 
 } // namespace spomp

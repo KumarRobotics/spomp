@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <tbb/parallel_for.h>
 #include "spomp/terrain_pano.h"
-#include <iostream>
 
 namespace spomp {
 
@@ -21,7 +20,17 @@ void TerrainPano::updatePano(const Eigen::ArrayXXf& pano,
     const Eigen::Isometry3f& pose) 
 {
   pano_update_t_->start();
+
   pano_ = pano;
+  alts_ = Eigen::VectorXf::LinSpaced(pano_.rows(), 
+      params_.v_fov_rad/2, -params_.v_fov_rad/2);
+  // Go negative because the panorama wraps around CW
+  azs_ = Eigen::VectorXf::LinSpaced(pano_.cols(), 
+      0, -2*pi*(1 - 1./pano_.cols()));
+
+  alts_c_ = alts_.array().cos();
+  alts_s_ = alts_.array().sin();
+
   fillHoles(pano_);
   computeCloud();
   Eigen::ArrayXXf grad = computeGradient();
@@ -76,15 +85,6 @@ void TerrainPano::fillHoles(Eigen::ArrayXXf& pano) const {
 void TerrainPano::computeCloud() {
   compute_cloud_t_->start();
 
-  Eigen::VectorXf alts = Eigen::VectorXf::LinSpaced(pano_.rows(), 
-      params_.v_fov_rad/2, -params_.v_fov_rad/2);
-  // Go negative because the panorama wraps around CW
-  Eigen::VectorXf azs = Eigen::VectorXf::LinSpaced(pano_.cols(), 
-      0, -2*pi*(1 - 1./pano_.cols()));
-
-  Eigen::VectorXf alts_c = alts.array().cos();
-  Eigen::VectorXf alts_s = alts.array().sin();
-
   // Initialize
   for (auto& axis : cloud_) {
     axis = Eigen::ArrayXXf(pano_.rows(), pano_.cols());
@@ -97,10 +97,10 @@ void TerrainPano::computeCloud() {
       for (int col_i=range.begin(); col_i<range.end(); ++col_i) {
         // Loop through cols because Eigen stores col-major
         // This means we access more contiguous blocks of memory
-        cloud_[0].col(col_i) = pano_.col(col_i) * alts_c.array();
-        cloud_[1].col(col_i) = cloud_[0].col(col_i) * sin(azs(col_i));
-        cloud_[0].col(col_i) = cloud_[0].col(col_i) * cos(azs(col_i));
-        cloud_[2].col(col_i) = pano_.col(col_i) * alts_s.array();
+        cloud_[0].col(col_i) = pano_.col(col_i) * alts_c_.array();
+        cloud_[1].col(col_i) = cloud_[0].col(col_i) * sin(azs_(col_i));
+        cloud_[0].col(col_i) = cloud_[0].col(col_i) * cos(azs_(col_i));
+        cloud_[2].col(col_i) = pano_.col(col_i) * alts_s_.array();
       }
     });
   compute_cloud_t_->end();
@@ -110,13 +110,8 @@ void TerrainPano::computeCloud() {
 Eigen::ArrayXXf TerrainPano::computeGradient() const {
   compute_grad_t_->start();
 
-  Eigen::VectorXf alts = Eigen::VectorXf::LinSpaced(pano_.rows(), 
-      params_.v_fov_rad/2, -params_.v_fov_rad/2);
-  Eigen::VectorXf alts_c = alts.array().cos();
-  Eigen::VectorXf alts_s = alts.array().sin();
-
   // LiDAR at ~0.4m off ground
-  Eigen::VectorXf pred_ranges = 0.4 / (-alts).array().tan();
+  Eigen::VectorXf pred_ranges = 0.4 / (-alts_).array().tan();
 
   // Compute horizonal gradient
   Eigen::ArrayXXf grad_h = Eigen::ArrayXXf::Zero(pano_.rows(), pano_.cols());
@@ -137,7 +132,7 @@ Eigen::ArrayXXf TerrainPano::computeGradient() const {
         for (int col_i=0; col_i<pano_.cols(); ++col_i) {
           if (cloud_[2](row_i, col_i) != 0) {
             // Horizontal grad
-            float xy_range = alts_c[row_i] * pano_(row_i, col_i);
+            float xy_range = rangeAt(row_i, col_i);
             float arc_length = xy_range * 2 * pi / pano_.cols();
             // In this case, compute manually because we need xy_range and arc_length anyway
             int window = std::min<int>(params_.target_dist_xy / arc_length, pano_.cols() / 5);
@@ -147,8 +142,8 @@ Eigen::ArrayXXf TerrainPano::computeGradient() const {
             int col_i1 = fast_mod(col_i - window + pano_.cols(), pano_.cols());
             int col_i2 = fast_mod(col_i + window, pano_.cols());
 
-            float v_noise = params_.noise_m*alts_s[row_i];
-            float h_noise = params_.noise_m*alts_c[row_i];
+            float v_noise = params_.noise_m*alts_s_[row_i];
+            float h_noise = params_.noise_m*alts_c_[row_i];
             if (cloud_[2](row_i, col_i1) != 0 && cloud_[2](row_i, col_i2) != 0) {
               grad_h(row_i, col_i) = std::max<float>(
                   abs(cloud_[2](row_i, col_i1) - cloud_[2](row_i, col_i2)) - v_noise, 0) / 
@@ -160,7 +155,7 @@ Eigen::ArrayXXf TerrainPano::computeGradient() const {
               grad_v(row_i, col_i) = std::max<float>(
                   abs(cloud_[2](row_i, col_i) - cloud_[2](row_i - delta, col_i)) - v_noise, 0) /
                 std::max<float>(
-                  abs(xy_range - alts_c[row_i - delta] * pano_(row_i - delta, col_i)) + h_noise, 0);
+                  abs(xy_range - rangeAt(row_i - delta, col_i)) + h_noise, 0);
             }
           }
         }  
@@ -221,9 +216,6 @@ Eigen::ArrayXXi TerrainPano::threshold(const Eigen::ArrayXXf& grad_pano) const {
 //! Inflate obstacles, modifies in place
 void TerrainPano::inflate(Eigen::ArrayXXi& trav_pano) const {
   inflate_t_->start();
-
-  Eigen::VectorXf alts_c = Eigen::VectorXf::LinSpaced(pano_.rows(), 
-      params_.v_fov_rad/2, -params_.v_fov_rad/2).array().cos();
 
   // Inflate first along altitude
   int gsize = params_.tbb <= 0 ? trav_pano.cols() : params_.tbb;
