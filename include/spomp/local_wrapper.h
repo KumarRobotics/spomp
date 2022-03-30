@@ -25,6 +25,7 @@ class LocalWrapper {
     void panoCallback(const sensor_msgs::Image::ConstPtr& img_msg);
     void visualizePano(const ros::Time& stamp);
     void visualizeCloud(const ros::Time& stamp);
+    void visualizeReachability(const ros::Time& stamp);
 
     void printTimings();
 
@@ -34,6 +35,7 @@ class LocalWrapper {
     ros::NodeHandle nh_;
     ros::Publisher obs_pano_viz_pub_;
     ros::Publisher obs_cloud_viz_pub_;
+    ros::Publisher reachability_viz_pub_;
 
     Local local_;
 

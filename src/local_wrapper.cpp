@@ -2,6 +2,7 @@
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/LaserScan.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -18,13 +19,17 @@ LocalWrapper::LocalWrapper(ros::NodeHandle& nh) :
 
   obs_pano_viz_pub_ = nh_.advertise<sensor_msgs::Image>("obs_pano_viz", 1);
   obs_cloud_viz_pub_ = nh_.advertise<sensor_msgs::PointCloud2>("obs_cloud_viz", 1);
+  reachability_viz_pub_ = nh_.advertise<sensor_msgs::LaserScan>("reachability_viz", 1);
 }
 
 Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
-  TerrainPano::Params params{};
-  nh.getParam("tbb", params.tbb);
+  TerrainPano::Params tp_params{};
+  PanoPlanner::Params pp_params{};
 
-  return Local(params);
+  nh.getParam("tbb", tp_params.tbb);
+  nh.getParam("tbb", pp_params.tbb);
+
+  return Local(tp_params, pp_params);
 }
 
 void LocalWrapper::play() {
@@ -52,6 +57,7 @@ void LocalWrapper::play() {
         panoCallback(pano);
         visualizePano(pano->header.stamp);
         visualizeCloud(pano->header.stamp);
+        visualizeReachability(pano->header.stamp);
         printTimings();
       }
     }
@@ -159,6 +165,29 @@ void LocalWrapper::visualizeCloud(const ros::Time& stamp) {
   obs_cloud_viz_pub_.publish(cloud_msg);
 
   viz_cloud_t_->end();
+}
+
+void LocalWrapper::visualizeReachability(const ros::Time& stamp) {
+  const auto& reachability = local_.getPlanner().getReachability();
+  const auto& azs = local_.getPano().getAzs();
+
+  sensor_msgs::LaserScan scan_msg;
+  scan_msg.header.frame_id = "map";
+  scan_msg.header.stamp = stamp;
+
+  // Order is flipped, since all negatives
+  scan_msg.angle_min = azs[azs.size()-1] + deg2rad(360);
+  scan_msg.angle_max = azs[0] + deg2rad(360);
+  scan_msg.angle_increment = azs[0] - azs[1];
+  scan_msg.range_max = 100; // Something large
+
+  scan_msg.ranges.resize(azs.size());
+  Eigen::Map<Eigen::VectorXf> scan_ranges(reinterpret_cast<float*>(scan_msg.ranges.data()),
+      azs.size());
+  // Order flips here again
+  scan_ranges = reachability.reverse();
+
+  reachability_viz_pub_.publish(scan_msg);
 }
 
 void LocalWrapper::printTimings() {

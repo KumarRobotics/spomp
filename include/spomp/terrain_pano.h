@@ -55,6 +55,14 @@ class TerrainPano {
     const auto& getCloud() const {
       return cloud_;
     }
+
+    const auto& getAzs() const {
+      return azs_;
+    }
+
+    const auto& getAlts() const {
+      return alts_;
+    }
     
   protected:
     /*********************************************************
