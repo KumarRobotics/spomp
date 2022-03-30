@@ -22,15 +22,13 @@ void PanoPlanner::updatePano(const TerrainPano& pano) {
         for (int row_i=pano.rows()-1; row_i>=0; --row_i) {
           float r = pano.rangeAt(row_i, col_i);
           if (r > 0) {
-            if (last_r > 0) {
-              // If last_r is 0, not worth comparing
-              if (r - last_r > params_.max_spacing_m || 
-                  !pano.traversableAt(row_i, col_i)) 
-              {
-                // We have run into an obstacle or a large spacing, which
-                // could be a negative obstacle
-                break;
-              }
+            // If last_r is 0, not worth comparing
+            if ((r - last_r > params_.max_spacing_m && last_r > 0) || 
+                !pano.traversableAt(row_i, col_i)) 
+            {
+              // We have run into an obstacle or a large spacing, which
+              // could be a negative obstacle
+              break;
             }
             last_r = r;
           }
