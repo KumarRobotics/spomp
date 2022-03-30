@@ -60,7 +60,8 @@ class TerrainPano {
     void inflate(Eigen::ArrayXXi& trav_pano) const;
 
     //! Get the window size for a given distance
-    int getWindow(float dist_m, int row_i, int col_i) const;
+    static int getWindow(float dist_m, int row_i, int col_i, 
+        const Eigen::ArrayXXf& pano);
 
     /*********************************************************
      * LOCAL CONSTANTS

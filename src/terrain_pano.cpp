@@ -42,11 +42,12 @@ void TerrainPano::fillHoles(Eigen::ArrayXXf& pano) const {
         // Loop around back to starting first nonzero to make sure we wrap around holes
         for (int col_i=0; col_i<=first_nonzero + pano.cols(); ++col_i) {
           // Scale max window size with distance
+          int col_i_b = fast_mod(col_i, pano.cols());
           int window = std::min<int>(
-              getWindow(params_.max_hole_fill_size, row_i, fast_mod(col_i, pano.cols())), 
-              pano_.cols() / 5);
+              getWindow(params_.max_hole_fill_size, row_i, col_i_b, pano), 
+              pano.cols() / 5);
 
-          float val = pano(row_i, fast_mod(col_i, pano.cols()));
+          float val = pano(row_i, col_i_b);
           if (val > 0) {
             if (col_i - last_nonzero > 1 && col_i - last_nonzero < window && 
                 last_nonzero >= 0) 
@@ -205,7 +206,7 @@ Eigen::ArrayXXi TerrainPano::threshold(const Eigen::ArrayXXf& grad_pano) const {
           } else {
             // Use the last window size
             window = std::clamp<int>(
-                getWindow(params_.min_noise_size, row_i, fast_mod(col_i, pano_.cols())), 
+                getWindow(params_.min_noise_size, row_i, fast_mod(col_i, pano_.cols()), pano_), 
                 3, pano_.cols()/5);
           }
         }
@@ -252,7 +253,7 @@ void TerrainPano::inflate(Eigen::ArrayXXi& trav_pano) const {
           if (trav_pano(row_i, col_i) > 0 && trav_pano(row_i, col_i) < 3 && 
               pano_(row_i, col_i) > 0) 
           {
-            int window = getWindow(params_.inflation_m, row_i, col_i);
+            int window = getWindow(params_.inflation_m, row_i, col_i, pano_);
             
             // Make sure col_i_b - window is nonnegative
             int col_i_b = col_i; 
@@ -272,8 +273,10 @@ void TerrainPano::inflate(Eigen::ArrayXXi& trav_pano) const {
   inflate_t_->end();
 }
 
-int TerrainPano::getWindow(float dist_m, int row_i, int col_i) const {
-  float arc_length = pano_(row_i, col_i) * 2 * pi / pano_.cols();
+int TerrainPano::getWindow(float dist_m, int row_i, int col_i,
+    const Eigen::ArrayXXf& pano)
+{
+  float arc_length = pano(row_i, col_i) * 2 * pi / pano.cols();
   return dist_m / arc_length;
 }
 

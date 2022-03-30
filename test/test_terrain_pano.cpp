@@ -62,7 +62,8 @@ TEST(terrain_pano, test_fill_holes) {
   ASSERT_TRUE((pano != pano_copy).any());
 
   TerrainPano::Params params{};
-  params.max_hole_fill_size = 100;
+  // Set to large number to fill all holes
+  params.max_hole_fill_size = 1000;
   TerrainPanoTester tp(params);
   tp.fillHoles(pano);
 
