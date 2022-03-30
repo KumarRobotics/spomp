@@ -28,15 +28,15 @@ class TerrainPano {
     //! Update the internal depth panorama
     void updatePano(const Eigen::ArrayXXf& pano, const Eigen::Isometry3f& pose);
 
-    const Eigen::ArrayXXi& getTraversability() const {
+    const auto& getTraversability() const {
       return traversability_pano_;
     }
 
-    const Eigen::ArrayXXf& getPano() const {
+    const auto& getPano() const {
       return pano_;
     }
 
-    const std::array<Eigen::ArrayXXf, 3>& getCloud() const {
+    const auto& getCloud() const {
       return cloud_;
     }
     

@@ -78,8 +78,9 @@ void TerrainPano::computeCloud() {
 
   Eigen::VectorXf alts = Eigen::VectorXf::LinSpaced(pano_.rows(), 
       params_.v_fov_rad/2, -params_.v_fov_rad/2);
+  // Go negative because the panorama wraps around CW
   Eigen::VectorXf azs = Eigen::VectorXf::LinSpaced(pano_.cols(), 
-      0, 2*pi*(1 - 1./pano_.cols()));
+      0, -2*pi*(1 - 1./pano_.cols()));
 
   Eigen::VectorXf alts_c = alts.array().cos();
   Eigen::VectorXf alts_s = alts.array().sin();

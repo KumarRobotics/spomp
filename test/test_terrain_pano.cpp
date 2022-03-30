@@ -118,7 +118,7 @@ TEST(terrain_pano, test_compute_cloud) {
   ASSERT_NEAR(cloud[0](100, 0), -cloud[2](100, 0), 1e-5);
 
   ASSERT_NEAR(cloud[0](50, 2), 0, 1e-5);
-  ASSERT_NEAR(cloud[1](50, 2), 1, 1e-5);
+  ASSERT_NEAR(cloud[1](50, 2), -1, 1e-5);
   ASSERT_NEAR(cloud[2](50, 2), 0, 1e-5);
 
   ASSERT_NEAR(cloud[0](50, 4), -1, 1e-5);
