@@ -1,4 +1,5 @@
 #include "spomp/local_wrapper.h"
+#include <iomanip>
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -29,13 +30,39 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
   nh.getParam("tbb", tp_params.tbb);
   nh.getParam("tbb", pp_params.tbb);
 
+  nh.getParam("TP_max_hole_fill_size", tp_params.max_hole_fill_size);
+  nh.getParam("TP_min_noise_size", tp_params.min_noise_size);
+  nh.getParam("TP_v_fov_rad", tp_params.v_fov_rad);
+  nh.getParam("TP_target_dist_xy", tp_params.target_dist_xy);
+  nh.getParam("TP_noise_m", tp_params.noise_m);
+  nh.getParam("TP_slope_thresh", tp_params.slope_thresh);
+  nh.getParam("TP_inflation_m", tp_params.inflation_m);
+
+  nh.getParam("PP_max_spacing_m", pp_params.max_spacing_m);
+
+  using namespace std;
+  ROS_INFO_STREAM("\033[32m" << endl << "[ROS] ======== Configuration ========" << 
+    endl << left << 
+    setw(30) << "[ROS] tbb: " << tp_params.tbb << endl <<
+    "[ROS] ===============================" << endl <<
+    setw(30) << "[ROS] TP_max_hole_fill_size: " << tp_params.max_hole_fill_size << endl <<
+    setw(30) << "[ROS] TP_min_noise_size: " << tp_params.min_noise_size << endl <<
+    setw(30) << "[ROS] TP_v_fov_rad: " << tp_params.v_fov_rad << endl <<
+    setw(30) << "[ROS] TP_target_dist_xy: " << tp_params.target_dist_xy << endl <<
+    setw(30) << "[ROS] TP_noise_m: " << tp_params.noise_m << endl <<
+    setw(30) << "[ROS] TP_slope_thresh: " << tp_params.slope_thresh << endl <<
+    setw(30) << "[ROS] TP_inflation_m: " << tp_params.inflation_m << endl <<
+    "[ROS] ===============================" << endl <<
+    setw(30) << "[ROS] PP_max_spacing_m: " << pp_params.max_spacing_m << endl <<
+    "[ROS] ====== End Configuration ======" << "\033[0m");
+
   return Local(tp_params, pp_params);
 }
 
 void LocalWrapper::play() {
   std::string bag_path;
   if (!nh_.getParam("bag_path", bag_path)) {
-    std::cerr << "ERROR: No bag specified" << std::endl;
+    ROS_ERROR_STREAM("ERROR: No bag specified");
     return;
   }
 
@@ -55,10 +82,6 @@ void LocalWrapper::play() {
         }
 
         panoCallback(pano);
-        visualizePano(pano->header.stamp);
-        visualizeCloud(pano->header.stamp);
-        visualizeReachability(pano->header.stamp);
-        printTimings();
       }
     }
     ros::spinOnce();
@@ -66,9 +89,14 @@ void LocalWrapper::play() {
 }
 
 void LocalWrapper::initialize() {
+  pano_sub_ = nh_.subscribe<sensor_msgs::Image>("pano", 1, &LocalWrapper::panoCallback, this);
+
+  ros::spin();
 }
 
 void LocalWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg) {
+  pano_frame_ = img_msg->header.frame_id;
+
   Eigen::MatrixXf pano_eig;
   cv_bridge::CvImageConstPtr pano_cv = cv_bridge::toCvShare(img_msg);
   cv::Mat depth_pano_cv(pano_cv->image.rows, pano_cv->image.cols, CV_16UC1);
@@ -80,6 +108,11 @@ void LocalWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg) {
   pano_eig /= 512;
 
   local_.updatePano(pano_eig, {});
+
+  visualizePano(img_msg->header.stamp);
+  visualizeCloud(img_msg->header.stamp);
+  visualizeReachability(img_msg->header.stamp);
+  printTimings();
 }
 
 void LocalWrapper::visualizePano(const ros::Time& stamp) {
@@ -107,7 +140,7 @@ void LocalWrapper::visualizeCloud(const ros::Time& stamp) {
 
   sensor_msgs::PointCloud2 cloud_msg;
   cloud_msg.header.stamp = stamp;
-  cloud_msg.header.frame_id = "map";
+  cloud_msg.header.frame_id = pano_frame_;
   cloud_msg.height = 1;
   cloud_msg.width = cloud[0].size();
 
@@ -172,7 +205,7 @@ void LocalWrapper::visualizeReachability(const ros::Time& stamp) {
   const auto& azs = local_.getPano().getAzs();
 
   sensor_msgs::LaserScan scan_msg;
-  scan_msg.header.frame_id = "map";
+  scan_msg.header.frame_id = pano_frame_;
   scan_msg.header.stamp = stamp;
 
   // Order is flipped, since all negatives

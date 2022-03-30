@@ -37,9 +37,13 @@ class LocalWrapper {
     ros::Publisher obs_cloud_viz_pub_;
     ros::Publisher reachability_viz_pub_;
 
+    ros::Subscriber pano_sub_;
+
     Local local_;
 
     Remote remote_;
+
+    std::string pano_frame_{"pano"};
 
     // Timers
     Timer* viz_pano_t_{};

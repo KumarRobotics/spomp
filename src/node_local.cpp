@@ -7,7 +7,7 @@ int main(int argc, char **argv) {
 
   try {
     spomp::LocalWrapper node(nh);
-    node.play();
+    node.initialize();
   } catch (const std::exception& e) {
     ROS_ERROR("%s: %s", nh.getNamespace().c_str(), e.what());
   }

@@ -10,7 +10,7 @@ void Timer::end() {
   last_t_ = duration_cast<microseconds>(end_t - start_t_).count();
   t_sum_ += last_t_;
   t_sq_sum_ += std::pow<long long>(last_t_, 2);
-  n_++;
+  ++n_;
 }
 
 double Timer::avg_us() const {
