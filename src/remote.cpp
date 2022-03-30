@@ -17,14 +17,21 @@ bool Remote::wait() {
       1, cv::Scalar(255));
   cv::imshow("remote", img);
 
-  int key_id;
-  if (paused_) {
-    key_id = cv::waitKey(-1);
-  } else {
-    key_id = cv::waitKey(wait_ms_);
-  }
+  int key_id = 0;
+  do {
+    if (paused_) {
+      key_id = cv::waitKey(-1);
+    } else {
+      key_id = cv::waitKey(wait_ms_);
+    }
 
-  key_id = key_id & 0xff;
+    // waitKey returns -1 if no key pressed
+    if (key_id > 0) {
+      key_id = key_id & 0xff;
+    }
+    // Loop until a normal ascii key pressed
+  } while (key_id > 128);
+
   switch (key_id) {
     case ' ':
       paused_ = !paused_;
