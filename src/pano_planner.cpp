@@ -13,7 +13,7 @@ void PanoPlanner::updatePano(const TerrainPano& pano) {
 
   reachability_ = Eigen::VectorXf::Zero(pano.cols());
 
-  int gsize = params_.tbb <= 0 ? pano.rows() : params_.tbb;
+  int gsize = params_.tbb <= 0 ? pano.cols() : params_.tbb;
   tbb::parallel_for(tbb::blocked_range<int>(0, pano.cols(), gsize), 
     [&](tbb::blocked_range<int> range) {
       for (int col_i=range.begin(); col_i<range.end(); ++col_i) {
