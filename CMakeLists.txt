@@ -133,6 +133,7 @@ include_directories(
 ## Declare a C++ library
 add_library(${PROJECT_NAME}_local
   src/terrain_pano.cpp
+  src/pano_planner.cpp
   src/local.cpp
   src/timer.cpp
 )
@@ -230,11 +231,13 @@ if(CATKIN_ENABLE_TESTING)
   catkin_add_gtest(${PROJECT_NAME}-test 
     test/test.cpp
     test/test_terrain_pano.cpp
+    test/test_pano_planner.cpp
   )
   
   catkin_add_gtest(${PROJECT_NAME}-bench
     test/bench.cpp
     test/test_terrain_pano.cpp
+    test/test_pano_planner.cpp
   )
 
   find_package(benchmark REQUIRED)
