@@ -63,6 +63,10 @@ class TerrainPano {
     const auto& getAlts() const {
       return alts_;
     }
+
+    const auto& getPose() const {
+      return pose_;
+    }
     
   protected:
     /*********************************************************
@@ -101,6 +105,8 @@ class TerrainPano {
     Eigen::ArrayXXi traversability_pano_;
 
     std::array<Eigen::ArrayXXf, 3> cloud_;
+
+    Eigen::Isometry3f pose_{Eigen::Isometry3f::Identity()};
 
     // Timers
     Timer* pano_update_t_{};

@@ -7,7 +7,9 @@ Panels:
         - /Global Options1
         - /Status1
         - /PointCloud21
+        - /PointCloud21/Status1
         - /LaserScan1
+        - /Pose1
       Splitter Ratio: 0.5
     Tree Height: 746
   - Class: rviz/Selection
@@ -117,11 +119,26 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: false
       Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.30000001192092896
+      Class: rviz/Pose
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.30000001192092896
+      Head Radius: 0.10000000149011612
+      Name: Pose
+      Shaft Length: 1
+      Shaft Radius: 0.05000000074505806
+      Shape: Axes
+      Topic: /os_node/llol_odom/pose
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
     Default Light: true
-    Fixed Frame: map
+    Fixed Frame: pano
     Frame Rate: 30
   Name: root
   Tools:
@@ -145,16 +162,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 48.516326904296875
+      Distance: 55.591712951660156
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -1.0409048795700073
-        Y: -0.3026181757450104
-        Z: 0.9378722906112671
+        X: -2.9149091243743896
+        Y: -1.4897536039352417
+        Z: 5.855410099029541
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -163,7 +180,7 @@ Visualization Manager:
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.004952430725097656
+      Yaw: 6.278127193450928
     Saved: ~
 Window Geometry:
   Displays:

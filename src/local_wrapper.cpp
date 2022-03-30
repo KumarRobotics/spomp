@@ -8,11 +8,16 @@
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <cv_bridge/cv_bridge.h>
+#include <geometry_msgs/TransformStamped.h>
 
 namespace spomp {
 
 LocalWrapper::LocalWrapper(ros::NodeHandle& nh) : 
-  nh_(nh), local_(createLocal(nh)), remote_(50) 
+  nh_(nh), 
+  local_(createLocal(nh)), 
+  remote_(50), 
+  tf_buffer_(), 
+  tf_listener_(tf_buffer_)
 {
   auto& tm = TimerManager::getGlobal();
   viz_pano_t_ = tm.get("LW_viz_pano");
@@ -60,6 +65,7 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
 }
 
 void LocalWrapper::play() {
+  use_tf_ = false;
   std::string bag_path;
   if (!nh_.getParam("bag_path", bag_path)) {
     ROS_ERROR_STREAM("ERROR: No bag specified");
@@ -89,6 +95,7 @@ void LocalWrapper::play() {
 }
 
 void LocalWrapper::initialize() {
+  use_tf_ = true;
   pano_sub_ = nh_.subscribe<sensor_msgs::Image>("pano", 1, &LocalWrapper::panoCallback, this);
 
   ros::spin();
@@ -107,7 +114,17 @@ void LocalWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg) {
   cv::cv2eigen(depth_pano_cv, pano_eig);
   pano_eig /= 512;
 
-  local_.updatePano(pano_eig, {});
+  geometry_msgs::TransformStamped pano_pose;
+  if (use_tf_) {
+    try {
+      pano_pose = tf_buffer_.lookupTransform("odom", pano_frame_, 
+                                             img_msg->header.stamp);
+    } catch (tf2::TransformException& ex) {
+      ROS_WARN_STREAM("TF error: No transform found to pano");
+      return;
+    }
+  }
+  local_.updatePano(pano_eig, ROS2Eigen(pano_pose));
 
   visualizePano(img_msg->header.stamp);
   visualizeCloud(img_msg->header.stamp);
@@ -225,6 +242,36 @@ void LocalWrapper::visualizeReachability(const ros::Time& stamp) {
 
 void LocalWrapper::printTimings() {
   ROS_INFO_STREAM("\033[34m" << TimerManager::getGlobal() << "\033[0m");
+}
+
+Eigen::Isometry3f LocalWrapper::ROS2Eigen(const geometry_msgs::TransformStamped& trans_msg) {
+  Eigen::Isometry3f pose = Eigen::Isometry3f::Identity();
+  pose.translate(Eigen::Vector3f(
+        trans_msg.transform.translation.x,
+        trans_msg.transform.translation.y,
+        trans_msg.transform.translation.z
+        ));
+  pose.rotate(Eigen::Quaternionf(
+        trans_msg.transform.rotation.w,
+        trans_msg.transform.rotation.x,
+        trans_msg.transform.rotation.y,
+        trans_msg.transform.rotation.z
+        ));
+  return pose;
+}
+
+geometry_msgs::TransformStamped LocalWrapper::Eigen2ROS(const Eigen::Isometry3f& pose) {
+  geometry_msgs::TransformStamped pose_msg;
+  pose_msg.transform.translation.x = pose.translation()[0];
+  pose_msg.transform.translation.y = pose.translation()[1];
+  pose_msg.transform.translation.z = pose.translation()[2];
+  Eigen::Quaternionf quat(pose.rotation());
+  pose_msg.transform.rotation.x = quat.x();
+  pose_msg.transform.rotation.y = quat.y();
+  pose_msg.transform.rotation.z = quat.z();
+  pose_msg.transform.rotation.w = quat.w();
+
+  return pose_msg;
 }
 
 } // namespace spomp
