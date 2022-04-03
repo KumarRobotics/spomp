@@ -26,8 +26,9 @@ void TerrainPano::updatePano(const Eigen::ArrayXXf& pano,
   alts_ = Eigen::VectorXf::LinSpaced(pano_.rows(), 
       params_.v_fov_rad/2, -params_.v_fov_rad/2);
   // Go negative because the panorama wraps around CW
+  // Then add 360 degrees to keep positive
   azs_ = Eigen::VectorXf::LinSpaced(pano_.cols(), 
-      0, -2*pi*(1 - 1./pano_.cols()));
+      0, -2*pi*(1 - 1./pano_.cols())).array() + deg2rad(360);
 
   alts_c_ = alts_.array().cos();
   alts_s_ = alts_.array().sin();

@@ -19,8 +19,8 @@ TEST(pano_planner, test) {
   tp.updatePano(pano, {});
   pp.updatePano(tp);
 
-  ASSERT_TRUE(pp.getReachability()[0] > 2);
-  ASSERT_TRUE(pp.getReachability()[0] < 3);
+  ASSERT_TRUE(pp.getReachability().scan[0] > 2);
+  ASSERT_TRUE(pp.getReachability().scan[0] < 3);
 }
 
 } // namespace spomp

@@ -15,6 +15,18 @@ class PanoPlanner {
 
     void updatePano(const TerrainPano& pano);
 
+    /*!
+     * Compute feasible local goal based off of global goal
+     * @param goal The goal in the pano frame
+     * @return The local goal in the pano frame
+     */
+    Eigen::Vector2f plan(const Eigen::Vector2f& goal) const;
+
+    struct Reachability {
+      Eigen::VectorXf scan{};
+      float start_angle{};
+      float delta_angle{};
+    };
     const auto& getReachability() const {
       return reachability_;
     }
@@ -29,7 +41,7 @@ class PanoPlanner {
      * LOCAL VARIABLES
      *********************************************************/
     //! Vector of distances with respect to angle
-    Eigen::VectorXf reachability_;
+    Reachability reachability_;
 
     // Timers
     Timer* pano_update_t_{};

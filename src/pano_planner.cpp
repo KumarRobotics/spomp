@@ -11,7 +11,10 @@ PanoPlanner::PanoPlanner(const Params& params) : params_(params) {
 void PanoPlanner::updatePano(const TerrainPano& pano) {
   pano_update_t_->start();
 
-  reachability_ = Eigen::VectorXf::Zero(pano.cols());
+  reachability_.scan = Eigen::VectorXf::Zero(pano.cols());
+  const auto& azs = pano.getAzs();
+  reachability_.start_angle = azs[0];
+  reachability_.delta_angle = azs[1] - azs[0];
 
   int gsize = params_.tbb <= 0 ? pano.cols() : params_.tbb;
   tbb::parallel_for(tbb::blocked_range<int>(0, pano.cols(), gsize), 
@@ -33,11 +36,15 @@ void PanoPlanner::updatePano(const TerrainPano& pano) {
             last_r = r;
           }
         }
-        reachability_[col_i] = last_r;
+        reachability_.scan[col_i] = last_r;
       }
     });
   
   pano_update_t_->end();
+}
+
+Eigen::Vector2f PanoPlanner::plan(const Eigen::Vector2f& goal) const {
+  return {};
 }
 
 } // namespace spomp

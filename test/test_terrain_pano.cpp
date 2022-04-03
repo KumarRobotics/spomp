@@ -109,9 +109,9 @@ TEST(terrain_pano, test_compute_cloud) {
   tp.updatePano(pano, {});
   const auto& cloud = tp.getCloud();
 
-  ASSERT_NEAR(cloud[0](50, 0), 1, 1e-10);
-  ASSERT_NEAR(cloud[1](50, 0), 0, 1e-10);
-  ASSERT_NEAR(cloud[2](50, 0), 0, 1e-10);
+  ASSERT_NEAR(cloud[0](50, 0), 1, 1e-5);
+  ASSERT_NEAR(cloud[1](50, 0), 0, 1e-5);
+  ASSERT_NEAR(cloud[2](50, 0), 0, 1e-5);
 
   ASSERT_NEAR(cloud[0](0, 0), 10*sqrt(2)/2, 1e-5);
   ASSERT_NEAR(cloud[0](0, 0), cloud[2](0, 0), 1e-5);

@@ -219,23 +219,22 @@ void LocalWrapper::visualizeCloud(const ros::Time& stamp) {
 
 void LocalWrapper::visualizeReachability(const ros::Time& stamp) {
   const auto& reachability = local_.getPlanner().getReachability();
-  const auto& azs = local_.getPano().getAzs();
 
   sensor_msgs::LaserScan scan_msg;
   scan_msg.header.frame_id = pano_frame_;
   scan_msg.header.stamp = stamp;
 
-  // Order is flipped, since all negatives
-  scan_msg.angle_min = azs[azs.size()-1] + deg2rad(360);
-  scan_msg.angle_max = azs[0] + deg2rad(360);
-  scan_msg.angle_increment = azs[0] - azs[1];
+  // Order is flipped, since goes CW in pano, but for this go CCW
+  scan_msg.angle_min = reachability.start_angle;
+  scan_msg.angle_increment = reachability.delta_angle;
+  scan_msg.angle_max = scan_msg.angle_min + 
+    (reachability.scan.size() * scan_msg.angle_increment);
   scan_msg.range_max = 100; // Something large
 
-  scan_msg.ranges.resize(azs.size());
+  scan_msg.ranges.resize(reachability.scan.size());
   Eigen::Map<Eigen::VectorXf> scan_ranges(reinterpret_cast<float*>(scan_msg.ranges.data()),
-      azs.size());
-  // Order flips here again
-  scan_ranges = reachability.reverse();
+      reachability.scan.size());
+  scan_ranges = reachability.scan;
 
   reachability_viz_pub_.publish(scan_msg);
 }
