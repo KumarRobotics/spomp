@@ -137,6 +137,7 @@ add_library(${PROJECT_NAME}_local
   src/pano_planner.cpp
   src/local.cpp
   src/timer.cpp
+  src/controller.cpp
 )
 
 ## Add cmake target dependencies of the library
