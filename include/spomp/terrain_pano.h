@@ -64,6 +64,14 @@ class TerrainPano {
       return alts_;
     }
 
+    const auto& getAzProj() const {
+      return az_p_;
+    }
+
+    const auto& getAltProj() const {
+      return alt_p_;
+    }
+
     const auto& getPose() const {
       return pose_;
     }
@@ -96,6 +104,7 @@ class TerrainPano {
      *********************************************************/
     Params params_;
 
+    AngularProj alt_p_, az_p_;
     Eigen::VectorXf alts_, azs_, alts_c_, alts_s_;
 
     /*********************************************************

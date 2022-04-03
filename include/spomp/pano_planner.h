@@ -24,11 +24,15 @@ class PanoPlanner {
 
     struct Reachability {
       Eigen::VectorXf scan{};
-      float start_angle{};
-      float delta_angle{};
+      AngularProj az_p;
     };
     const auto& getReachability() const {
       return reachability_;
+    }
+
+    //! Get the range of reachability at the given azimuth (in radians)
+    float getRangeAtAz(float az) {
+      return 0;
     }
 
   protected:

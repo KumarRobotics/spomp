@@ -41,5 +41,32 @@ class Twist {
 };
 
 using Twistf = Twist<float>;
+
+struct AngularProj {
+  float start_angle{};
+  float delta_angle{};
+  float num{};
+
+  AngularProj(int n, float s, float d) : num(n), start_angle(s), delta_angle(d) {};
+  AngularProj(float s, float f, int n) {
+    start_angle = s;
+    delta_angle = (f - s)/n;
+    num = n;
+  }
+  AngularProj() = default;
+
+  int indAt(float angle) {
+    return std::roundf((angle - start_angle)/delta_angle);
+  }
+
+  float angAt(int ind) {
+    return start_angle + delta_angle * ind;
+  }
+
+  Eigen::VectorXf getAngles() {
+    return Eigen::VectorXf::LinSpaced(num, 
+        start_angle, start_angle + num*delta_angle);
+  }
+};
   
 } // namespace spomp

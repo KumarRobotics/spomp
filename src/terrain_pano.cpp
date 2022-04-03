@@ -23,12 +23,12 @@ void TerrainPano::updatePano(const Eigen::ArrayXXf& pano,
 
   pano_ = pano;
   pose_ = pose;
-  alts_ = Eigen::VectorXf::LinSpaced(pano_.rows(), 
-      params_.v_fov_rad/2, -params_.v_fov_rad/2);
+  alt_p_ = AngularProj(params_.v_fov_rad/2, -params_.v_fov_rad/2, pano_.rows());
+  alts_ = alt_p_.getAngles();
   // Go negative because the panorama wraps around CW
   // Then add 360 degrees to keep positive
-  azs_ = Eigen::VectorXf::LinSpaced(pano_.cols(), 
-      0, -2*pi*(1 - 1./pano_.cols())).array() + deg2rad(360);
+  az_p_ = AngularProj(2*pi, 2*pi*(1./pano_.cols()), pano_.cols());
+  azs_ = az_p_.getAngles();
 
   alts_c_ = alts_.array().cos();
   alts_s_ = alts_.array().sin();

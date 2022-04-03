@@ -12,9 +12,7 @@ void PanoPlanner::updatePano(const TerrainPano& pano) {
   pano_update_t_->start();
 
   reachability_.scan = Eigen::VectorXf::Zero(pano.cols());
-  const auto& azs = pano.getAzs();
-  reachability_.start_angle = azs[0];
-  reachability_.delta_angle = azs[1] - azs[0];
+  reachability_.az_p = pano.getAzProj();
 
   int gsize = params_.tbb <= 0 ? pano.cols() : params_.tbb;
   tbb::parallel_for(tbb::blocked_range<int>(0, pano.cols(), gsize), 
