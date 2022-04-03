@@ -20,6 +20,23 @@ inline float rad2deg(float r) noexcept {
   return r * 180 / pi;
 }
 
+inline Eigen::Vector2f cart2polar(const Eigen::Vector2f& cart) {
+  return {cart.norm(), atan2(cart[1], cart[0])};
+}
+
+inline Eigen::Vector2f polar2cart(const Eigen::Vector2f& pol) {
+  return {pol[0] * cos(pol[1]), pol[0] * sin(pol[1])};
+}
+
+inline float regAngle(float angle) {
+  if (angle < 0) {
+    angle += 2 * pi;
+  } else if (angle >= 2 * pi) {
+    angle -= 2 * pi;
+  }
+  return angle;
+}
+
 //! Simple wrapper class to abstract Twist
 template <typename T>
 class Twist {
@@ -55,15 +72,15 @@ struct AngularProj {
   }
   AngularProj() = default;
 
-  int indAt(float angle) {
-    return std::roundf((angle - start_angle)/delta_angle);
+  int indAt(float angle) const {
+    return std::roundf((regAngle(angle) - start_angle)/delta_angle);
   }
 
-  float angAt(int ind) {
+  float angAt(int ind) const {
     return start_angle + delta_angle * ind;
   }
 
-  Eigen::VectorXf getAngles() {
+  Eigen::VectorXf getAngles() const {
     return Eigen::VectorXf::LinSpaced(num, 
         start_angle, start_angle + num*delta_angle);
   }

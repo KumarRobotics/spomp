@@ -1,3 +1,4 @@
+#include <random>
 #include <tbb/parallel_for.h>
 #include "spomp/pano_planner.h"
 
@@ -12,7 +13,7 @@ void PanoPlanner::updatePano(const TerrainPano& pano) {
   pano_update_t_->start();
 
   reachability_.scan = Eigen::VectorXf::Zero(pano.cols());
-  reachability_.az_p = pano.getAzProj();
+  reachability_.proj = pano.getAzProj();
 
   int gsize = params_.tbb <= 0 ? pano.cols() : params_.tbb;
   tbb::parallel_for(tbb::blocked_range<int>(0, pano.cols(), gsize), 
@@ -42,7 +43,31 @@ void PanoPlanner::updatePano(const TerrainPano& pano) {
 }
 
 Eigen::Vector2f PanoPlanner::plan(const Eigen::Vector2f& goal) const {
-  return {};
+  Eigen::Array2Xf samples(2, params_.sample_size);
+
+  float max_range = reachability_.scan.maxCoeff();
+
+  // Sample feasible points
+  std::random_device rd; // Random seed
+  std::ranlux24_base gen(rd());
+  std::uniform_real_distribution dis(-max_range, max_range);
+  for (int sample_id=0; sample_id<samples.cols(); ++sample_id) {
+    Eigen::Vector2f s;
+    do {
+      s = {dis(gen), dis(gen)};
+    } while (!checkPoint(s));
+    samples.col(sample_id) = s;
+  }
+
+  Eigen::VectorXf dists = (samples.colwise() - goal.array()).matrix().colwise().norm();
+  int best_ind, _;
+  dists.minCoeff(&_, &best_ind);
+  return samples.col(best_ind);
+}
+
+bool PanoPlanner::checkPoint(const Eigen::Vector2f& pt) const {
+  Eigen::Vector2f polar = cart2polar(pt);
+  return getRangeAtAz(polar[1]) > polar[0];
 }
 
 } // namespace spomp

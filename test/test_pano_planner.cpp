@@ -5,6 +5,16 @@
 
 namespace spomp {
 
+TEST(utils, test_cart_polar_conv) {
+  Eigen::Vector2f x{1, 0};
+  Eigen::Vector2f x_pol = cart2polar(x);
+  ASSERT_FLOAT_EQ(x_pol[0], 1);
+  ASSERT_FLOAT_EQ(x_pol[1], 0);
+
+  Eigen::Vector2f x_back = polar2cart(x_pol);
+  ASSERT_TRUE((x_back - x).norm() < 1e-5);
+}
+
 TEST(pano_planner, test) {
   PanoPlanner pp({});  
   TerrainPano tp({});
@@ -22,5 +32,6 @@ TEST(pano_planner, test) {
   ASSERT_TRUE(pp.getReachability().scan[0] > 2);
   ASSERT_TRUE(pp.getReachability().scan[0] < 3);
 }
+
 
 } // namespace spomp

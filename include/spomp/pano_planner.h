@@ -9,6 +9,7 @@ class PanoPlanner {
     struct Params {
       int tbb = -1;
       float max_spacing_m = 0.5;
+      int sample_size = 100;
     };
 
     PanoPlanner(const Params& params);
@@ -24,16 +25,18 @@ class PanoPlanner {
 
     struct Reachability {
       Eigen::VectorXf scan{};
-      AngularProj az_p;
+      AngularProj proj;
     };
     const auto& getReachability() const {
       return reachability_;
     }
 
     //! Get the range of reachability at the given azimuth (in radians)
-    float getRangeAtAz(float az) {
-      return 0;
+    float getRangeAtAz(float az) const {
+      return reachability_.scan[reachability_.proj.indAt(az)];
     }
+
+    bool checkPoint(const Eigen::Vector2f& pt) const;
 
   protected:
     /*********************************************************

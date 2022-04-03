@@ -225,8 +225,8 @@ void LocalWrapper::visualizeReachability(const ros::Time& stamp) {
   scan_msg.header.stamp = stamp;
 
   // Order is flipped, so delta_angle is negative, but this is fine
-  scan_msg.angle_min = reachability.az_p.start_angle;
-  scan_msg.angle_increment = reachability.az_p.delta_angle;
+  scan_msg.angle_min = reachability.proj.start_angle;
+  scan_msg.angle_increment = reachability.proj.delta_angle;
   scan_msg.angle_max = scan_msg.angle_min + 
     (reachability.scan.size() * scan_msg.angle_increment);
   scan_msg.range_max = 100; // Something large
