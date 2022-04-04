@@ -2,6 +2,8 @@
 #include <tbb/parallel_for.h>
 #include "spomp/pano_planner.h"
 
+#include <iostream>
+
 namespace spomp {
 
 PanoPlanner::PanoPlanner(const Params& params) : params_(params) {
@@ -48,9 +50,10 @@ Eigen::Vector2f PanoPlanner::plan(const Eigen::Vector2f& goal) const {
   float max_range = reachability_.scan.maxCoeff();
 
   // Sample feasible points
-  std::random_device rd; // Random seed
-  std::ranlux24_base gen(rd());
+  static std::random_device rd; // Random seed
+  static std::ranlux24_base gen(rd());
   std::uniform_real_distribution dis(-max_range, max_range);
+  // This is actually faster not parallelized
   for (int sample_id=0; sample_id<samples.cols(); ++sample_id) {
     Eigen::Vector2f s;
     do {
@@ -60,8 +63,8 @@ Eigen::Vector2f PanoPlanner::plan(const Eigen::Vector2f& goal) const {
   }
 
   Eigen::VectorXf dists = (samples.colwise() - goal.array()).matrix().colwise().norm();
-  int best_ind, _;
-  dists.minCoeff(&_, &best_ind);
+  int best_ind;
+  dists.minCoeff(&best_ind);
   return samples.col(best_ind);
 }
 
