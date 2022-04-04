@@ -21,18 +21,36 @@ class Controller {
     };
     Controller(const Params& params);
 
-    Twistf getControlInput(const Twistf& cur_vel, const Eigen::Isometry2f& state,
-        const Eigen::Vector2f& goal, const PanoPlanner& planner) const;
+    void setGoal(const Eigen::Vector2f& goal) {
+      goal_ = goal;
+    }
 
+    /*!
+     * Get the best control input given a map and goal
+     * @param cur_vel Current velocity of the robot
+     * @param state Current 2D projection of robot pose
+     * @param goal Goal point in pano frame
+     * @param planner Reference to planner for obstacle avoidance
+     */
+    Twistf getControlInput(const Twistf& cur_vel, const Eigen::Isometry2f& state,
+        const PanoPlanner& planner) const;
+
+    //! Forward simulate a velocity into a trajectory
     std::vector<Eigen::Isometry2f> forward(
         const Eigen::Isometry2f& state, const Twistf& vel) const;
 
-    float trajCost(const std::vector<Eigen::Isometry2f>& traj,
-        const Eigen::Vector2f& goal) const;
+    //! Compute the trajectory cost (ignoring obstacles)
+    float trajCost(const std::vector<Eigen::Isometry2f>& traj) const;
 
+    //! Return true if trajectory is collision free
     bool isTrajSafe(const std::vector<Eigen::Isometry2f>& traj,
         const PanoPlanner& planner) const;
 
+    /*! 
+     * Returns the angular difference between the pose orientation
+     * and the vector from the current location to the goal.  Used to encourage
+     * robot to face towards goal
+     */
     static float angularDist(const Eigen::Isometry2f& pose,
         const Eigen::Vector2f& goal);
 
@@ -41,6 +59,11 @@ class Controller {
      * LOCAL CONSTANTS
      *********************************************************/
     Params params_;
+
+    /*********************************************************
+     * LOCAL VARIABLES
+     *********************************************************/
+    Eigen::Vector2f goal_{Eigen::Vector2f::Zero()};
 };
 
 } // namespace spomp

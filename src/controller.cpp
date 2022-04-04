@@ -5,7 +5,7 @@ namespace spomp {
 Controller::Controller(const Params& params) : params_(params) {}
 
 Twistf Controller::getControlInput(const Twistf& cur_vel, const Eigen::Isometry2f& state,
-    const Eigen::Vector2f& goal, const PanoPlanner& planner) const
+    const PanoPlanner& planner) const
 {
   Twistf max_delta(params_.max_lin_accel / params_.freq, 
                    params_.max_ang_accel / params_.freq);
@@ -31,7 +31,7 @@ Twistf Controller::getControlInput(const Twistf& cur_vel, const Eigen::Isometry2
       Twistf t(lin_samples[lin_i], ang_samples[ang_i]);
       traj = forward(state, t);
       if (isTrajSafe(traj, planner)) {
-        float cost = trajCost(traj, goal);
+        float cost = trajCost(traj);
         if (cost < best_cost) {
           best_cost = cost;
           best_twist = t;
@@ -72,17 +72,16 @@ std::vector<Eigen::Isometry2f> Controller::forward(
   return traj;
 }
 
-float Controller::trajCost(const std::vector<Eigen::Isometry2f>& traj,
-    const Eigen::Vector2f& goal) const {
+float Controller::trajCost(const std::vector<Eigen::Isometry2f>& traj) const {
   if (traj.size() < 1) {
     return -1;
   }
 
   // We don't need a velocity penalty, because a faster velocity
   // will mean we get to goal faster, so lin_dist will be smaller
-  float lin_dist = (traj.back().translation() - goal).norm();
+  float lin_dist = (traj.back().translation() - goal_).norm();
   // Angular cost to allow robot to have reason to turn in place
-  float ang_dist = angularDist(traj.back(), goal);
+  float ang_dist = angularDist(traj.back(), goal_);
   // Normally regAngle has range [0, 2pi), we want [-pi, pi)
   ang_dist = abs(ang_dist - pi);
 

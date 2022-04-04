@@ -38,9 +38,12 @@ TEST(controller, test_traj_cost) {
   pose.rotate(Eigen::Rotation2Df(pi/2));
   traj.push_back(pose);
 
-  EXPECT_FLOAT_EQ(c.trajCost(traj, {1, 0}), 0);
-  EXPECT_FLOAT_EQ(c.trajCost(traj, {1, 1}), 1);
-  EXPECT_FLOAT_EQ(c.trajCost(traj, {1, -1}), 1+pi/10);
+  c.setGoal({1, 0});
+  EXPECT_FLOAT_EQ(c.trajCost(traj), 0);
+  c.setGoal({1, 1});
+  EXPECT_FLOAT_EQ(c.trajCost(traj), 1);
+  c.setGoal({1, -1});
+  EXPECT_FLOAT_EQ(c.trajCost(traj), 1+pi/10);
 }
 
 TEST(controller, test_get_control_input) {
@@ -58,17 +61,19 @@ TEST(controller, test_get_control_input) {
   pp.updatePano(tp);
   Controller c({});
 
-  auto twist = c.getControlInput({}, Eigen::Isometry2f::Identity(), {5, 0}, pp);
+  c.setGoal({5, 0});
+  auto twist = c.getControlInput({}, Eigen::Isometry2f::Identity(), pp);
   EXPECT_FLOAT_EQ(twist.linear(), 0.1);
   // Not exact because of input disc
   EXPECT_NEAR(twist.ang(), 0, 1e-3);
 
-  twist = c.getControlInput({}, Eigen::Isometry2f::Identity(), {-5, 1}, pp);
+  c.setGoal({-5, 1});
+  twist = c.getControlInput({}, Eigen::Isometry2f::Identity(), pp);
   // Slight turn in place
   EXPECT_FLOAT_EQ(twist.linear(), 0);
   EXPECT_FLOAT_EQ(twist.ang(), 0.01);
 
-  twist = c.getControlInput({1, 0}, Eigen::Isometry2f::Identity(), {-5, 1}, pp);
+  twist = c.getControlInput({1, 0}, Eigen::Isometry2f::Identity(), pp);
   // Slight turn in place
   EXPECT_FLOAT_EQ(twist.linear(), 0.9);
   EXPECT_FLOAT_EQ(twist.ang(), 0.01);
@@ -89,8 +94,9 @@ static void BM_controller(benchmark::State& state) {
   pp.updatePano(tp);
   Controller c({});
 
+  c.setGoal({5, 0});
   for (auto _ : state) {
-    c.getControlInput({}, Eigen::Isometry2f::Identity(), {5, 0}, pp);
+    c.getControlInput({}, Eigen::Isometry2f::Identity(), pp);
   }
 }
 BENCHMARK(BM_controller);
