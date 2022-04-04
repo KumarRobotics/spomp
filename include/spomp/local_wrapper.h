@@ -1,8 +1,9 @@
 #pragma once
 
 #include <ros/ros.h>
+#include <image_transport/image_transport.h>
 #include <sensor_msgs/Image.h>
-#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/transform_broadcaster.h>
 #include "spomp/local.h"
 #include "spomp/remote.h"
 
@@ -26,7 +27,8 @@ class LocalWrapper {
     /*********************************************************
      * LOCAL FUNCTIONS
      *********************************************************/
-    void panoCallback(const sensor_msgs::Image::ConstPtr& img_msg);
+    void panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
+        const sensor_msgs::CameraInfo::ConstPtr& info_msg);
     void publishTransform(const ros::Time& stamp);
     void visualizePano(const ros::Time& stamp);
     void visualizeCloud(const ros::Time& stamp);
@@ -38,8 +40,8 @@ class LocalWrapper {
      * LOCAL VARIABLES
      *********************************************************/
     ros::NodeHandle nh_;
-    tf2_ros::Buffer tf_buffer_;    
-    tf2_ros::TransformListener tf_listener_;
+    image_transport::ImageTransport it_;
+    tf2_ros::TransformBroadcaster tf_broadcaster_;
 
     // Pubs
     ros::Publisher obs_pano_viz_pub_;
@@ -47,7 +49,7 @@ class LocalWrapper {
     ros::Publisher reachability_viz_pub_;
 
     // Subs
-    ros::Subscriber pano_sub_;
+    image_transport::CameraSubscriber pano_sub_;
 
     // Object pointers
     Local local_;
@@ -55,8 +57,7 @@ class LocalWrapper {
     Remote remote_;
 
     // Config related
-    std::string pano_frame_{"completed_pano"};
-    bool use_tf_{true};
+    std::string pano_frame_{"planner_pano"};
 
     // Timers
     Timer* viz_pano_t_{};

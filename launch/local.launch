@@ -2,6 +2,7 @@
 <launch>
   <node pkg="spomp" type="node_local" name="spomp_local" output="screen">
     <param name="tbb" value="-1"/>
-    <remap from="~pano" to="/os_node/llol_odom/pano/img"/>
+    <remap from="~pano/img" to="/os_node/llol_odom/pano/img"/>
+    <remap from="~pano/camera_info" to="/os_node/llol_odom/pano/camera_info"/>
   </node>
 </launch>

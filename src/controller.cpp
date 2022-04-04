@@ -2,11 +2,16 @@
 
 namespace spomp {
 
-Controller::Controller(const Params& params) : params_(params) {}
+Controller::Controller(const Params& params) : params_(params) {
+  auto& tm = TimerManager::getGlobal();
+  controller_t_ = tm.get("CO");
+}
 
 Twistf Controller::getControlInput(const Twistf& cur_vel, const Eigen::Isometry2f& state,
     const PanoPlanner& planner) const
 {
+  controller_t_->start();
+  
   Twistf max_delta(params_.max_lin_accel / params_.freq, 
                    params_.max_ang_accel / params_.freq);
   Twistf max_twist = cur_vel + max_delta;
@@ -40,6 +45,7 @@ Twistf Controller::getControlInput(const Twistf& cur_vel, const Eigen::Isometry2
     }
   }
 
+  controller_t_->end();
   return best_twist;
 }
 

@@ -16,13 +16,14 @@ LocalWrapper::LocalWrapper(ros::NodeHandle& nh) :
   nh_(nh), 
   local_(createLocal(nh)), 
   remote_(50), 
-  tf_buffer_(), 
-  tf_listener_(tf_buffer_)
+  it_(nh),
+  tf_broadcaster_()
 {
   auto& tm = TimerManager::getGlobal();
   viz_pano_t_ = tm.get("LW_viz_pano");
   viz_cloud_t_ = tm.get("LW_viz_cloud");
 
+  // Publishers
   obs_pano_viz_pub_ = nh_.advertise<sensor_msgs::Image>("obs_pano_viz", 1);
   obs_cloud_viz_pub_ = nh_.advertise<sensor_msgs::PointCloud2>("obs_cloud_viz", 1);
   reachability_viz_pub_ = nh_.advertise<sensor_msgs::LaserScan>("reachability_viz", 1);
@@ -31,6 +32,7 @@ LocalWrapper::LocalWrapper(ros::NodeHandle& nh) :
 Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
   TerrainPano::Params tp_params{};
   PanoPlanner::Params pp_params{};
+  Controller::Params co_params{};
 
   nh.getParam("tbb", tp_params.tbb);
   nh.getParam("tbb", pp_params.tbb);
@@ -45,6 +47,16 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
 
   nh.getParam("PP_max_spacing_m", pp_params.max_spacing_m);
   nh.getParam("PP_sample_size", pp_params.sample_size);
+
+  nh.getParam("CO_freq", co_params.freq);
+  nh.getParam("CO_max_lin_accel", co_params.max_lin_accel);
+  nh.getParam("CO_max_ang_accel", co_params.max_ang_accel);
+  nh.getParam("CO_max_lin_vel", co_params.max_lin_vel);
+  nh.getParam("CO_max_ang_vel", co_params.max_ang_vel);
+  nh.getParam("CO_horizon_sec", co_params.horizon_sec);
+  nh.getParam("CO_horizon_dt", co_params.horizon_dt);
+  nh.getParam("CO_lin_disc", co_params.lin_disc);
+  nh.getParam("CO_ang_disc", co_params.ang_disc);
 
   constexpr int width = 30;
   using namespace std;
@@ -62,13 +74,22 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] PP_max_spacing_m: " << pp_params.max_spacing_m << endl <<
     setw(width) << "[ROS] PP_sample_size: " << pp_params.sample_size << endl <<
+    "[ROS] ===============================" << endl <<
+    setw(width) << "[ROS] CO_freq: " << co_params.freq << endl <<
+    setw(width) << "[ROS] CO_max_lin_accel: " << co_params.max_lin_accel << endl <<
+    setw(width) << "[ROS] CO_max_ang_accel: " << co_params.max_ang_accel << endl <<
+    setw(width) << "[ROS] CO_max_lin_vel: " << co_params.max_lin_vel << endl <<
+    setw(width) << "[ROS] CO_max_ang_vel: " << co_params.max_ang_vel << endl <<
+    setw(width) << "[ROS] CO_horizon_sec: " << co_params.horizon_sec << endl <<
+    setw(width) << "[ROS] CO_horizon_dt: " << co_params.horizon_dt << endl <<
+    setw(width) << "[ROS] CO_lin_disc: " << co_params.lin_disc << endl <<
+    setw(width) << "[ROS] CO_ang_disc: " << co_params.ang_disc << endl <<
     "[ROS] ====== End Configuration ======" << "\033[0m");
 
-  return Local(tp_params, pp_params);
+  return Local(tp_params, pp_params, co_params);
 }
 
 void LocalWrapper::play() {
-  use_tf_ = false;
   std::string bag_path;
   if (!nh_.getParam("bag_path", bag_path)) {
     ROS_ERROR_STREAM("ERROR: No bag specified");
@@ -90,7 +111,7 @@ void LocalWrapper::play() {
           break;
         }
 
-        panoCallback(pano);
+        panoCallback(pano, {});
       }
     }
     ros::spinOnce();
@@ -98,41 +119,50 @@ void LocalWrapper::play() {
 }
 
 void LocalWrapper::initialize() {
-  use_tf_ = true;
-  pano_sub_ = nh_.subscribe<sensor_msgs::Image>("pano", 1, &LocalWrapper::panoCallback, this);
+  // Subscribers
+  pano_sub_ = it_.subscribeCamera("pano/img", 1, &LocalWrapper::panoCallback, this);
 
   ros::spin();
 }
 
-void LocalWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg) {
-  pano_frame_ = img_msg->header.frame_id;
-
+void LocalWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
+    const sensor_msgs::CameraInfo::ConstPtr& info_msg) 
+{
   Eigen::MatrixXf pano_eig;
   cv_bridge::CvImageConstPtr pano_cv = cv_bridge::toCvShare(img_msg);
   cv::Mat depth_pano_cv(pano_cv->image.rows, pano_cv->image.cols, CV_16UC1);
   constexpr int from_to[] = {0, 0};
   // Extract first channel (depth)
   cv::mixChannels(&(pano_cv->image), 1, &depth_pano_cv, 1, from_to, 1);
-  // Convert to Eigen and scale to meters
+  // Convert to Eigen
   cv::cv2eigen(depth_pano_cv, pano_eig);
-  pano_eig /= 512;
 
-  geometry_msgs::TransformStamped pano_pose;
-  if (use_tf_) {
-    try {
-      pano_pose = tf_buffer_.lookupTransform("odom", pano_frame_, 
-                                             img_msg->header.stamp);
-    } catch (tf2::TransformException& ex) {
-      ROS_WARN_STREAM("TF error: No transform found to pano");
-      return;
-    }
+  // Defaults
+  Eigen::Isometry3f pano_pose = Eigen::Isometry3f::Identity();
+  float depth_scale = 512;
+  // Update using info message
+  if (info_msg) {
+    const auto trans_mat = 
+      Eigen::Map<const Eigen::Matrix<double, 3, 4, Eigen::RowMajor>>(&info_msg->P[0]);
+    pano_pose.affine() = trans_mat.cast<float>();
+    depth_scale = info_msg->R[0];
   }
-  local_.updatePano(pano_eig, ROS2Eigen(pano_pose));
+  pano_eig /= depth_scale;
+  local_.updatePano(pano_eig, pano_pose);
 
+  publishTransform(img_msg->header.stamp);
   visualizePano(img_msg->header.stamp);
   visualizeCloud(img_msg->header.stamp);
   visualizeReachability(img_msg->header.stamp);
   printTimings();
+}
+
+void LocalWrapper::publishTransform(const ros::Time& stamp) {
+  geometry_msgs::TransformStamped msg = Eigen2ROS(local_.getPano().getPose());
+  msg.header.stamp = stamp;
+  msg.header.frame_id = "odom";
+  msg.child_frame_id = pano_frame_;
+  tf_broadcaster_.sendTransform(msg); 
 }
 
 void LocalWrapper::visualizePano(const ros::Time& stamp) {

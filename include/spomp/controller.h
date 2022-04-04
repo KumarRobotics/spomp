@@ -64,6 +64,9 @@ class Controller {
      * LOCAL VARIABLES
      *********************************************************/
     Eigen::Vector2f goal_{Eigen::Vector2f::Zero()};
+
+    // Timers
+    Timer* controller_t_;
 };
 
 } // namespace spomp
