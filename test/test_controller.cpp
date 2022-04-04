@@ -42,5 +42,57 @@ TEST(controller, test_traj_cost) {
   EXPECT_FLOAT_EQ(c.trajCost(traj, {1, 1}), 1);
   EXPECT_FLOAT_EQ(c.trajCost(traj, {1, -1}), 1+pi/10);
 }
+
+TEST(controller, test_get_control_input) {
+  PanoPlanner pp({});  
+  TerrainPano tp({});
+
+  Eigen::ArrayXXf pano = Eigen::ArrayXXf::Zero(256, 1024);
+  Eigen::VectorXf alts = Eigen::VectorXf::LinSpaced(pano.rows(), 
+      deg2rad(90)/2, -deg2rad(90)/2);
+  for (int col=0; col<pano.cols(); ++col) {
+    pano.col(col) = 0.4 / (-alts).array().sin().cwiseMax(0.4/3);
+  }
+
+  tp.updatePano(pano, {});
+  pp.updatePano(tp);
+  Controller c({});
+
+  auto twist = c.getControlInput({}, Eigen::Isometry2f::Identity(), {5, 0}, pp);
+  EXPECT_FLOAT_EQ(twist.linear(), 0.1);
+  // Not exact because of input disc
+  EXPECT_NEAR(twist.ang(), 0, 1e-3);
+
+  twist = c.getControlInput({}, Eigen::Isometry2f::Identity(), {-5, 1}, pp);
+  // Slight turn in place
+  EXPECT_FLOAT_EQ(twist.linear(), 0);
+  EXPECT_FLOAT_EQ(twist.ang(), 0.01);
+
+  twist = c.getControlInput({1, 0}, Eigen::Isometry2f::Identity(), {-5, 1}, pp);
+  // Slight turn in place
+  EXPECT_FLOAT_EQ(twist.linear(), 0.9);
+  EXPECT_FLOAT_EQ(twist.ang(), 0.01);
+}
+
+static void BM_controller(benchmark::State& state) {
+  PanoPlanner pp({});  
+  TerrainPano tp({});
+
+  Eigen::ArrayXXf pano = Eigen::ArrayXXf::Zero(256, 1024);
+  Eigen::VectorXf alts = Eigen::VectorXf::LinSpaced(pano.rows(), 
+      deg2rad(90)/2, -deg2rad(90)/2);
+  for (int col=0; col<pano.cols(); ++col) {
+    pano.col(col) = 0.4 / (-alts).array().sin().cwiseMax(0.4/3);
+  }
+
+  tp.updatePano(pano, {});
+  pp.updatePano(tp);
+  Controller c({});
+
+  for (auto _ : state) {
+    c.getControlInput({}, Eigen::Isometry2f::Identity(), {5, 0}, pp);
+  }
+}
+BENCHMARK(BM_controller);
   
 } // namespace spomp

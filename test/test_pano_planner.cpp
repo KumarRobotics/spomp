@@ -66,5 +66,4 @@ static void BM_pano_planner_plan(benchmark::State& state) {
 }
 BENCHMARK(BM_pano_planner_plan);
 
-
 } // namespace spomp

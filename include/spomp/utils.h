@@ -53,6 +53,39 @@ class Twist {
     T ang() const {
       return twist_[1];
     }
+
+    T& linear() {
+      return twist_[0];
+    }
+
+    T& ang() {
+      return twist_[1];
+    }
+
+    Twist& operator+=(const Twist& rhs) {
+      twist_ += rhs.twist_;
+      return *this;
+    }
+
+    Twist& operator-=(const Twist& rhs) {
+      twist_ -= rhs.twist_;
+      return *this;
+    }
+
+    Twist operator-() const {
+      return Twist(-twist_);
+    }
+
+    // Have to create new Twist anyway, so pass by value
+    friend Twist operator+(Twist lhs, const Twist& rhs) {
+      lhs += rhs;
+      return lhs;
+    }
+
+    friend Twist operator-(Twist lhs, const Twist& rhs) {
+      lhs -= rhs;
+      return lhs;
+    }
   private:
     Vector2T twist_{Vector2T::Zero()};
 };

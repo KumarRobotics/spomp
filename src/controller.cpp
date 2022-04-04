@@ -7,7 +7,40 @@ Controller::Controller(const Params& params) : params_(params) {}
 Twistf Controller::getControlInput(const Twistf& cur_vel, const Eigen::Isometry2f& state,
     const Eigen::Vector2f& goal, const PanoPlanner& planner) const
 {
-  return {};
+  Twistf max_delta(params_.max_lin_accel / params_.freq, 
+                   params_.max_ang_accel / params_.freq);
+  Twistf max_twist = cur_vel + max_delta;
+  Twistf min_twist = cur_vel - max_delta;
+
+  // Sample the control space, obeying the bounds
+  Eigen::VectorXf lin_samples = Eigen::VectorXf::LinSpaced(
+      params_.lin_disc, 
+      std::clamp<float>(min_twist.linear(), 0, params_.max_lin_vel), 
+      std::clamp<float>(max_twist.linear(), 0, params_.max_lin_vel));
+  Eigen::VectorXf ang_samples = Eigen::VectorXf::LinSpaced(
+      params_.ang_disc, 
+      std::clamp<float>(min_twist.ang(), -params_.max_ang_vel, params_.max_ang_vel), 
+      std::clamp<float>(max_twist.ang(), -params_.max_ang_vel, params_.max_ang_vel));
+
+  // Forward simulate all the trajectories and pick the safest one with lowest cost
+  Twistf best_twist{};
+  float best_cost = std::numeric_limits<float>::infinity();
+  std::vector<Eigen::Isometry2f> traj;
+  for (int lin_i=0; lin_i<lin_samples.size(); ++lin_i) {
+    for (int ang_i=0; ang_i<ang_samples.size(); ++ang_i) {
+      Twistf t(lin_samples[lin_i], ang_samples[ang_i]);
+      traj = forward(state, t);
+      if (isTrajSafe(traj, planner)) {
+        float cost = trajCost(traj, goal);
+        if (cost < best_cost) {
+          best_cost = cost;
+          best_twist = t;
+        }
+      }
+    }
+  }
+
+  return best_twist;
 }
 
 std::vector<Eigen::Isometry2f> Controller::forward(
