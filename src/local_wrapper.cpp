@@ -44,21 +44,24 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
   nh.getParam("TP_inflation_m", tp_params.inflation_m);
 
   nh.getParam("PP_max_spacing_m", pp_params.max_spacing_m);
+  nh.getParam("PP_sample_size", pp_params.sample_size);
 
+  constexpr int width = 30;
   using namespace std;
   ROS_INFO_STREAM("\033[32m" << endl << "[ROS] ======== Configuration ========" << 
     endl << left << 
-    setw(30) << "[ROS] tbb: " << tp_params.tbb << endl <<
+    setw(width) << "[ROS] tbb: " << tp_params.tbb << endl <<
     "[ROS] ===============================" << endl <<
-    setw(30) << "[ROS] TP_max_hole_fill_size: " << tp_params.max_hole_fill_size << endl <<
-    setw(30) << "[ROS] TP_min_noise_size: " << tp_params.min_noise_size << endl <<
-    setw(30) << "[ROS] TP_v_fov_rad: " << tp_params.v_fov_rad << endl <<
-    setw(30) << "[ROS] TP_target_dist_xy: " << tp_params.target_dist_xy << endl <<
-    setw(30) << "[ROS] TP_noise_m: " << tp_params.noise_m << endl <<
-    setw(30) << "[ROS] TP_slope_thresh: " << tp_params.slope_thresh << endl <<
-    setw(30) << "[ROS] TP_inflation_m: " << tp_params.inflation_m << endl <<
+    setw(width) << "[ROS] TP_max_hole_fill_size: " << tp_params.max_hole_fill_size << endl <<
+    setw(width) << "[ROS] TP_min_noise_size: " << tp_params.min_noise_size << endl <<
+    setw(width) << "[ROS] TP_v_fov_rad: " << tp_params.v_fov_rad << endl <<
+    setw(width) << "[ROS] TP_target_dist_xy: " << tp_params.target_dist_xy << endl <<
+    setw(width) << "[ROS] TP_noise_m: " << tp_params.noise_m << endl <<
+    setw(width) << "[ROS] TP_slope_thresh: " << tp_params.slope_thresh << endl <<
+    setw(width) << "[ROS] TP_inflation_m: " << tp_params.inflation_m << endl <<
     "[ROS] ===============================" << endl <<
-    setw(30) << "[ROS] PP_max_spacing_m: " << pp_params.max_spacing_m << endl <<
+    setw(width) << "[ROS] PP_max_spacing_m: " << pp_params.max_spacing_m << endl <<
+    setw(width) << "[ROS] PP_sample_size: " << pp_params.sample_size << endl <<
     "[ROS] ====== End Configuration ======" << "\033[0m");
 
   return Local(tp_params, pp_params);

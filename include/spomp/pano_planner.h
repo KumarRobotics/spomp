@@ -36,6 +36,7 @@ class PanoPlanner {
       return reachability_.scan[reachability_.proj.indAt(az)];
     }
 
+    //! @return True if point is within reachable area
     bool checkPoint(const Eigen::Vector2f& pt) const;
 
   protected:

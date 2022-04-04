@@ -258,12 +258,14 @@ if(CATKIN_ENABLE_TESTING)
     test/test.cpp
     test/test_terrain_pano.cpp
     test/test_pano_planner.cpp
+    test/test_controller.cpp
   )
   
   catkin_add_gtest(${PROJECT_NAME}-bench
     test/bench.cpp
     test/test_terrain_pano.cpp
     test/test_pano_planner.cpp
+    test/test_controller.cpp
   )
 
   find_package(benchmark REQUIRED)
@@ -281,5 +283,3 @@ if(CATKIN_ENABLE_TESTING)
   )
 endif()
 
-## Add folders to be run by python nosetests
-# catkin_add_nosetests(test)
