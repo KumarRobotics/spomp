@@ -27,5 +27,20 @@ TEST(controller, test_forward) {
   traj = c.forward(Eigen::Isometry2f::Identity(), Twistf(10, 0));
   EXPECT_NEAR((traj[10].translation() - Eigen::Vector2f(10, 0)).norm(), 0, 1e-5);
 }
+
+TEST(controller, test_traj_cost) {
+  Controller c({});
+
+  std::vector<Eigen::Isometry2f> traj;
+  Eigen::Isometry2f pose = Eigen::Isometry2f::Identity();
+  traj.push_back(pose);
+  pose.translate(Eigen::Vector2f(1, 0));
+  pose.rotate(Eigen::Rotation2Df(pi/2));
+  traj.push_back(pose);
+
+  EXPECT_FLOAT_EQ(c.trajCost(traj, {1, 0}), 0);
+  EXPECT_FLOAT_EQ(c.trajCost(traj, {1, 1}), 1);
+  EXPECT_FLOAT_EQ(c.trajCost(traj, {1, -1}), 1+pi/10);
+}
   
 } // namespace spomp
