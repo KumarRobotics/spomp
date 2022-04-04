@@ -18,6 +18,7 @@ class Controller {
       float horizon_dt = 0.1;
       int lin_disc = 10;
       int ang_disc = 20;
+      Eigen::Isometry3f control_trans = Eigen::Isometry3f::Identity();
     };
     Controller(const Params& params);
 

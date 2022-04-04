@@ -27,6 +27,9 @@ class LocalWrapper {
     /*********************************************************
      * LOCAL FUNCTIONS
      *********************************************************/
+    static bool getControlTrans(Eigen::Isometry3f& trans,
+        const std::string& body_frame, const std::string& control_frame);
+
     void panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
         const sensor_msgs::CameraInfo::ConstPtr& info_msg);
     void publishTransform(const ros::Time& stamp);

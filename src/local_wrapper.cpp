@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
+#include <tf2_ros/transform_listener.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/LaserScan.h>
 #include <opencv2/core/core.hpp>
@@ -58,6 +59,8 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
   nh.getParam("CO_lin_disc", co_params.lin_disc);
   nh.getParam("CO_ang_disc", co_params.ang_disc);
 
+  bool have_trans = getControlTrans(co_params.control_trans, "body", "base_link");
+
   constexpr int width = 30;
   using namespace std;
   ROS_INFO_STREAM("\033[32m" << endl << "[ROS] ======== Configuration ========" << 
@@ -84,9 +87,31 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
     setw(width) << "[ROS] CO_horizon_dt: " << co_params.horizon_dt << endl <<
     setw(width) << "[ROS] CO_lin_disc: " << co_params.lin_disc << endl <<
     setw(width) << "[ROS] CO_ang_disc: " << co_params.ang_disc << endl <<
+    setw(width) << "[ROS] CO_control_trans: " << (have_trans ? "found" : "default") << endl <<
     "[ROS] ====== End Configuration ======" << "\033[0m");
 
   return Local(tp_params, pp_params, co_params);
+}
+
+bool LocalWrapper::getControlTrans(Eigen::Isometry3f& trans, 
+    const std::string& body_frame, const std::string& control_frame) {
+  tf2_ros::Buffer tf_buffer;
+  tf2_ros::TransformListener tf_listener(tf_buffer);
+
+  int retries = 0;
+  while (retries < 2) {
+    ros::Duration(0.5).sleep();
+    try {
+      auto trans_msg = tf_buffer.lookupTransform(body_frame, control_frame, ros::Time(0));
+      trans = ROS2Eigen(trans_msg);
+      return true;
+    } catch (tf2::TransformException& ex) {
+      ROS_WARN("%s", ex.what());
+      ++retries;
+    }
+  }
+
+  return false;
 }
 
 void LocalWrapper::play() {
