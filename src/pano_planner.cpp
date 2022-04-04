@@ -58,7 +58,7 @@ Eigen::Vector2f PanoPlanner::plan(const Eigen::Vector2f& goal) const {
     Eigen::Vector2f s;
     do {
       s = {dis(gen), dis(gen)};
-    } while (!checkPoint(s));
+    } while (!isSafe(s));
     samples.col(sample_id) = s;
   }
 
@@ -68,7 +68,7 @@ Eigen::Vector2f PanoPlanner::plan(const Eigen::Vector2f& goal) const {
   return samples.col(best_ind);
 }
 
-bool PanoPlanner::checkPoint(const Eigen::Vector2f& pt) const {
+bool PanoPlanner::isSafe(const Eigen::Vector2f& pt) const {
   Eigen::Vector2f polar = cart2polar(pt);
   return getRangeAtAz(polar[1]) > polar[0];
 }

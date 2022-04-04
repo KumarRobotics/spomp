@@ -37,7 +37,7 @@ class PanoPlanner {
     }
 
     //! @return True if point is within reachable area
-    bool checkPoint(const Eigen::Vector2f& pt) const;
+    bool isSafe(const Eigen::Vector2f& pt) const;
 
   protected:
     /*********************************************************

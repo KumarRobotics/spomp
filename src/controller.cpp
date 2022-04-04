@@ -5,7 +5,7 @@ namespace spomp {
 Controller::Controller(const Params& params) : params_(params) {}
 
 Twistf Controller::getControlInput(const Twistf& cur_vel, const Eigen::Isometry2f& state,
-  const PanoPlanner& pano) const
+    const PanoPlanner& planner) const
 {
   return {};
 }
@@ -43,8 +43,15 @@ float Controller::scoreTraj(const std::vector<Eigen::Isometry2f>& traj) const {
   return 0;
 }
 
-bool Controller::isTrajSafe(const std::vector<Eigen::Isometry2f>& traj) const {
-  return false;
+bool Controller::isTrajSafe(const std::vector<Eigen::Isometry2f>& traj,
+    const PanoPlanner& planner) const 
+{
+  for (const auto& pt : traj) {
+    if (!planner.isSafe(pt.translation())) {
+      return false;
+    }
+  }
+  return true;
 }
 
 } // namespace spomp
