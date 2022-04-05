@@ -69,6 +69,10 @@ Eigen::Vector2f PanoPlanner::plan(const Eigen::Vector2f& goal) const {
 }
 
 bool PanoPlanner::isSafe(const Eigen::Vector2f& pt) const {
+  if (pt.norm() < 1e-5) {
+    // Origin is safe
+    return true;
+  }
   Eigen::Vector2f polar = cart2polar(pt);
   return getRangeAtAz(polar[1]) > polar[0];
 }

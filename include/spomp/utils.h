@@ -95,18 +95,26 @@ using Twistf = Twist<float>;
 struct AngularProj {
   float start_angle{};
   float delta_angle{};
-  float num{};
+  int num{};
 
   AngularProj(int n, float s, float d) : num(n), start_angle(s), delta_angle(d) {};
   AngularProj(float s, float f, int n) {
     start_angle = s;
-    delta_angle = (f - s)/n;
+    // (n-1) spaces for n points
+    delta_angle = (f - s)/(n-1);
     num = n;
   }
   AngularProj() = default;
 
   int indAt(float angle) const {
-    return std::roundf((regAngle(angle) - start_angle)/delta_angle);
+    int ind = std::roundf((regAngle(angle) - start_angle)/delta_angle);
+    while (ind >= num) {
+      ind -= num; 
+    }
+    while (ind < 0) {
+      ind += num; 
+    }
+    return ind;
   }
 
   float angAt(int ind) const {
@@ -115,7 +123,7 @@ struct AngularProj {
 
   Eigen::VectorXf getAngles() const {
     return Eigen::VectorXf::LinSpaced(num, 
-        start_angle, start_angle + num*delta_angle);
+        start_angle, start_angle + (num-1)*delta_angle);
   }
 };
   
