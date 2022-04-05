@@ -25,15 +25,8 @@ void Local::setGoal(const Eigen::Vector3f& goal) {
 
 Twistf Local::getControlInput(const Eigen::Isometry3f& state) {
   Eigen::Isometry3f pose_l = pano_.getPose().inverse() * state;
-  Eigen::Isometry2f pose_l_2 = Eigen::Isometry2f::Identity();
 
-  // Project into 2D
-  pose_l_2.translate(pose_l.translation().head<2>());
-  Eigen::Vector3f rot_x = pose_l.rotation() * Eigen::Vector3f::UnitX();
-  float theta = atan2(rot_x[1], rot_x[0]);
-  pose_l_2.rotate(Eigen::Rotation2Df(theta));
-
-  cur_vel_ = controller_.getControlInput(cur_vel_, pose_l_2, planner_);
+  cur_vel_ = controller_.getControlInput(cur_vel_, pose_l, planner_);
   return cur_vel_;
 }
 

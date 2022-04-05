@@ -201,9 +201,17 @@ void LocalWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
 }
 
 void LocalWrapper::goalCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg) {
-  auto pose_odom_frame = tf_buffer_.transform(*pose_msg, odom_frame_);
-  local_.setGoal(ROS2Eigen(pose_odom_frame).translation());
-  visualizeGoals(pose_msg->header.stamp);
+  try {
+    // Ask for most recent transform, treating the pano frame as fixed
+    // This essentially tells tf to assume that the pano frame has not changed
+    // since the last update, which is a valid assumption to make.
+    auto pose_odom_frame = tf_buffer_.transform(*pose_msg, odom_frame_, ros::Time(0), 
+        pose_msg->header.frame_id);
+    local_.setGoal(ROS2Eigen(pose_odom_frame).translation());
+    visualizeGoals(pose_msg->header.stamp);
+  } catch (tf2::TransformException& ex) {
+    ROS_ERROR_STREAM("Cannot transform goal: " << ex.what());
+  }
 }
 
 void LocalWrapper::poseCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg) {
@@ -343,14 +351,14 @@ void LocalWrapper::visualizeGoals(const ros::Time& stamp) {
   Eigen::Vector2f local_goal = local_.getController().getLocalGoal();
 
   visualization_msgs::MarkerArray goal_viz{};
-  {
+  if (global_goal.norm() > 0) {
     visualization_msgs::Marker marker{};
     marker.header.stamp = stamp;
     marker.header.frame_id = odom_frame_;
     marker.ns = "global_goal";
     marker.type = visualization_msgs::Marker::SPHERE;
     marker.action = visualization_msgs::Marker::ADD;
-    marker.scale.x = marker.scale.y = marker.scale.z = 2;
+    marker.scale.x = marker.scale.y = marker.scale.z = 0.5;
     marker.pose.orientation.w = 1;
     marker.color.a = 1;
     marker.color.r = 1;
@@ -359,14 +367,14 @@ void LocalWrapper::visualizeGoals(const ros::Time& stamp) {
     marker.pose.position.z = global_goal[2];
     goal_viz.markers.push_back(marker);
   }
-  {
+  if (local_goal.norm() > 0) {
     visualization_msgs::Marker marker{};
     marker.header.stamp = stamp;
     marker.header.frame_id = pano_frame_;
     marker.ns = "local_goal";
     marker.type = visualization_msgs::Marker::SPHERE;
     marker.action = visualization_msgs::Marker::ADD;
-    marker.scale.x = marker.scale.y = marker.scale.z = 2;
+    marker.scale.x = marker.scale.y = marker.scale.z = 0.5;
     marker.pose.orientation.w = 1;
     marker.color.a = 1;
     marker.color.g = 1;

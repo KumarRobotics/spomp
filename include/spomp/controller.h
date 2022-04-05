@@ -11,7 +11,7 @@ class Controller {
     struct Params {
       float freq = 10;
       float max_lin_accel = 1;
-      float max_ang_accel = 0.1;
+      float max_ang_accel = 1;
       float max_lin_vel = 1.5;
       float max_ang_vel = 1;
       float horizon_sec = 1;
@@ -33,13 +33,17 @@ class Controller {
     /*!
      * Get the best control input given a map and goal
      * @param cur_vel Current velocity of the robot
-     * @param state Current 2D projection of robot pose
+     * @param state_p Current 2D projection of robot pose
      * @param goal Goal point in pano frame
      * @param planner Reference to planner for obstacle avoidance
      */
-    Twistf getControlInput(const Twistf& cur_vel, const Eigen::Isometry2f& state,
+    Twistf getControlInput(const Twistf& cur_vel, const Eigen::Isometry3f& state_p,
         const PanoPlanner& planner) const;
 
+  protected:
+    /*********************************************************
+     * LOCAL FUNCTIONS
+     *********************************************************/
     //! Forward simulate a velocity into a trajectory
     std::vector<Eigen::Isometry2f> forward(
         const Eigen::Isometry2f& state, const Twistf& vel) const;
@@ -59,7 +63,6 @@ class Controller {
     static float angularDist(const Eigen::Isometry2f& pose,
         const Eigen::Vector2f& goal);
 
-  protected:
     /*********************************************************
      * LOCAL CONSTANTS
      *********************************************************/

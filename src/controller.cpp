@@ -7,11 +7,22 @@ Controller::Controller(const Params& params) : params_(params) {
   controller_t_ = tm.get("CO");
 }
 
-Twistf Controller::getControlInput(const Twistf& cur_vel, const Eigen::Isometry2f& state,
+Twistf Controller::getControlInput(const Twistf& cur_vel, const Eigen::Isometry3f& state_p,
     const PanoPlanner& planner) const
 {
   controller_t_->start();
+
+  // Transform into the control space
+  Eigen::Isometry3f state_3 = state_p * params_.control_trans;
+  Eigen::Isometry2f state = Eigen::Isometry2f::Identity();
+
+  // Project into 2D
+  state.translate(state_3.translation().head<2>());
+  Eigen::Vector3f rot_x = state_3.rotation() * Eigen::Vector3f::UnitX();
+  float theta = atan2(rot_x[1], rot_x[0]);
+  state.rotate(Eigen::Rotation2Df(theta));
   
+  // Compute delta bounds
   Twistf max_delta(params_.max_lin_accel / params_.freq, 
                    params_.max_ang_accel / params_.freq);
   Twistf max_twist = cur_vel + max_delta;

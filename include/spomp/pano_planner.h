@@ -9,7 +9,7 @@ class PanoPlanner {
     struct Params {
       int tbb = -1;
       float max_spacing_m = 0.5;
-      int sample_size = 1000;
+      int sample_size = 100;
     };
 
     PanoPlanner(const Params& params);

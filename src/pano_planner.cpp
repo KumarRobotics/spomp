@@ -48,6 +48,10 @@ Eigen::Vector2f PanoPlanner::plan(const Eigen::Vector2f& goal) const {
   Eigen::Array2Xf samples(2, params_.sample_size);
 
   float max_range = reachability_.scan.maxCoeff();
+  if (max_range < 0.1) {
+    // Basically nothing is free, just stay put
+    return {0, 0};
+  }
 
   // Sample feasible points
   static std::random_device rd; // Random seed
@@ -69,6 +73,10 @@ Eigen::Vector2f PanoPlanner::plan(const Eigen::Vector2f& goal) const {
 }
 
 bool PanoPlanner::isSafe(const Eigen::Vector2f& pt) const {
+  if (reachability_.scan.size() < 1) {
+    // No scan yet, say everything is safe so we can move
+    return true;
+  }
   if (pt.norm() < 1e-5) {
     // Origin is safe
     return true;
