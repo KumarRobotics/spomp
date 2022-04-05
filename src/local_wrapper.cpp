@@ -5,13 +5,20 @@
 #include <tf2_ros/transform_listener.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/LaserScan.h>
+#include <geometry_msgs/WrenchStamped.h>
+#include <geometry_msgs/Twist.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <visualization_msgs/MarkerArray.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <cv_bridge/cv_bridge.h>
-#include <geometry_msgs/TransformStamped.h>
 
 namespace spomp {
+
+std::string LocalWrapper::pano_frame_{"planner_pano"};
+std::string LocalWrapper::body_frame_{"body"};
+std::string LocalWrapper::control_frame_{"base_link"};
 
 LocalWrapper::LocalWrapper(ros::NodeHandle& nh) : 
   nh_(nh), 
@@ -25,9 +32,14 @@ LocalWrapper::LocalWrapper(ros::NodeHandle& nh) :
   viz_cloud_t_ = tm.get("LW_viz_cloud");
 
   // Publishers
+  // Viz
   obs_pano_viz_pub_ = nh_.advertise<sensor_msgs::Image>("obs_pano_viz", 1);
   obs_cloud_viz_pub_ = nh_.advertise<sensor_msgs::PointCloud2>("obs_cloud_viz", 1);
   reachability_viz_pub_ = nh_.advertise<sensor_msgs::LaserScan>("reachability_viz", 1);
+  control_viz_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("control_viz", 1);
+  local_goal_viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("local_goal_viz", 1);
+  // Control
+  control_pub_ = nh_.advertise<geometry_msgs::Twist>("control", 1);
 }
 
 Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
@@ -59,7 +71,7 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
   nh.getParam("CO_lin_disc", co_params.lin_disc);
   nh.getParam("CO_ang_disc", co_params.ang_disc);
 
-  bool have_trans = getControlTrans(co_params.control_trans, "body", "base_link");
+  bool have_trans = getControlTrans(co_params.control_trans);
 
   constexpr int width = 30;
   using namespace std;
@@ -93,8 +105,7 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
   return Local(tp_params, pp_params, co_params);
 }
 
-bool LocalWrapper::getControlTrans(Eigen::Isometry3f& trans, 
-    const std::string& body_frame, const std::string& control_frame) {
+bool LocalWrapper::getControlTrans(Eigen::Isometry3f& trans) {
   tf2_ros::Buffer tf_buffer;
   tf2_ros::TransformListener tf_listener(tf_buffer);
 
@@ -102,7 +113,7 @@ bool LocalWrapper::getControlTrans(Eigen::Isometry3f& trans,
   while (retries < 2) {
     ros::Duration(0.5).sleep();
     try {
-      auto trans_msg = tf_buffer.lookupTransform(body_frame, control_frame, ros::Time(0));
+      auto trans_msg = tf_buffer.lookupTransform(body_frame_, control_frame_, ros::Time(0));
       trans = ROS2Eigen(trans_msg);
       return true;
     } catch (tf2::TransformException& ex) {
@@ -146,6 +157,7 @@ void LocalWrapper::play() {
 void LocalWrapper::initialize() {
   // Subscribers
   pano_sub_ = it_.subscribeCamera("pano/img", 1, &LocalWrapper::panoCallback, this);
+  goal_sub_ = nh_.subscribe("goal", 1, &LocalWrapper::goalCallback, this);
 
   ros::spin();
 }
@@ -180,6 +192,9 @@ void LocalWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
   visualizeCloud(img_msg->header.stamp);
   visualizeReachability(img_msg->header.stamp);
   printTimings();
+}
+
+void LocalWrapper::goalCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg) {
 }
 
 void LocalWrapper::publishTransform(const ros::Time& stamp) {

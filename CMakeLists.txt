@@ -20,6 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   sensor_msgs
   geometry_msgs
+  visualization_msgs
   tf2_ros
   image_transport
 )
