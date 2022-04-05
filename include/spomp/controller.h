@@ -26,6 +26,10 @@ class Controller {
       goal_ = goal;
     }
 
+    const auto& getLocalGoal() const {
+      return goal_;
+    }
+
     /*!
      * Get the best control input given a map and goal
      * @param cur_vel Current velocity of the robot

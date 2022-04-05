@@ -13,21 +13,26 @@ class Local {
 
     void updatePano(const Eigen::ArrayXXf& pano, const Eigen::Isometry3f& pose);
 
-    Twistf getControlInput(const Eigen::Isometry2f& state);
+    //! @param state The robot pose in the odom frame
+    Twistf getControlInput(const Eigen::Isometry3f& state);
 
     //! @param goal The goal in the odom frame
     void setGoal(const Eigen::Vector3f& goal);
 
-    const TerrainPano& getPano() const {
+    const auto& getPano() const {
       return pano_;
     }
 
-    const PanoPlanner& getPlanner() const {
+    const auto& getPlanner() const {
       return planner_;
     }
 
-    const Controller& getController() const {
+    const auto& getController() const {
       return controller_;
+    }
+
+    const auto& getGlobalGoal() const {
+      return global_goal_;
     }
 
   protected:

@@ -2,7 +2,7 @@
 #include <iomanip>
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
-#include <tf2_ros/transform_listener.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/WrenchStamped.h>
@@ -16,6 +16,7 @@
 
 namespace spomp {
 
+std::string LocalWrapper::odom_frame_{"odom"};
 std::string LocalWrapper::pano_frame_{"planner_pano"};
 std::string LocalWrapper::body_frame_{"body"};
 std::string LocalWrapper::control_frame_{"base_link"};
@@ -25,6 +26,8 @@ LocalWrapper::LocalWrapper(ros::NodeHandle& nh) :
   local_(createLocal(nh)), 
   remote_(50), 
   it_(nh),
+  tf_buffer_(),
+  tf_listener_(tf_buffer_),
   tf_broadcaster_()
 {
   auto& tm = TimerManager::getGlobal();
@@ -106,6 +109,7 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
 }
 
 bool LocalWrapper::getControlTrans(Eigen::Isometry3f& trans) {
+  // Static function, so create static buffer and listener
   tf2_ros::Buffer tf_buffer;
   tf2_ros::TransformListener tf_listener(tf_buffer);
 
@@ -158,6 +162,7 @@ void LocalWrapper::initialize() {
   // Subscribers
   pano_sub_ = it_.subscribeCamera("pano/img", 1, &LocalWrapper::panoCallback, this);
   goal_sub_ = nh_.subscribe("goal", 1, &LocalWrapper::goalCallback, this);
+  pose_sub_ = nh_.subscribe("pose", 1, &LocalWrapper::poseCallback, this);
 
   ros::spin();
 }
@@ -191,10 +196,20 @@ void LocalWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
   visualizePano(img_msg->header.stamp);
   visualizeCloud(img_msg->header.stamp);
   visualizeReachability(img_msg->header.stamp);
+  visualizeGoals(img_msg->header.stamp);
   printTimings();
 }
 
 void LocalWrapper::goalCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg) {
+  auto pose_odom_frame = tf_buffer_.transform(*pose_msg, odom_frame_);
+  local_.setGoal(ROS2Eigen(pose_odom_frame).translation());
+  visualizeGoals(pose_msg->header.stamp);
+}
+
+void LocalWrapper::poseCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg) {
+  // Assume the pose_msg is already in the odom frame
+  auto twist = local_.getControlInput(ROS2Eigen(*pose_msg));
+  visualizeControl(pose_msg->header.stamp, twist);
 }
 
 void LocalWrapper::publishTransform(const ros::Time& stamp) {
@@ -312,8 +327,76 @@ void LocalWrapper::visualizeReachability(const ros::Time& stamp) {
   reachability_viz_pub_.publish(scan_msg);
 }
 
+void LocalWrapper::visualizeControl(const ros::Time& stamp, const Twistf& twist) {
+  geometry_msgs::TwistStamped twist_msg = Eigen2ROS(twist);
+  // rviz can visualize a wrench but not a twist
+  geometry_msgs::WrenchStamped wrench_msg;
+  wrench_msg.wrench.force = twist_msg.twist.linear;
+  wrench_msg.wrench.torque = twist_msg.twist.angular;
+  wrench_msg.header.stamp = stamp;
+  wrench_msg.header.frame_id = control_frame_;
+  control_viz_pub_.publish(wrench_msg);
+}
+
+void LocalWrapper::visualizeGoals(const ros::Time& stamp) {
+  Eigen::Vector3f global_goal = local_.getGlobalGoal();
+  Eigen::Vector2f local_goal = local_.getController().getLocalGoal();
+
+  visualization_msgs::MarkerArray goal_viz{};
+  {
+    visualization_msgs::Marker marker{};
+    marker.header.stamp = stamp;
+    marker.header.frame_id = odom_frame_;
+    marker.ns = "global_goal";
+    marker.type = visualization_msgs::Marker::SPHERE;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.scale.x = marker.scale.y = marker.scale.z = 2;
+    marker.pose.orientation.w = 1;
+    marker.color.a = 1;
+    marker.color.r = 1;
+    marker.pose.position.x = global_goal[0];
+    marker.pose.position.y = global_goal[1];
+    marker.pose.position.z = global_goal[2];
+    goal_viz.markers.push_back(marker);
+  }
+  {
+    visualization_msgs::Marker marker{};
+    marker.header.stamp = stamp;
+    marker.header.frame_id = pano_frame_;
+    marker.ns = "local_goal";
+    marker.type = visualization_msgs::Marker::SPHERE;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.scale.x = marker.scale.y = marker.scale.z = 2;
+    marker.pose.orientation.w = 1;
+    marker.color.a = 1;
+    marker.color.g = 1;
+    marker.pose.position.x = local_goal[0];
+    marker.pose.position.y = local_goal[1];
+    marker.pose.position.z = 0;
+    goal_viz.markers.push_back(marker);
+  }
+
+  local_goal_viz_pub_.publish(goal_viz);
+}
+
 void LocalWrapper::printTimings() {
   ROS_INFO_STREAM("\033[34m" << TimerManager::getGlobal() << "\033[0m");
+}
+
+Eigen::Isometry3f LocalWrapper::ROS2Eigen(const geometry_msgs::PoseStamped& pose_msg) {
+  Eigen::Isometry3f pose = Eigen::Isometry3f::Identity();
+  pose.translate(Eigen::Vector3f(
+        pose_msg.pose.position.x,
+        pose_msg.pose.position.y,
+        pose_msg.pose.position.z
+        ));
+  pose.rotate(Eigen::Quaternionf(
+        pose_msg.pose.orientation.w,
+        pose_msg.pose.orientation.x,
+        pose_msg.pose.orientation.y,
+        pose_msg.pose.orientation.z
+        ));
+  return pose;
 }
 
 Eigen::Isometry3f LocalWrapper::ROS2Eigen(const geometry_msgs::TransformStamped& trans_msg) {
@@ -333,7 +416,7 @@ Eigen::Isometry3f LocalWrapper::ROS2Eigen(const geometry_msgs::TransformStamped&
 }
 
 geometry_msgs::TransformStamped LocalWrapper::Eigen2ROS(const Eigen::Isometry3f& pose) {
-  geometry_msgs::TransformStamped pose_msg;
+  geometry_msgs::TransformStamped pose_msg{};
   pose_msg.transform.translation.x = pose.translation()[0];
   pose_msg.transform.translation.y = pose.translation()[1];
   pose_msg.transform.translation.z = pose.translation()[2];
@@ -342,8 +425,18 @@ geometry_msgs::TransformStamped LocalWrapper::Eigen2ROS(const Eigen::Isometry3f&
   pose_msg.transform.rotation.y = quat.y();
   pose_msg.transform.rotation.z = quat.z();
   pose_msg.transform.rotation.w = quat.w();
-
   return pose_msg;
+}
+
+geometry_msgs::TwistStamped LocalWrapper::Eigen2ROS(const Twistf& twist) {
+  geometry_msgs::TwistStamped twist_msg{};
+  twist_msg.twist.linear.x = twist.linear();
+  twist_msg.twist.linear.y = 0;
+  twist_msg.twist.linear.z = 0;
+  twist_msg.twist.angular.x = 0;
+  twist_msg.twist.angular.y = 0;
+  twist_msg.twist.angular.z = twist.ang();
+  return twist_msg;
 }
 
 } // namespace spomp

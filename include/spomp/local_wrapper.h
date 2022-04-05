@@ -4,7 +4,9 @@
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/Image.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/TwistStamped.h>
 #include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/transform_listener.h>
 #include "spomp/local.h"
 #include "spomp/remote.h"
 
@@ -22,7 +24,9 @@ class LocalWrapper {
     void initialize();
 
     static Eigen::Isometry3f ROS2Eigen(const geometry_msgs::TransformStamped& trans_msg);
+    static Eigen::Isometry3f ROS2Eigen(const geometry_msgs::PoseStamped& pose_msg);
     static geometry_msgs::TransformStamped Eigen2ROS(const Eigen::Isometry3f& pose);
+    static geometry_msgs::TwistStamped Eigen2ROS(const Twistf& twist);
 
   private:
     /*********************************************************
@@ -33,12 +37,14 @@ class LocalWrapper {
     void panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
         const sensor_msgs::CameraInfo::ConstPtr& info_msg);
     void goalCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg);
+    void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg);
 
     void publishTransform(const ros::Time& stamp);
     void visualizePano(const ros::Time& stamp);
     void visualizeCloud(const ros::Time& stamp);
     void visualizeReachability(const ros::Time& stamp);
-    void visualizeControl(const ros::Time& stamp);
+    void visualizeControl(const ros::Time& stamp, const Twistf& twist);
+    void visualizeGoals(const ros::Time& stamp);
 
     void printTimings();
 
@@ -47,7 +53,9 @@ class LocalWrapper {
      *********************************************************/
     ros::NodeHandle nh_;
     image_transport::ImageTransport it_;
+    tf2_ros::Buffer tf_buffer_;
     tf2_ros::TransformBroadcaster tf_broadcaster_;
+    tf2_ros::TransformListener tf_listener_;
 
     // Pubs
     ros::Publisher obs_pano_viz_pub_;
@@ -60,6 +68,7 @@ class LocalWrapper {
     // Subs
     image_transport::CameraSubscriber pano_sub_;
     ros::Subscriber goal_sub_;
+    ros::Subscriber pose_sub_;
 
     // Object pointers
     Local local_;
@@ -67,7 +76,8 @@ class LocalWrapper {
     Remote remote_;
 
     // Config related
-    // Static because modified in static functions
+    // Static because read in static functions
+    static std::string odom_frame_;
     static std::string pano_frame_;
     static std::string body_frame_;
     static std::string control_frame_;
