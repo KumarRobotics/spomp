@@ -139,7 +139,7 @@ Visualization Manager:
       Enabled: true
       Force Arrow Scale: 2
       Force Color: 204; 51; 51
-      Hide Small Values: true
+      Hide Small Values: false
       History Length: 1
       Name: WrenchStamped
       Topic: /spomp_local/control_viz
@@ -184,16 +184,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 29.51676368713379
+      Distance: 35.16232681274414
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.47614607214927673
-        Y: -0.241935133934021
-        Z: 5.850439071655273
+        X: -0.40263018012046814
+        Y: 0.028583133593201637
+        Z: 5.850551605224609
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -202,7 +202,7 @@ Visualization Manager:
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.143117666244507
+      Yaw: 3.133108377456665
     Saved: ~
 Window Geometry:
   Displays:
