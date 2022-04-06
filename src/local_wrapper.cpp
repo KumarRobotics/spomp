@@ -5,7 +5,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/LaserScan.h>
-#include <geometry_msgs/WrenchStamped.h>
+#include <nav_msgs/Path.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <visualization_msgs/MarkerArray.h>
@@ -39,7 +39,7 @@ LocalWrapper::LocalWrapper(ros::NodeHandle& nh) :
   obs_pano_viz_pub_ = nh_.advertise<sensor_msgs::Image>("obs_pano_viz", 1);
   obs_cloud_viz_pub_ = nh_.advertise<sensor_msgs::PointCloud2>("obs_cloud_viz", 1);
   reachability_viz_pub_ = nh_.advertise<sensor_msgs::LaserScan>("reachability_viz", 1);
-  control_viz_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("control_viz", 1);
+  control_viz_pub_ = nh_.advertise<nav_msgs::Path>("control_viz", 1);
   local_goal_viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("local_goal_viz", 1);
   // Control
   control_pub_ = nh_.advertise<geometry_msgs::Twist>("control", 1);
@@ -208,6 +208,8 @@ void LocalWrapper::goalCallback(const geometry_msgs::PoseStamped::ConstPtr& pose
     auto pose_odom_frame = tf_buffer_.transform(*pose_msg, odom_frame_, ros::Time(0), 
         pose_msg->header.frame_id);
     local_.setGoal(ROS2Eigen(pose_odom_frame).translation());
+    // Publish transform so goals are updated properly
+    publishTransform(pose_msg->header.stamp);
     visualizeGoals(pose_msg->header.stamp);
   } catch (tf2::TransformException& ex) {
     ROS_ERROR_STREAM("Cannot transform goal: " << ex.what());
@@ -217,6 +219,7 @@ void LocalWrapper::goalCallback(const geometry_msgs::PoseStamped::ConstPtr& pose
 void LocalWrapper::poseCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg) {
   // Assume the pose_msg is already in the odom frame
   auto twist = local_.getControlInput(ROS2Eigen(*pose_msg));
+  control_pub_.publish(Eigen2ROS(twist));
   visualizeControl(pose_msg->header.stamp, twist);
 }
 
@@ -336,14 +339,20 @@ void LocalWrapper::visualizeReachability(const ros::Time& stamp) {
 }
 
 void LocalWrapper::visualizeControl(const ros::Time& stamp, const Twistf& twist) {
-  geometry_msgs::TwistStamped twist_msg = Eigen2ROS(twist);
-  // rviz can visualize a wrench but not a twist
-  geometry_msgs::WrenchStamped wrench_msg;
-  wrench_msg.wrench.force = twist_msg.twist.linear;
-  wrench_msg.wrench.torque = twist_msg.twist.angular;
-  wrench_msg.header.stamp = stamp;
-  wrench_msg.header.frame_id = control_frame_;
-  control_viz_pub_.publish(wrench_msg);
+  auto path = local_.getController().forwardFromOrigin(twist);
+
+  nav_msgs::Path path_msg{};
+  path_msg.header.frame_id = control_frame_;
+  path_msg.header.stamp = stamp;
+  path_msg.poses.reserve(path.size());
+
+  for (const auto& pose : path) {
+    geometry_msgs::PoseStamped pose_msg = Eigen2ROS(pose);
+    pose_msg.header = path_msg.header;
+    path_msg.poses.push_back(pose_msg);
+  } 
+
+  control_viz_pub_.publish(path_msg);
 }
 
 void LocalWrapper::visualizeGoals(const ros::Time& stamp) {
@@ -436,14 +445,28 @@ geometry_msgs::TransformStamped LocalWrapper::Eigen2ROS(const Eigen::Isometry3f&
   return pose_msg;
 }
 
-geometry_msgs::TwistStamped LocalWrapper::Eigen2ROS(const Twistf& twist) {
-  geometry_msgs::TwistStamped twist_msg{};
-  twist_msg.twist.linear.x = twist.linear();
-  twist_msg.twist.linear.y = 0;
-  twist_msg.twist.linear.z = 0;
-  twist_msg.twist.angular.x = 0;
-  twist_msg.twist.angular.y = 0;
-  twist_msg.twist.angular.z = twist.ang();
+geometry_msgs::PoseStamped LocalWrapper::Eigen2ROS(const Eigen::Isometry2f& pose) {
+  geometry_msgs::PoseStamped pose_msg{};
+  pose_msg.pose.position.x = pose.translation()[0];
+  pose_msg.pose.position.y = pose.translation()[1];
+  pose_msg.pose.position.z = 0;
+  Eigen::Rotation2Df rot(pose.rotation());
+  Eigen::Quaternionf quat(Eigen::AngleAxisf(rot.angle(), Eigen::Vector3f::UnitZ()));
+  pose_msg.pose.orientation.x = quat.x();
+  pose_msg.pose.orientation.y = quat.y();
+  pose_msg.pose.orientation.z = quat.z();
+  pose_msg.pose.orientation.w = quat.w();
+  return pose_msg;
+}
+
+geometry_msgs::Twist LocalWrapper::Eigen2ROS(const Twistf& twist) {
+  geometry_msgs::Twist twist_msg{};
+  twist_msg.linear.x = twist.linear();
+  twist_msg.linear.y = 0;
+  twist_msg.linear.z = 0;
+  twist_msg.angular.x = 0;
+  twist_msg.angular.y = 0;
+  twist_msg.angular.z = twist.ang();
   return twist_msg;
 }
 

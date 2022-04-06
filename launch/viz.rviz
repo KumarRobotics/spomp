@@ -7,6 +7,7 @@ Panels:
         - /Global Options1
         - /Status1
         - /PointCloud21/Status1
+        - /MarkerArray1/Namespaces1
       Splitter Ratio: 0.5
     Tree Height: 727
   - Class: rviz/Selection
@@ -72,7 +73,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: Intensity
       Decay Time: 0
-      Enabled: true
+      Enabled: false
       Invert Rainbow: true
       Max Color: 255; 255; 255
       Max Intensity: 2
@@ -89,7 +90,7 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
+      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -133,20 +134,6 @@ Visualization Manager:
       Topic: /os_node/llol_odom/pose
       Unreliable: false
       Value: true
-    - Alpha: 1
-      Arrow Width: 2
-      Class: rviz/WrenchStamped
-      Enabled: true
-      Force Arrow Scale: 2
-      Force Color: 204; 51; 51
-      Hide Small Values: false
-      History Length: 1
-      Name: WrenchStamped
-      Topic: /spomp_local/control_viz
-      Torque Arrow Scale: 5
-      Torque Color: 204; 204; 51
-      Unreliable: false
-      Value: true
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /spomp_local/local_goal_viz
@@ -155,6 +142,29 @@ Visualization Manager:
         global_goal: true
         local_goal: true
       Queue Size: 100
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 25; 255; 0
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 1
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: Axes
+      Radius: 0.10000000149011612
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /spomp_local/control_viz
+      Unreliable: false
       Value: true
   Enabled: true
   Global Options:
@@ -184,16 +194,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 35.16232681274414
+      Distance: 27.906539916992188
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.40263018012046814
-        Y: 0.028583133593201637
-        Z: 5.850551605224609
+        X: -0.7735217213630676
+        Y: -0.447191059589386
+        Z: 5.850170612335205
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -202,7 +212,7 @@ Visualization Manager:
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.133108377456665
+      Yaw: 3.148106098175049
     Saved: ~
 Window Geometry:
   Displays:

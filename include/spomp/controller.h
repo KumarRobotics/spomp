@@ -40,6 +40,11 @@ class Controller {
     Twistf getControlInput(const Twistf& cur_vel, const Eigen::Isometry3f& state_p,
         const PanoPlanner& planner) const;
 
+    //! Forward simulate a velocity into a trajectory
+    std::vector<Eigen::Isometry2f> forwardFromOrigin(const Twistf& vel) const {
+      return forward(Eigen::Isometry2f::Identity(), vel);
+    };
+
   protected:
     /*********************************************************
      * LOCAL FUNCTIONS

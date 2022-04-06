@@ -26,7 +26,8 @@ class LocalWrapper {
     static Eigen::Isometry3f ROS2Eigen(const geometry_msgs::TransformStamped& trans_msg);
     static Eigen::Isometry3f ROS2Eigen(const geometry_msgs::PoseStamped& pose_msg);
     static geometry_msgs::TransformStamped Eigen2ROS(const Eigen::Isometry3f& pose);
-    static geometry_msgs::TwistStamped Eigen2ROS(const Twistf& twist);
+    static geometry_msgs::PoseStamped Eigen2ROS(const Eigen::Isometry2f& pose);
+    static geometry_msgs::Twist Eigen2ROS(const Twistf& twist);
 
   private:
     /*********************************************************
