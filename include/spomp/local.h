@@ -45,7 +45,7 @@ class Local {
 
     Twistf cur_vel_{};
 
-    Eigen::Vector3f global_goal_{Eigen::Vector3f::Zero()};
+    std::optional<Eigen::Vector3f> global_goal_{};
 };
 
 } // namespace spomp

@@ -356,41 +356,43 @@ void LocalWrapper::visualizeControl(const ros::Time& stamp, const Twistf& twist)
 }
 
 void LocalWrapper::visualizeGoals(const ros::Time& stamp) {
-  Eigen::Vector3f global_goal = local_.getGlobalGoal();
+  auto global_goal = local_.getGlobalGoal();
   Eigen::Vector2f local_goal = local_.getController().getLocalGoal();
 
   visualization_msgs::MarkerArray goal_viz{};
-  if (global_goal.norm() > 0) {
-    visualization_msgs::Marker marker{};
-    marker.header.stamp = stamp;
-    marker.header.frame_id = odom_frame_;
-    marker.ns = "global_goal";
-    marker.type = visualization_msgs::Marker::SPHERE;
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.scale.x = marker.scale.y = marker.scale.z = 0.5;
-    marker.pose.orientation.w = 1;
-    marker.color.a = 1;
-    marker.color.r = 1;
-    marker.pose.position.x = global_goal[0];
-    marker.pose.position.y = global_goal[1];
-    marker.pose.position.z = global_goal[2];
-    goal_viz.markers.push_back(marker);
-  }
-  if (local_goal.norm() > 0) {
-    visualization_msgs::Marker marker{};
-    marker.header.stamp = stamp;
-    marker.header.frame_id = pano_frame_;
-    marker.ns = "local_goal";
-    marker.type = visualization_msgs::Marker::SPHERE;
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.scale.x = marker.scale.y = marker.scale.z = 0.5;
-    marker.pose.orientation.w = 1;
-    marker.color.a = 1;
-    marker.color.g = 1;
-    marker.pose.position.x = local_goal[0];
-    marker.pose.position.y = local_goal[1];
-    marker.pose.position.z = 0;
-    goal_viz.markers.push_back(marker);
+  if (global_goal) {
+    {
+      visualization_msgs::Marker marker{};
+      marker.header.stamp = stamp;
+      marker.header.frame_id = odom_frame_;
+      marker.ns = "global_goal";
+      marker.type = visualization_msgs::Marker::SPHERE;
+      marker.action = visualization_msgs::Marker::ADD;
+      marker.scale.x = marker.scale.y = marker.scale.z = 0.5;
+      marker.pose.orientation.w = 1;
+      marker.color.a = 1;
+      marker.color.r = 1;
+      marker.pose.position.x = (*global_goal)[0];
+      marker.pose.position.y = (*global_goal)[1];
+      marker.pose.position.z = (*global_goal)[2];
+      goal_viz.markers.push_back(marker);
+    }
+    {
+      visualization_msgs::Marker marker{};
+      marker.header.stamp = stamp;
+      marker.header.frame_id = pano_frame_;
+      marker.ns = "local_goal";
+      marker.type = visualization_msgs::Marker::SPHERE;
+      marker.action = visualization_msgs::Marker::ADD;
+      marker.scale.x = marker.scale.y = marker.scale.z = 0.5;
+      marker.pose.orientation.w = 1;
+      marker.color.a = 1;
+      marker.color.g = 1;
+      marker.pose.position.x = local_goal[0];
+      marker.pose.position.y = local_goal[1];
+      marker.pose.position.z = 0;
+      goal_viz.markers.push_back(marker);
+    }
   }
 
   local_goal_viz_pub_.publish(goal_viz);

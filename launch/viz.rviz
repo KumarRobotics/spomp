@@ -6,7 +6,6 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /PointCloud21/Status1
         - /MarkerArray1/Namespaces1
       Splitter Ratio: 0.5
     Tree Height: 727
@@ -73,7 +72,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: Intensity
       Decay Time: 0
-      Enabled: false
+      Enabled: true
       Invert Rainbow: true
       Max Color: 255; 255; 255
       Max Intensity: 2
@@ -90,7 +89,7 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: false
+      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -139,8 +138,7 @@ Visualization Manager:
       Marker Topic: /spomp_local/local_goal_viz
       Name: MarkerArray
       Namespaces:
-        global_goal: true
-        local_goal: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -194,7 +192,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 27.906539916992188
+      Distance: 42.04168701171875
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
