@@ -222,7 +222,7 @@ Eigen::ArrayXXf TerrainPano::distance(const Eigen::ArrayXXi& obs_pano) const {
   float axis_max_dist = sqrt(2.) * params_.max_distance_m;
   Eigen::ArrayXXf alt_dist = Eigen::ArrayXXf::Constant(
       obs_pano.rows(), obs_pano.cols(), axis_max_dist);
-  Eigen::ArrayXXf az_dist = alt_dist;
+  Eigen::ArrayXXf full_dist = alt_dist;
 
   // Dist along altitude
   int gsize = params_.tbb <= 0 ? obs_pano.cols() : params_.tbb;
@@ -246,32 +246,42 @@ Eigen::ArrayXXf TerrainPano::distance(const Eigen::ArrayXXi& obs_pano) const {
       }
     });
 
+  auto update_az = [&](int row_i, int col_i, int& last_obs) {
+    int col_i_b = fast_mod(col_i, pano_.cols());
+    int last_obs_b = fast_mod(last_obs, pano_.cols());
+
+    float dist = alt_dist(row_i, last_obs_b) + 
+        (abs(col_i - last_obs) * pano_(row_i, last_obs_b) * 2 * pi / pano_.cols());
+
+    if (alt_dist(row_i, col_i_b) < dist) {
+      // If the current alt distance is less than the az dist plus the last
+      // alt distance, then update
+      last_obs = col_i;
+      if (alt_dist(row_i, col_i_b) < full_dist(row_i, col_i_b)) {
+        full_dist(row_i, col_i_b) = alt_dist(row_i, col_i_b);
+      }
+      return false;
+    } else {
+      if (dist < full_dist(row_i, col_i_b)) {
+        full_dist(row_i, col_i_b) = dist;
+      }
+      return true;
+    }
+  };
+
   // Dist along azimuth
   gsize = params_.tbb <= 0 ? obs_pano.rows() : params_.tbb;
   tbb::parallel_for(tbb::blocked_range<int>(0, obs_pano.rows(), gsize), 
     [&](tbb::blocked_range<int> range) {
       for (int row_i=range.begin(); row_i<range.end(); ++row_i) {
-        for (int col_i=0; col_i<obs_pano.cols(); ++col_i) {
-          if (alt_dist(row_i, col_i) < axis_max_dist && pano_(row_i, col_i) > 0) {
-            int window = getWindow(axis_max_dist, row_i, col_i, pano_);
-            
-            // Make sure col_i_b - window is nonnegative
-            int col_i_b = col_i; 
-            if (col_i_b < window) col_i_b += pano_.cols();
-
-            for (int inf_col=col_i_b-window; inf_col<=col_i_b+window; ++inf_col) {
-              int inf_col_bounds = fast_mod(inf_col, pano_.cols());
-              // Distance is fraction of window * window size
-              // We add on the alt_dist to inflate from alt inf as well
-              if (pano_(row_i, inf_col_bounds) > 0) {
-                float dist = abs(inf_col - col_i_b) * axis_max_dist / window + 
-                             alt_dist(row_i, col_i);
-                if (dist < az_dist(row_i, inf_col_bounds)) {
-                  az_dist(row_i, inf_col_bounds) = dist;
-                }
-              }
-            }
-          }
+        int last_obs = 0;
+        // Mult by 2 to make sure we get wraparound
+        for (int col_i=0; col_i<obs_pano.cols()*2; ++col_i) {
+          if (!update_az(row_i, col_i, last_obs) && col_i > obs_pano.cols()) break;
+        }
+        last_obs = obs_pano.cols()*2-1;
+        for (int col_i=obs_pano.cols()*2-1; col_i>=0; --col_i) {
+          if (!update_az(row_i, col_i, last_obs) && col_i < obs_pano.cols()) break;
         }
       }
     });
@@ -279,7 +289,7 @@ Eigen::ArrayXXf TerrainPano::distance(const Eigen::ArrayXXi& obs_pano) const {
   dist_t_->end();
   // This is the shortest distance to a line defined by a distance along x
   // and a distance along y
-  return alt_dist * az_dist / (alt_dist.pow(2) + az_dist.pow(2)).sqrt();
+  return full_dist;
 }
 
 int TerrainPano::getWindow(float dist_m, int row_i, int col_i,
