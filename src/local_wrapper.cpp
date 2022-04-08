@@ -60,6 +60,7 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
   nh.getParam("TP_noise_m", tp_params.noise_m);
   nh.getParam("TP_slope_thresh", tp_params.slope_thresh);
   nh.getParam("TP_inflation_m", tp_params.inflation_m);
+  nh.getParam("TP_max_distance_m", tp_params.max_distance_m);
 
   nh.getParam("PP_max_spacing_m", pp_params.max_spacing_m);
   nh.getParam("PP_sample_size", pp_params.sample_size);
@@ -89,6 +90,7 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
     setw(width) << "[ROS] TP_noise_m: " << tp_params.noise_m << endl <<
     setw(width) << "[ROS] TP_slope_thresh: " << tp_params.slope_thresh << endl <<
     setw(width) << "[ROS] TP_inflation_m: " << tp_params.inflation_m << endl <<
+    setw(width) << "[ROS] TP_max_distance_m: " << tp_params.max_distance_m << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] PP_max_spacing_m: " << pp_params.max_spacing_m << endl <<
     setw(width) << "[ROS] PP_sample_size: " << pp_params.sample_size << endl <<
@@ -234,7 +236,7 @@ void LocalWrapper::publishTransform(const ros::Time& stamp) {
 void LocalWrapper::visualizePano(const ros::Time& stamp) {
   viz_pano_t_->start();
 
-  const Eigen::MatrixXi& pano = local_.getPano().getTraversability().matrix();
+  const Eigen::MatrixXf& pano = local_.getPano().getTraversability().matrix();
   cv::Mat pano_viz;
   cv::eigen2cv(pano, pano_viz);
   pano_viz.convertTo(pano_viz, CV_8UC1, 100);
@@ -308,8 +310,8 @@ void LocalWrapper::visualizeCloud(const ros::Time& stamp) {
     cloud_packed.row(axis) = Eigen::Map<const Eigen::VectorXf>(
         cloud[axis].data(), cloud[axis].size());
   }
-  cloud_packed.row(3) = Eigen::Map<const Eigen::VectorXi>(
-      trav.data(), trav.size()).cast<float>();
+  cloud_packed.row(3) = Eigen::Map<const Eigen::VectorXf>(
+      trav.data(), trav.size());
 
   obs_cloud_viz_pub_.publish(cloud_msg);
 

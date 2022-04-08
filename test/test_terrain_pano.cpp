@@ -25,7 +25,7 @@ class TerrainPanoTester : TerrainPano {
     using TerrainPano::computeCloud;
     using TerrainPano::computeGradient;
     using TerrainPano::threshold;
-    using TerrainPano::inflate;
+    using TerrainPano::distance;
 };
 
 static void BM_mod(benchmark::State& state) {
@@ -150,7 +150,7 @@ TEST(terrain_pano, test_grad_thresh) {
   tp.updatePano(pano_eig, {});
   Eigen::MatrixXf grad = tp.computeGradient().matrix();
   Eigen::MatrixXi thresh = tp.threshold(grad.array()).matrix();
-  Eigen::MatrixXi inflate = tp.getTraversability().matrix(); 
+  Eigen::MatrixXf dist = tp.getTraversability().matrix(); 
 
   // This is kind of cheating.  Just write the image to disk
   // and manually review for correctness
@@ -164,10 +164,10 @@ TEST(terrain_pano, test_grad_thresh) {
   thresh_cv *= 256;
   cv::imwrite("thresh.png", thresh_cv);
 
-  cv::Mat inflate_cv;
-  cv::eigen2cv(inflate, inflate_cv);
-  inflate_cv *= 100;
-  cv::imwrite("inflate.png", inflate_cv);
+  cv::Mat dist_cv;
+  cv::eigen2cv(dist, dist_cv);
+  dist_cv *= 256;
+  cv::imwrite("dist.png", dist_cv);
 
   Eigen::MatrixXf filled = tp.getPano().matrix();
   cv::Mat filled_cv;
@@ -202,25 +202,23 @@ static void BM_terrain_pano_thresh(benchmark::State& state) {
 }
 BENCHMARK(BM_terrain_pano_thresh);
 
-static void BM_terrain_pano_inflate(benchmark::State& state) {
+static void BM_terrain_pano_distance(benchmark::State& state) {
   TerrainPanoTester tp({});
   Eigen::ArrayXXf pano = Eigen::ArrayXXf::Zero(256, 1024);
   for (int col=0; col<pano.cols(); ++col) {
     pano.col(col).setLinSpaced(256, 50, 1);
   }
   Eigen::ArrayXXi obs = Eigen::ArrayXXi::Zero(256, 1024);
-  Eigen::ArrayXXi obs_copy;
   // Create obstacles
   for (int cnt=0; cnt<1000; cnt++) {
     obs.block<1, 2>(rand() % 256, rand() % 1000) = 1;
   }
   tp.updatePano(pano, {});
   for (auto _ : state) {
-    obs_copy = obs;
-    tp.inflate(obs_copy);
+    tp.distance(obs);
   }
 }
-BENCHMARK(BM_terrain_pano_inflate);
+BENCHMARK(BM_terrain_pano_distance);
 
 static void BM_terrain_pano_update(benchmark::State& state) {
   TerrainPanoTester tp({});

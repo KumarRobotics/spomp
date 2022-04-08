@@ -13,7 +13,7 @@ TerrainPano::TerrainPano(const Params& params) :
   compute_cloud_t_ = tm.get("TP_compute_cloud");
   compute_grad_t_ = tm.get("TP_compute_grad"); 
   thresh_t_ = tm.get("TP_thresh");
-  inflate_t_ = tm.get("TP_inflate");
+  dist_t_ = tm.get("TP_dist");
 }
 
 void TerrainPano::updatePano(const Eigen::ArrayXXf& pano, 
@@ -36,8 +36,8 @@ void TerrainPano::updatePano(const Eigen::ArrayXXf& pano,
   fillHoles(pano_);
   computeCloud();
   Eigen::ArrayXXf grad = computeGradient();
-  traversability_pano_ = threshold(grad);
-  inflate(traversability_pano_);
+  Eigen::ArrayXXi thresh = threshold(grad);
+  traversability_pano_ = distance(thresh);
   pano_update_t_->end();
 }
 
@@ -215,57 +215,71 @@ Eigen::ArrayXXi TerrainPano::threshold(const Eigen::ArrayXXf& grad_pano) const {
   return thresh_pano;
 }
 
-//! Inflate obstacles, modifies in place
-void TerrainPano::inflate(Eigen::ArrayXXi& trav_pano) const {
-  inflate_t_->start();
+Eigen::ArrayXXf TerrainPano::distance(const Eigen::ArrayXXi& obs_pano) const {
+  dist_t_->start();
 
-  // Inflate first along altitude
-  int gsize = params_.tbb <= 0 ? trav_pano.cols() : params_.tbb;
-  tbb::parallel_for(tbb::blocked_range<int>(0, trav_pano.cols(), gsize), 
+  // The sqrt(2) makes things come out to the max_distance when combined
+  float axis_max_dist = sqrt(2.) * params_.max_distance_m;
+  Eigen::ArrayXXf alt_dist = Eigen::ArrayXXf::Constant(
+      obs_pano.rows(), obs_pano.cols(), axis_max_dist);
+  Eigen::ArrayXXf az_dist = alt_dist;
+
+  // Dist along altitude
+  int gsize = params_.tbb <= 0 ? obs_pano.cols() : params_.tbb;
+  tbb::parallel_for(tbb::blocked_range<int>(0, obs_pano.cols(), gsize), 
     [&](tbb::blocked_range<int> range) {
       for (int col_i=range.begin(); col_i<range.end(); ++col_i) {
         float min_obs_range = std::numeric_limits<float>::infinity();
-        for (int row_i=0; row_i<trav_pano.rows(); ++row_i) {
+        for (int row_i=0; row_i<obs_pano.rows(); ++row_i) {
           float depth = pano_(row_i, col_i);
-          if (trav_pano(row_i, col_i) > 0 && depth < min_obs_range &&
-              depth > 0) 
-          {
-            min_obs_range = depth;
-          } else if (abs(depth - min_obs_range) < params_.inflation_m && 
-              trav_pano(row_i, col_i) == 0) {
-            trav_pano(row_i, col_i) = 2;
+          if (depth == 0) continue;
+          if (obs_pano(row_i, col_i) > 0) {
+            // We have an obstacle
+            alt_dist(row_i, col_i) = 0;
+            if (depth < min_obs_range) {
+              min_obs_range = depth;
+            }
+          } else if (abs(depth - min_obs_range) < alt_dist(row_i, col_i)) {
+            alt_dist(row_i, col_i) = abs(depth - min_obs_range);
           }
         }        
       }
     });
 
-  // Now inflate along azimuth
-  gsize = params_.tbb <= 0 ? trav_pano.rows() : params_.tbb;
-  tbb::parallel_for(tbb::blocked_range<int>(0, trav_pano.rows(), gsize), 
+  // Dist along azimuth
+  gsize = params_.tbb <= 0 ? obs_pano.rows() : params_.tbb;
+  tbb::parallel_for(tbb::blocked_range<int>(0, obs_pano.rows(), gsize), 
     [&](tbb::blocked_range<int> range) {
       for (int row_i=range.begin(); row_i<range.end(); ++row_i) {
-        for (int col_i=0; col_i<trav_pano.cols(); ++col_i) {
-          if (trav_pano(row_i, col_i) > 0 && trav_pano(row_i, col_i) < 3 && 
-              pano_(row_i, col_i) > 0) 
-          {
-            int window = getWindow(params_.inflation_m, row_i, col_i, pano_);
+        for (int col_i=0; col_i<obs_pano.cols(); ++col_i) {
+          if (alt_dist(row_i, col_i) < axis_max_dist && pano_(row_i, col_i) > 0) {
+            int window = getWindow(axis_max_dist, row_i, col_i, pano_);
             
             // Make sure col_i_b - window is nonnegative
             int col_i_b = col_i; 
             if (col_i_b < window) col_i_b += pano_.cols();
 
-            for (int inf_col=col_i_b-window; inf_col<col_i_b+window; ++inf_col) {
+            for (int inf_col=col_i_b-window; inf_col<=col_i_b+window; ++inf_col) {
               int inf_col_bounds = fast_mod(inf_col, pano_.cols());
-              if (trav_pano(row_i, inf_col_bounds) == 0 && pano_(row_i, inf_col_bounds) > 0) {
-                trav_pano(row_i, inf_col_bounds) = 3;
+              // Distance is fraction of window * window size
+              // We add on the alt_dist to inflate from alt inf as well
+              float dist = abs(inf_col - col_i_b) * axis_max_dist / window + 
+                           alt_dist(row_i, col_i);
+              if (pano_(row_i, inf_col_bounds) > 0 && 
+                  dist < az_dist(row_i, inf_col_bounds)) 
+              {
+                az_dist(row_i, inf_col_bounds) = dist;
               }
             }
           }
         }
       }
     });
-  
-  inflate_t_->end();
+
+  dist_t_->end();
+  // This is the shortest distance to a line defined by a distance along x
+  // and a distance along y
+  return alt_dist * az_dist / (alt_dist.pow(2) + az_dist.pow(2)).sqrt();
 }
 
 int TerrainPano::getWindow(float dist_m, int row_i, int col_i,

@@ -21,6 +21,7 @@ class TerrainPano {
       float noise_m = 0.05;
       float slope_thresh = 0.3;
       float inflation_m = 0.5;
+      float max_distance_m = 1.0;
     };
 
     TerrainPano(const Params& params);
@@ -41,7 +42,7 @@ class TerrainPano {
     }
 
     const bool traversableAt(int row, int col) const {
-      return traversability_pano_(row, col) == 0;
+      return traversability_pano_(row, col) >= params_.inflation_m;
     }
 
     const auto& getTraversability() const {
@@ -92,8 +93,11 @@ class TerrainPano {
     //! Threshold the gradient into obstacles and filter
     Eigen::ArrayXXi threshold(const Eigen::ArrayXXf& grad_pano) const;
 
-    //! Inflate obstacles, modifies in place
-    void inflate(Eigen::ArrayXXi& trav_pano) const;
+    /*! 
+     * Generate distance transform
+     * Return 0 at obstacle, then distance away up to max_dist
+     */
+    Eigen::ArrayXXf distance(const Eigen::ArrayXXi& obs_pano) const;
 
     //! Get the window size for a given distance
     static int getWindow(float dist_m, int row_i, int col_i, 
@@ -111,7 +115,7 @@ class TerrainPano {
      * LOCAL VARIABLES
      *********************************************************/
     Eigen::ArrayXXf pano_;
-    Eigen::ArrayXXi traversability_pano_;
+    Eigen::ArrayXXf traversability_pano_;
 
     std::array<Eigen::ArrayXXf, 3> cloud_;
 
@@ -123,7 +127,7 @@ class TerrainPano {
     Timer* compute_cloud_t_{};
     Timer* compute_grad_t_{};
     Timer* thresh_t_{};
-    Timer* inflate_t_{};
+    Timer* dist_t_{};
 };
 
 } // namespace spomp
