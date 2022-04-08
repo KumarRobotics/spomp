@@ -263,12 +263,12 @@ Eigen::ArrayXXf TerrainPano::distance(const Eigen::ArrayXXi& obs_pano) const {
               int inf_col_bounds = fast_mod(inf_col, pano_.cols());
               // Distance is fraction of window * window size
               // We add on the alt_dist to inflate from alt inf as well
-              float dist = abs(inf_col - col_i_b) * axis_max_dist / window + 
-                           alt_dist(row_i, col_i);
-              if (pano_(row_i, inf_col_bounds) > 0 && 
-                  dist < az_dist(row_i, inf_col_bounds)) 
-              {
-                az_dist(row_i, inf_col_bounds) = dist;
+              if (pano_(row_i, inf_col_bounds) > 0) {
+                float dist = abs(inf_col - col_i_b) * axis_max_dist / window + 
+                             alt_dist(row_i, col_i);
+                if (dist < az_dist(row_i, inf_col_bounds)) {
+                  az_dist(row_i, inf_col_bounds) = dist;
+                }
               }
             }
           }
