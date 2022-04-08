@@ -84,6 +84,19 @@ void TerrainPano::fillHoles(Eigen::ArrayXXf& pano) const {
   fill_holes_t_->end();
 }
 
+float TerrainPano::getObstacleDistAt(const Eigen::Vector2f& pt) const {
+  Eigen::Vector2f polar = cart2polar(pt);
+  int col_i = az_p_.indAt(polar[1]);
+
+  // Scan near to far
+  for (int row_i=pano_.rows()-1; row_i>=0; --row_i) {
+    if (polar[0] <= rangeAt(row_i, col_i)) {
+      return traversability_pano_(row_i, col_i);
+    }
+  }
+  return 0;
+}
+
 void TerrainPano::computeCloud() {
   compute_cloud_t_->start();
 
@@ -219,9 +232,8 @@ Eigen::ArrayXXf TerrainPano::distance(const Eigen::ArrayXXi& obs_pano) const {
   dist_t_->start();
 
   // The sqrt(2) makes things come out to the max_distance when combined
-  float axis_max_dist = sqrt(2.) * params_.max_distance_m;
   Eigen::ArrayXXf alt_dist = Eigen::ArrayXXf::Constant(
-      obs_pano.rows(), obs_pano.cols(), axis_max_dist);
+      obs_pano.rows(), obs_pano.cols(), params_.max_distance_m);
   Eigen::ArrayXXf full_dist = alt_dist;
 
   // Dist along altitude

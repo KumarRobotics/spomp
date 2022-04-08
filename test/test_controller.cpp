@@ -12,7 +12,7 @@ class ControllerTester : Controller {
     using Controller::setGoal;
     using Controller::getControlInput;
     using Controller::forward;
-    using Controller::trajCost;
+    using Controller::trajCostGoal;
     using Controller::isTrajSafe;
 };
 
@@ -50,11 +50,11 @@ TEST(controller, test_traj_cost) {
   traj.push_back(pose);
 
   c.setGoal({1, 0});
-  EXPECT_FLOAT_EQ(c.trajCost(traj), 0);
+  EXPECT_FLOAT_EQ(c.trajCostGoal(traj), 0);
   c.setGoal({1, 1});
-  EXPECT_FLOAT_EQ(c.trajCost(traj), 1);
+  EXPECT_FLOAT_EQ(c.trajCostGoal(traj), 1);
   c.setGoal({1, -1});
-  EXPECT_FLOAT_EQ(c.trajCost(traj), 1+pi/10);
+  EXPECT_FLOAT_EQ(c.trajCostGoal(traj), 1+pi/10);
 }
 
 TEST(controller, test_get_control_input) {

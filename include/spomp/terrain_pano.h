@@ -29,21 +29,23 @@ class TerrainPano {
     //! Update the internal depth panorama
     void updatePano(const Eigen::ArrayXXf& pano, const Eigen::Isometry3f& pose);
 
-    const int rows() const {
+    int rows() const {
       return pano_.rows();
     }
 
-    const int cols() const {
+    int cols() const {
       return pano_.cols();
     }
 
-    const float rangeAt(int row, int col) const {
+    float rangeAt(int row, int col) const {
       return pano_(row, col) * alts_c_[row];
     }
 
-    const bool traversableAt(int row, int col) const {
+    bool traversableAt(int row, int col) const {
       return traversability_pano_(row, col) >= params_.inflation_m;
     }
+
+    float getObstacleDistAt(const Eigen::Vector2f& pt) const;
 
     const auto& getTraversability() const {
       return traversability_pano_;

@@ -8,7 +8,7 @@ Controller::Controller(const Params& params) : params_(params) {
 }
 
 Twistf Controller::getControlInput(const Twistf& cur_vel, const Eigen::Isometry3f& state_p,
-    const PanoPlanner& planner) const
+    const PanoPlanner& planner, const TerrainPano& pano) const
 {
   controller_t_->start();
 
@@ -46,12 +46,18 @@ Twistf Controller::getControlInput(const Twistf& cur_vel, const Eigen::Isometry3
     for (int ang_i=0; ang_i<ang_samples.size(); ++ang_i) {
       Twistf t(lin_samples[lin_i], ang_samples[ang_i]);
       traj = forward(state, t);
-      if (isTrajSafe(traj, planner)) {
-        float cost = trajCost(traj);
-        if (cost < best_cost) {
-          best_cost = cost;
-          best_twist = t;
-        }
+
+      float obs_cost = trajCostObs(traj, pano);
+      float cost = trajCostGoal(traj) + params_.obs_cost_weight * obs_cost;
+      if (!isTrajSafe(traj, planner)) {
+        // If not safe, cost is really high, so essentially only relevant
+        // if there are no safe options.  If so, priority is just getting
+        // to safety
+        cost = obs_cost + 10000;
+      }
+      if (cost < best_cost) {
+        best_cost = cost;
+        best_twist = t;
       }
     }
   }
@@ -89,21 +95,32 @@ std::vector<Eigen::Isometry2f> Controller::forward(
   return traj;
 }
 
-float Controller::trajCost(const std::vector<Eigen::Isometry2f>& traj) const {
+float Controller::trajCostGoal(const std::vector<Eigen::Isometry2f>& traj) const {
   if (traj.size() < 1) {
     return -1;
   }
 
+  // Get point slightly in front of robot
+  // This means that rotation affects cost and encourages facing forward
+  Eigen::Vector2f pt_front = traj.back() * (Eigen::Vector2f::UnitX()*0.5);
+
   // We don't need a velocity penalty, because a faster velocity
   // will mean we get to goal faster, so lin_dist will be smaller
-  float lin_dist = (traj.back().translation() - goal_).norm();
-  // Angular cost to allow robot to have reason to turn in place
-  float ang_dist = angularDist(traj.back(), goal_);
-  // Normally regAngle has range [0, 2pi), we want [-pi, pi)
-  ang_dist = abs(ang_dist - pi);
+  float lin_dist = (pt_front - goal_).norm();
+  // Path is just line from origin to goal, find distance with cross prod
+  float path_dist = crossNorm(pt_front, goal_.normalized());
 
   // ang_dist matters less if we are closer to the goal
-  return lin_dist + 0.1 * lin_dist * ang_dist;
+  return lin_dist + path_dist;
+}
+
+float Controller::trajCostObs(const std::vector<Eigen::Isometry2f>& traj,
+    const TerrainPano& pano) const {
+  float cost = 0;
+  for (const auto& pt : traj) {
+    cost -= pano.getObstacleDistAt(pt.translation());
+  }
+  return cost/traj.size();
 }
 
 float Controller::angularDist(const Eigen::Isometry2f& pose,

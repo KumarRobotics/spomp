@@ -21,7 +21,8 @@ class PanoPlanner {
      * @param goal The goal in the pano frame
      * @return The local goal in the pano frame
      */
-    Eigen::Vector2f plan(const Eigen::Vector2f& goal) const;
+    Eigen::Vector2f plan(const Eigen::Vector2f& goal, 
+        const Eigen::Vector2f& old_goal = Eigen::Vector2f::Zero()) const;
 
     struct Reachability {
       Eigen::VectorXf scan{};

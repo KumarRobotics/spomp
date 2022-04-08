@@ -1,5 +1,7 @@
 #pragma once
 
+//! Various helper functions, mostly math primitives
+
 #include <Eigen/Dense>
 
 namespace spomp {
@@ -35,6 +37,14 @@ inline float regAngle(float angle) {
     angle -= 2 * pi;
   }
   return angle;
+}
+
+inline float crossNorm(const Eigen::Vector2f& v1, const Eigen::Vector2f &v2) {
+  Eigen::Vector3f v1_3 = Eigen::Vector3f::Zero();
+  Eigen::Vector3f v2_3 = Eigen::Vector3f::Zero();
+  v1_3.head<2>() = v1;
+  v2_3.head<2>() = v2;
+  return v1_3.cross(v2_3).norm();
 }
 
 //! Simple wrapper class to abstract Twist

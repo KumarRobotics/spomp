@@ -18,6 +18,7 @@ class Controller {
       float horizon_dt = 0.1;
       int lin_disc = 10;
       int ang_disc = 20;
+      float obs_cost_weight = 1;
       Eigen::Isometry3f control_trans = Eigen::Isometry3f::Identity();
     };
     Controller(const Params& params);
@@ -36,9 +37,10 @@ class Controller {
      * @param state_p Current 2D projection of robot pose
      * @param goal Goal point in pano frame
      * @param planner Reference to planner for obstacle avoidance
+     * @param pano Reference to terrain pano
      */
     Twistf getControlInput(const Twistf& cur_vel, const Eigen::Isometry3f& state_p,
-        const PanoPlanner& planner) const;
+        const PanoPlanner& planner, const TerrainPano& pano) const;
 
     //! Forward simulate a velocity into a trajectory
     std::vector<Eigen::Isometry2f> forwardFromOrigin(const Twistf& vel) const {
@@ -54,7 +56,11 @@ class Controller {
         const Eigen::Isometry2f& state, const Twistf& vel) const;
 
     //! Compute the trajectory cost (ignoring obstacles)
-    float trajCost(const std::vector<Eigen::Isometry2f>& traj) const;
+    float trajCostGoal(const std::vector<Eigen::Isometry2f>& traj) const;
+
+    //! Compute the trajectory cost (ignoring obstacles)
+    float trajCostObs(const std::vector<Eigen::Isometry2f>& traj,
+        const TerrainPano& pano) const;
 
     //! Return true if trajectory is collision free
     bool isTrajSafe(const std::vector<Eigen::Isometry2f>& traj,

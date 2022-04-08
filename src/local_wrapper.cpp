@@ -74,6 +74,7 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
   nh.getParam("CO_horizon_dt", co_params.horizon_dt);
   nh.getParam("CO_lin_disc", co_params.lin_disc);
   nh.getParam("CO_ang_disc", co_params.ang_disc);
+  nh.getParam("CO_obs_cost_weight", co_params.obs_cost_weight);
 
   bool have_trans = getControlTrans(co_params.control_trans);
 
@@ -104,6 +105,7 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
     setw(width) << "[ROS] CO_horizon_dt: " << co_params.horizon_dt << endl <<
     setw(width) << "[ROS] CO_lin_disc: " << co_params.lin_disc << endl <<
     setw(width) << "[ROS] CO_ang_disc: " << co_params.ang_disc << endl <<
+    setw(width) << "[ROS] CO_obs_cost_weight: " << co_params.obs_cost_weight << endl <<
     setw(width) << "[ROS] CO_control_trans: " << (have_trans ? "found" : "default") << endl <<
     "[ROS] ====== End Configuration ======" << "\033[0m");
 
