@@ -4,9 +4,12 @@
 
   <node pkg="spomp" type="node_local" name="spomp_local" output="screen">
     <param name="tbb" value="-1"/>
-    <param name="TP_max_distance_m" value="1"/>
+    <param name="TP_max_distance_m" value="2"/>
+    <param name="TP_inflation_m" value="0.5"/>
     <param name="CO_max_lin_vel" value="1"/>
+    <param name="CO_max_lin_accel" value="2"/>
     <param name="CO_max_ang_vel" value="1"/>
+    <param name="CO_max_ang_accel" value="2"/>
     <param name="CO_ang_disc" value="4"/>
     <param name="CO_horizon_sec" value="2"/>
     <param name="CO_obs_cost_weight" value="1"/>

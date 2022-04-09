@@ -91,7 +91,12 @@ float TerrainPano::getObstacleDistAt(const Eigen::Vector2f& pt) const {
   // Scan near to far
   for (int row_i=pano_.rows()-1; row_i>=0; --row_i) {
     if (polar[0] <= rangeAt(row_i, col_i)) {
-      return traversability_pano_(row_i, col_i);
+      float dist = traversability_pano_(row_i, col_i);
+      if (polar[0] < 1) {
+        // Case of a point near the origin in unknown land
+        dist += rangeAt(row_i, col_i) - polar[0];
+      }
+      return std::min<float>(dist, params_.max_distance_m);
     }
   }
   return 0;

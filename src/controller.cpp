@@ -47,15 +47,19 @@ Twistf Controller::getControlInput(const Twistf& cur_vel, const Eigen::Isometry3
   for (int lin_i=0; lin_i<lin_samples.size(); ++lin_i) {
     for (int ang_i=0; ang_i<ang_samples.size(); ++ang_i) {
       Twistf t(lin_samples[lin_i], ang_samples[ang_i]);
+      // Require that robot always be moving
+      // This helps robot not get stuck in local min
+      if (t.linear() < max_delta.linear()*0.8 && t.ang() < max_delta.ang()*0.8) continue;
       traj = forward(state, t);
 
       float obs_cost = trajCostObs(traj, pano);
-      float cost = trajCostGoal(traj) + params_.obs_cost_weight * obs_cost;
+      float goal_cost = trajCostGoal(traj);
+      float cost = goal_cost + params_.obs_cost_weight * obs_cost;
       if (!isTrajSafe(traj, planner)) {
         // If not safe, cost is really high, so essentially only relevant
         // if there are no safe options.  If so, priority is just getting
         // to safety
-        cost += 100;
+        cost = 100 + 10*obs_cost + trajCostGoal(traj);
       }
       if (cost < best_cost) {
         best_cost = cost;
