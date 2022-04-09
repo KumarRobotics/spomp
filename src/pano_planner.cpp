@@ -35,7 +35,7 @@ void PanoPlanner::updatePano(const TerrainPano& pano) {
             last_r = r;
           }
         }
-        reachability_.scan[col_i] = last_r;
+        reachability_.scan[col_i] = std::max<float>(last_r, 0.5);
       }
     });
   

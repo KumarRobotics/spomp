@@ -5,9 +5,16 @@
   <node pkg="spomp" type="node_local" name="spomp_local" output="screen">
     <param name="tbb" value="-1"/>
     <param name="TP_max_distance_m" value="1"/>
+    <param name="CO_max_lin_vel" value="1"/>
+    <param name="CO_max_ang_vel" value="1"/>
+    <param name="CO_ang_disc" value="4"/>
+    <param name="CO_horizon_sec" value="2"/>
+    <param name="CO_obs_cost_weight" value="1"/>
+    <param name="PP_sample_size" value="1000"/>
     <remap from="~pano/img" to="/os_node/llol_odom/pano/img"/>
     <remap from="~pano/camera_info" to="/os_node/llol_odom/pano/camera_info"/>
     <remap from="~pose" to="/os_node/llol_odom/pose"/>
     <remap from="~goal" to="/move_base_simple/goal"/>
+    <remap from="~control" to="/twist_auto"/>
   </node>
 </launch>

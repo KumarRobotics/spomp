@@ -55,7 +55,7 @@ Twistf Controller::getControlInput(const Twistf& cur_vel, const Eigen::Isometry3
         // If not safe, cost is really high, so essentially only relevant
         // if there are no safe options.  If so, priority is just getting
         // to safety
-        cost += 10000;
+        cost += 100;
       }
       if (cost < best_cost) {
         best_cost = cost;
@@ -124,7 +124,8 @@ float Controller::trajCostObs(const std::vector<Eigen::Isometry2f>& traj,
     const TerrainPano& pano) const {
   float cost = 0;
   for (const auto& pt : traj) {
-    cost -= pano.getObstacleDistAt(pt.translation());
+    Eigen::Vector2f pt_front = pt * (Eigen::Vector2f::UnitX()*0.5);
+    cost -= pano.getObstacleDistAt(pt_front);
   }
   return cost/traj.size();
 }
