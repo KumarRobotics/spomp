@@ -45,7 +45,7 @@ void PanoPlanner::updatePano(const TerrainPano& pano) {
 Eigen::Vector2f PanoPlanner::plan(const Eigen::Vector2f& goal, 
     const Eigen::Vector2f& old_goal) const 
 {
-  Eigen::Array3Xf samples(3, params_.sample_size);
+  Eigen::Array2Xf samples(2, params_.sample_size);
 
   float max_range = reachability_.scan.maxCoeff();
   if (max_range < 0.1) {
@@ -59,24 +59,25 @@ Eigen::Vector2f PanoPlanner::plan(const Eigen::Vector2f& goal,
   std::uniform_real_distribution dis(-max_range, max_range);
   // This is actually faster not parallelized
   for (int sample_id=0; sample_id<samples.cols(); ++sample_id) {
-    Eigen::Vector3f s;
+    Eigen::Vector2f s;
     do {
-      s = {dis(gen), dis(gen), 0};
-    } while (!isSafe(s.head<2>()));
+      s = {dis(gen), dis(gen)};
+    } while (!isSafe(s));
     samples.col(sample_id) = s;
   }
 
-  Eigen::VectorXf dists = (samples.topRows<2>().colwise() - goal.array()).matrix().colwise().norm();
+  Eigen::VectorXf dists = (samples.colwise() - goal.array()).matrix().colwise().norm();
   if (old_goal.norm() != 0) {
     // Penalize difference from the direction of the old goal
     // This encourages consistency in giving goals
-    Eigen::Vector3f old_goal3 = Eigen::Vector3f::Zero();
-    old_goal3.head<2>()  = old_goal.normalized();
-    dists += samples.colwise().cross(old_goal3).matrix().colwise().norm();
+    Eigen::Vector2f old_goal_norm = old_goal.normalized();
+    // Cross product
+    dists += (samples.row(0) * old_goal_norm[1] - 
+              samples.row(1) * old_goal_norm[0]).abs().matrix();
   }
   int best_ind;
   dists.minCoeff(&best_ind);
-  return samples.col(best_ind).head<2>();
+  return samples.col(best_ind);
 }
 
 bool PanoPlanner::isSafe(const Eigen::Vector2f& pt) const {

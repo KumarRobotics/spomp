@@ -1,5 +1,7 @@
 #include "spomp/controller.h"
 
+#include <iostream>
+
 namespace spomp {
 
 Controller::Controller(const Params& params) : params_(params) {
@@ -53,7 +55,7 @@ Twistf Controller::getControlInput(const Twistf& cur_vel, const Eigen::Isometry3
         // If not safe, cost is really high, so essentially only relevant
         // if there are no safe options.  If so, priority is just getting
         // to safety
-        cost = obs_cost + 10000;
+        cost += 10000;
       }
       if (cost < best_cost) {
         best_cost = cost;
@@ -109,8 +111,12 @@ float Controller::trajCostGoal(const std::vector<Eigen::Isometry2f>& traj) const
   float lin_dist = (pt_front - goal_).norm();
   // Path is just line from origin to goal, find distance with cross prod
   float path_dist = crossNorm(pt_front, goal_.normalized());
+  if (path_dist < 1) {
+    // We are essentially on the path, and this cost can have the
+    // undesirable effect of making the robot travel backwards on the path
+    path_dist = 0;
+  }
 
-  // ang_dist matters less if we are closer to the goal
   return lin_dist + path_dist;
 }
 

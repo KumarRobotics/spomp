@@ -50,11 +50,14 @@ TEST(controller, test_traj_cost) {
   traj.push_back(pose);
 
   c.setGoal({1, 0});
-  EXPECT_FLOAT_EQ(c.trajCostGoal(traj), 0);
+  // 0.5 is the cross product of (1,0) and (1, -0.5), but <1
+  EXPECT_FLOAT_EQ(c.trajCostGoal(traj), 0.5);
   c.setGoal({1, 1});
-  EXPECT_FLOAT_EQ(c.trajCostGoal(traj), 1);
+  // 1/2sqrt(2) is the cross product of (1,1)/sqrt(2) and (1, -0.5), but <1
+  EXPECT_FLOAT_EQ(c.trajCostGoal(traj), 0.5);
   c.setGoal({1, -1});
-  EXPECT_FLOAT_EQ(c.trajCostGoal(traj), 1+pi/10);
+  // 1.5/sqrt(2) is the cross product of (1,-1)/sqrt(2) and (1, -0.5)
+  EXPECT_FLOAT_EQ(c.trajCostGoal(traj), 1.5 + 1.5/sqrt(2));
 }
 
 TEST(controller, test_get_control_input) {
@@ -73,18 +76,18 @@ TEST(controller, test_get_control_input) {
   ControllerTester c({});
 
   c.setGoal({5, 0});
-  auto twist = c.getControlInput({}, Eigen::Isometry3f::Identity(), pp);
+  auto twist = c.getControlInput({}, Eigen::Isometry3f::Identity(), pp, tp);
   EXPECT_FLOAT_EQ(twist.linear(), 0.1);
   // Not exact because of input disc
   EXPECT_NEAR(twist.ang(), 0, 1e-2);
 
-  c.setGoal({-5, 1});
-  twist = c.getControlInput({}, Eigen::Isometry3f::Identity(), pp);
+  c.setGoal({-5, 2});
+  twist = c.getControlInput({}, Eigen::Isometry3f::Identity(), pp, tp);
   // Slight turn in place
   EXPECT_FLOAT_EQ(twist.linear(), 0);
   EXPECT_FLOAT_EQ(twist.ang(), 0.1);
 
-  twist = c.getControlInput({1, 0}, Eigen::Isometry3f::Identity(), pp);
+  twist = c.getControlInput({1, 0}, Eigen::Isometry3f::Identity(), pp, tp);
   // Slight turn in place
   EXPECT_FLOAT_EQ(twist.linear(), 0.9);
   EXPECT_FLOAT_EQ(twist.ang(), 0.1);
@@ -107,7 +110,7 @@ static void BM_controller(benchmark::State& state) {
 
   c.setGoal({5, 0});
   for (auto _ : state) {
-    c.getControlInput({}, Eigen::Isometry3f::Identity(), pp);
+    c.getControlInput({}, Eigen::Isometry3f::Identity(), pp, tp);
   }
 }
 BENCHMARK(BM_controller);
