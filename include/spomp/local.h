@@ -8,8 +8,11 @@ namespace spomp {
 
 class Local {
   public:
-    Local(const TerrainPano::Params& tp_p, const PanoPlanner::Params& pp_p,
-        const Controller::Params& c_p);
+    struct Params {
+      float goal_thresh_m = 2;
+    };
+    Local(const Local::Params& l_p, const TerrainPano::Params& tp_p, 
+        const PanoPlanner::Params& pp_p, const Controller::Params& c_p);
 
     void updatePano(const Eigen::ArrayXXf& pano, const Eigen::Isometry3f& pose);
 
@@ -36,6 +39,11 @@ class Local {
     }
 
   protected:
+    /*********************************************************
+     * LOCAL CONSTANTS
+     *********************************************************/
+    Params params_;
+
     /*********************************************************
      * LOCAL VARIABLES
      *********************************************************/

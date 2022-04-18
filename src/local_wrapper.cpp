@@ -46,12 +46,15 @@ LocalWrapper::LocalWrapper(ros::NodeHandle& nh) :
 }
 
 Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
+  Local::Params sl_params{};
   TerrainPano::Params tp_params{};
   PanoPlanner::Params pp_params{};
   Controller::Params co_params{};
 
   nh.getParam("tbb", tp_params.tbb);
   nh.getParam("tbb", pp_params.tbb);
+  
+  nh.getParam("SL_goal_thresh_m", sl_params.goal_thresh_m);
 
   nh.getParam("TP_max_hole_fill_size", tp_params.max_hole_fill_size);
   nh.getParam("TP_min_noise_size", tp_params.min_noise_size);
@@ -84,6 +87,8 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
     endl << left << 
     setw(width) << "[ROS] tbb: " << tp_params.tbb << endl <<
     "[ROS] ===============================" << endl <<
+    setw(width) << "[ROS] SL_goal_thresh_m: " << sl_params.goal_thresh_m << endl <<
+    "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] TP_max_hole_fill_size: " << tp_params.max_hole_fill_size << endl <<
     setw(width) << "[ROS] TP_min_noise_size: " << tp_params.min_noise_size << endl <<
     setw(width) << "[ROS] TP_v_fov_rad: " << tp_params.v_fov_rad << endl <<
@@ -109,7 +114,7 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
     setw(width) << "[ROS] CO_control_trans: " << (have_trans ? "found" : "default") << endl <<
     "[ROS] ====== End Configuration ======" << "\033[0m");
 
-  return Local(tp_params, pp_params, co_params);
+  return Local(sl_params, tp_params, pp_params, co_params);
 }
 
 bool LocalWrapper::getControlTrans(Eigen::Isometry3f& trans) {
