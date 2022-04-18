@@ -5,6 +5,9 @@
 #include <gtsam/inference/Symbol.h>
 #include <gtsam/geometry/Pose3.h>
 
+namespace Eigen {
+  using Vector6d = Matrix<double, 6, 1>;
+}
 using gtsam::symbol_shorthand::P;
 
 namespace spomp {
@@ -14,6 +17,13 @@ class PoseGraph {
   public:
     struct Params {
       int num_frames_opt = 10;
+      Eigen::Vector6d between_uncertainty = Eigen::Vector6d::Constant(0.1);
+
+      void setBetweenUncertainty(double loc, double rot) {
+        // gtsam stores rot info first
+        between_uncertainty.head<3>().setConstant(rot);
+        between_uncertainty.tail<3>().setConstant(loc);
+      }
     };
     PoseGraph(const Params& params);
 
@@ -94,11 +104,17 @@ class PoseGraph {
     //! Map to keep track of timestamp to original poses
     std::map<long, OriginalPose> pose_history_;
 
+    //! Buffer of priors
+    std::map<long, Eigen::Isometry3d> prior_buffer_;
+
     //! Number of frames in graph
     size_t size_;
 
     //! Number of frames in graph at time of last optimization
     size_t last_opt_size_;
+
+    //! Index of temporary origin factor before adding priors
+    int initial_pose_factor_id_;
 };
 
 } // namespace spomp

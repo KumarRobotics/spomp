@@ -1,4 +1,5 @@
 #include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
+#include <gtsam/slam/BetweenFactor.h>
 #include "spomp/pose_graph.h"
 
 namespace spomp {
@@ -6,11 +7,33 @@ namespace spomp {
 PoseGraph::PoseGraph(const Params& params) : params_(params) {}
 
 size_t PoseGraph::addNode(long stamp, const Eigen::Isometry3d& pose) {
+  if (size_ > 0) {
+    // Get difference from most recent pose
+    const auto& most_recent_pose = pose_history_.rbegin()->second;
+    Eigen::Isometry3d diff = most_recent_pose.pose.inverse() * pose;
+    graph_.emplace_shared<gtsam::BetweenFactor<gtsam::Pose3>>(most_recent_pose.key,
+        P(size_), Eigen2GTSAM(diff), 
+        gtsam::noiseModel::Diagonal::Sigmas(params_.between_uncertainty));
+
+    // Use optimized version of most recent to transform to current frame
+    Eigen::Isometry3d most_recent_pose_opt = 
+      GTSAM2Eigen(current_opt_.at<gtsam::Pose3>(most_recent_pose.key));
+    current_opt_.insert(P(size_), Eigen2GTSAM(most_recent_pose_opt * diff));
+  } else {
+    initial_pose_factor_id_ = graph_.size();
+    graph_.emplace_shared<gtsam::PriorFactor<gtsam::Pose3>>(P(size_),
+        Eigen2GTSAM(Eigen::Isometry3d::Identity()),
+        gtsam::noiseModel::Constrained::All(6));
+    current_opt_.insert(P(size_), Eigen2GTSAM(Eigen::Isometry3d::Identity()));
+  }
+
+  ++size_;
   processGlobalBuffer();
-  return {};
+  return size_ - 1;
 }
 
 void PoseGraph::addPrior(long stamp, const Eigen::Isometry3d& prior) {
+  prior_buffer_.emplace(stamp, prior);
   processGlobalBuffer();
 }
 
@@ -27,7 +50,30 @@ void PoseGraph::update() {
   last_opt_size_ = size_;
 }
 
-void processGlobalBuffer() {
+void PoseGraph::processGlobalBuffer() {
+  for (auto prior_it = prior_buffer_.begin(); prior_it != prior_buffer_.end();) {
+    if (pose_history_.size() > 0) {
+      if (prior_it->first > pose_history_.rbegin()->first) {
+        // All priors are in the future, leave in the buffer for now
+        // Assumption here that poses arrive in order
+        return;
+      }
+    }
+
+    auto matching_node = pose_history_.find(prior_it->first);
+    if (matching_node != pose_history_.end()) {
+      // Found match
+      if (graph_.exists(initial_pose_factor_id_)) {
+        // Remove initial placeholder prior
+        graph_.remove(initial_pose_factor_id_);
+      }
+      
+      graph_.emplace_shared<gtsam::PriorFactor<gtsam::Pose3>>(matching_node->second.key,
+          Eigen2GTSAM(prior_it->second), 
+          gtsam::noiseModel::Diagonal::Sigmas(params_.between_uncertainty));
+    }
+    prior_it = prior_buffer_.erase(prior_it);
+  }
 }
 
 std::optional<Eigen::Isometry3d> PoseGraph::getPoseAtTime(long stamp) const {
