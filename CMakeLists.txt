@@ -142,9 +142,9 @@ include_directories(
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME}_local
+  src/local.cpp
   src/terrain_pano.cpp
   src/pano_planner.cpp
-  src/local.cpp
   src/timer.cpp
   src/controller.cpp
 )
@@ -222,6 +222,7 @@ target_link_libraries(${PROJECT_NAME}_node_local
 ## Declare a C++ library
 add_library(${PROJECT_NAME}_mapper
   src/mapper.cpp
+  src/pose_graph.cpp
 )
 
 ## Add cmake target dependencies of the library
