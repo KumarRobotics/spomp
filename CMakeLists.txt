@@ -32,6 +32,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Eigen3 REQUIRED NO_MODULE)
 find_package(TBB REQUIRED)
 find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs highgui)
+find_package(GTSAM REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -129,10 +130,6 @@ catkin_package(
 ## Build ##
 ###########
 
-###############################################################
-# SPOMP-Local
-###############################################################
-
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
@@ -140,12 +137,16 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
+###############################################################
+# SPOMP-Local
+###############################################################
+
 ## Declare a C++ library
 add_library(${PROJECT_NAME}_local
   src/local.cpp
+  src/timer.cpp
   src/terrain_pano.cpp
   src/pano_planner.cpp
-  src/timer.cpp
   src/controller.cpp
 )
 
@@ -222,6 +223,7 @@ target_link_libraries(${PROJECT_NAME}_node_local
 ## Declare a C++ library
 add_library(${PROJECT_NAME}_mapper
   src/mapper.cpp
+  src/timer.cpp
   src/pose_graph.cpp
 )
 
@@ -240,6 +242,7 @@ target_link_libraries(${PROJECT_NAME}_mapper
   opencv_imgproc
   opencv_imgcodecs
   opencv_highgui
+  gtsam
   ${catkin_LIBRARIES}
 )
 
