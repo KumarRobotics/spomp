@@ -6,7 +6,7 @@
 
 namespace spomp {
 
-constexpr float pi = 3.14159265358979323846;
+constexpr double pi = 3.14159265358979323846;
 
 inline int fast_mod(int a, int b) noexcept {
   // This is 3-6 times faster than %
@@ -107,11 +107,19 @@ struct AngularProj {
   float delta_angle{};
   int num{};
 
-  AngularProj(int n, float s, float d) : num(n), start_angle(s), delta_angle(d) {};
-  AngularProj(float s, float f, int n) {
-    start_angle = s;
+  struct StartDelta {
+    float s{};
+    float d{};
+  };
+  AngularProj(const StartDelta& sd, int n) : num(n), start_angle(sd.s), delta_angle(sd.d) {};
+  struct StartFinish {
+    float s{};
+    float f{};
+  };
+  AngularProj(const StartFinish& sf, int n) {
+    start_angle = sf.s;
     // (n-1) spaces for n points
-    delta_angle = (f - s)/(n-1);
+    delta_angle = (sf.f - sf.s)/(n-1);
     num = n;
   }
   AngularProj() = default;

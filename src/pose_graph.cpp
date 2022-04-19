@@ -27,12 +27,13 @@ size_t PoseGraph::addNode(long stamp, const Eigen::Isometry3d& pose) {
     current_opt_.insert(P(size_), Eigen2GTSAM(Eigen::Isometry3d::Identity()));
   }
 
+  pose_history_.emplace(stamp, OriginalPose{pose, P(size_)});
   ++size_;
   processGlobalBuffer();
   return size_ - 1;
 }
 
-void PoseGraph::addPrior(long stamp, const Eigen::Isometry3d& prior) {
+void PoseGraph::addPrior(long stamp, const Prior2D& prior) {
   prior_buffer_.emplace(stamp, prior);
   processGlobalBuffer();
 }
@@ -62,15 +63,34 @@ void PoseGraph::processGlobalBuffer() {
 
     auto matching_node = pose_history_.find(prior_it->first);
     if (matching_node != pose_history_.end()) {
+      Eigen::Isometry3d prior_3 = Eigen::Isometry3d::Identity();
+      // Large number
+      Eigen::Vector6d unc = Eigen::Vector6d::Constant(100);
+
       // Found match
       if (graph_.exists(initial_pose_factor_id_)) {
         // Remove initial placeholder prior
         graph_.remove(initial_pose_factor_id_);
+        // Initial prior should be more confident on unknown axes
+        unc.setConstant(0.01);
       }
       
+      if (prior_it->second.sigma_diag[0] > 0) {
+        // unc[2] is rot, unc[3:4] is pos
+        unc.segment<3>(2) = prior_it->second.sigma_diag;
+      } else {
+        // sigma not specified, fall back
+        unc.segment<3>(2) = params_.prior_uncertainty;
+      }
+      // Convert 2D pose to 3D
+      prior_3.translation().head<2>() = prior_it->second.pose.translation();
+      prior_3.rotate(Eigen::AngleAxisd(
+            Eigen::Rotation2Dd(prior_it->second.pose.rotation()).angle(), 
+                               Eigen::Vector3d::UnitZ()));
+
       graph_.emplace_shared<gtsam::PriorFactor<gtsam::Pose3>>(matching_node->second.key,
-          Eigen2GTSAM(prior_it->second), 
-          gtsam::noiseModel::Diagonal::Sigmas(params_.between_uncertainty));
+          Eigen2GTSAM(prior_3), 
+          gtsam::noiseModel::Diagonal::Sigmas(unc));
     }
     prior_it = prior_buffer_.erase(prior_it);
   }

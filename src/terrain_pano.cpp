@@ -23,11 +23,13 @@ void TerrainPano::updatePano(const Eigen::ArrayXXf& pano,
 
   pano_ = pano;
   pose_ = pose;
-  alt_p_ = AngularProj(params_.v_fov_rad/2, -params_.v_fov_rad/2, pano_.rows());
+  alt_p_ = AngularProj(AngularProj::StartFinish{
+      params_.v_fov_rad/2, -params_.v_fov_rad/2}, pano_.rows());
   alts_ = alt_p_.getAngles();
   // Go negative because the panorama wraps around CW
   // Then add 360 degrees to keep positive
-  az_p_ = AngularProj(2*pi, 2*pi*(1./pano_.cols()), pano_.cols());
+  az_p_ = AngularProj(AngularProj::StartFinish{
+      2*pi, static_cast<float>(2*pi*(1./pano_.cols()))}, pano_.cols());
   azs_ = az_p_.getAngles();
 
   alts_c_ = alts_.array().cos();

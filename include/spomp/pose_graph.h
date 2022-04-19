@@ -18,11 +18,19 @@ class PoseGraph {
     struct Params {
       int num_frames_opt = 10;
       Eigen::Vector6d between_uncertainty = Eigen::Vector6d::Constant(0.1);
+      Eigen::Vector3d prior_uncertainty = Eigen::Vector3d::Constant(0.1);
+      bool allow_interpolation = false;
 
       void setBetweenUncertainty(double loc, double rot) {
         // gtsam stores rot info first
         between_uncertainty.head<3>().setConstant(rot);
         between_uncertainty.tail<3>().setConstant(loc);
+      }
+
+      void setPriorUncertainty(double loc, double rot) {
+        // gtsam stores rot info first
+        prior_uncertainty.head<1>().setConstant(rot);
+        prior_uncertainty.tail<2>().setConstant(loc);
       }
     };
     PoseGraph(const Params& params);
@@ -30,8 +38,15 @@ class PoseGraph {
     //! Add new node to graph
     size_t addNode(long stamp, const Eigen::Isometry3d& pose);
 
+    struct Prior2D {
+      Eigen::Isometry2d pose = Eigen::Isometry2d::Identity();
+      Eigen::Vector3d sigma_diag = Eigen::Vector3d::Constant(-1);
+
+      // Constructor for not specifying sigma
+      Prior2D(const Eigen::Isometry2d& p) : pose(p) {}
+    };
     //! Add prior to node.  Must have stamp matching exactly
-    void addPrior(long stamp, const Eigen::Isometry3d& prior);
+    void addPrior(long stamp, const Prior2D& prior);
 
     //! Run gtsam optimization
     void update();
@@ -83,38 +98,36 @@ class PoseGraph {
     /***********************************************************
      * LOCAL CONSTANTS
      ***********************************************************/
-    Params params_;
+    Params params_{};
     
     /***********************************************************
      * LOCAL VARIABLES
      ***********************************************************/
     //! GTSAM factor graph
-    gtsam::NonlinearFactorGraph graph_;
+    gtsam::NonlinearFactorGraph graph_{};
 
     //! Keep track of the current best estimates for nodes
-    gtsam::Values current_opt_;
+    gtsam::Values current_opt_{};
 
     struct OriginalPose {
       Eigen::Isometry3d pose;
       gtsam::Key key;
-
-      OriginalPose(const Eigen::Isometry3d& p, const gtsam::Key &k) : pose(p), key(k) {}
     };
 
     //! Map to keep track of timestamp to original poses
-    std::map<long, OriginalPose> pose_history_;
+    std::map<long, OriginalPose> pose_history_{};
 
     //! Buffer of priors
-    std::map<long, Eigen::Isometry3d> prior_buffer_;
+    std::map<long, Prior2D> prior_buffer_{};
 
     //! Number of frames in graph
-    size_t size_;
+    size_t size_{0};
 
     //! Number of frames in graph at time of last optimization
-    size_t last_opt_size_;
+    size_t last_opt_size_{0};
 
     //! Index of temporary origin factor before adding priors
-    int initial_pose_factor_id_;
+    int initial_pose_factor_id_{};
 };
 
 } // namespace spomp
