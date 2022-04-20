@@ -67,4 +67,40 @@ TEST(pose_graph, test_opt) {
   ASSERT_TRUE(pg.getError() > 1);
 }
 
+TEST(pose_graph, test_interp) {
+  PoseGraph::Params pg_p;
+  pg_p.num_frames_opt = 0;
+  pg_p.allow_interpolation = true;
+  PoseGraph pg(pg_p);
+
+  Eigen::Isometry3d pose = Eigen::Isometry3d::Identity();
+  pg.addNode(0, pose);
+  pose.translate(Eigen::Vector3d(1,0,0));
+  pg.addNode(10, pose);
+  Eigen::Isometry2d prior = Eigen::Isometry2d::Identity();
+  prior.translate(Eigen::Vector2d(5,0));
+  pg.addPrior(5, {prior});
+  prior.translate(Eigen::Vector2d(2,0));
+  pg.addPrior(15, {prior});
+
+  pg.update();
+  ASSERT_NEAR(pg.getPoseAtTime(0)->translation()[0], 5, 1e-5);
+
+  // Reset pose graph
+  pg = PoseGraph(pg_p);
+  // Same drill, mix up the numbers and order
+  prior = Eigen::Isometry2d::Identity();
+  prior.translate(Eigen::Vector2d(0,1));
+  pg.addPrior(4, {prior});
+  prior.rotate(Eigen::Rotation2Dd(pi/2));
+  pg.addPrior(7, {prior});
+  pose = Eigen::Isometry3d::Identity();
+  pg.addNode(0, pose);
+  pg.addNode(5, pose);
+
+  pg.update();
+  ASSERT_NEAR(pg.getPoseAtTime(0)->translation()[1], 1, 1e-5);
+  ASSERT_NEAR(Eigen::AngleAxisd(pg.getPoseAtTime(0)->rotation()).angle(), pi/6, 1e-5);
+}
+
 } // namespace spomp

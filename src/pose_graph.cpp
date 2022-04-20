@@ -69,8 +69,8 @@ void PoseGraph::processGlobalBuffer() {
       double after_t_diff = next_prior_it->first - matching_node_it->first;
       double before_t_diff = matching_node_it->first - prior_it->first;
       
-      // Make sure that we are positive, if after is then before has to be
-      if (after_t_diff > 0) {
+      // Make sure that we are positive
+      if (after_t_diff > 0 && before_t_diff > 0) {
         const auto& after_prior = next_prior_it->second;
         const auto& before_prior = prior_it->second;
 
@@ -79,7 +79,7 @@ void PoseGraph::processGlobalBuffer() {
         interp_prior.pose.translate(((after_prior.pose.translation() * before_t_diff) +
           (before_prior.pose.translation() * after_t_diff)) / diff_sum);
         interp_prior.pose.rotate(Eigen::Rotation2Dd(before_prior.pose.rotation()).slerp(
-            after_t_diff/diff_sum, Eigen::Rotation2Dd(after_prior.pose.rotation())));
+            before_t_diff/diff_sum, Eigen::Rotation2Dd(after_prior.pose.rotation())));
         // Essentially the total sigma is the magnitude of two vectors perpendicular
         if (after_prior.sigma_diag[0] > 0 && before_prior.sigma_diag[0] > 0) {
           interp_prior.sigma_diag = 
