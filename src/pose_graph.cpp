@@ -53,47 +53,75 @@ void PoseGraph::update() {
 
 void PoseGraph::processGlobalBuffer() {
   for (auto prior_it = prior_buffer_.begin(); prior_it != prior_buffer_.end();) {
-    if (pose_history_.size() > 0) {
-      if (prior_it->first > pose_history_.rbegin()->first) {
-        // All priors are in the future, leave in the buffer for now
-        // Assumption here that poses arrive in order
-        return;
-      }
-    }
+    // First pose after or at same time as prior
+    auto matching_node_it = pose_history_.lower_bound(prior_it->first);
+    // Either pose_history_ is empty or all priors in the future
+    if (matching_node_it == pose_history_.end()) return;
 
-    auto matching_node = pose_history_.find(prior_it->first);
-    if (matching_node != pose_history_.end()) {
-      Eigen::Isometry3d prior_3 = Eigen::Isometry3d::Identity();
-      // Large number
-      Eigen::Vector6d unc = Eigen::Vector6d::Constant(100);
+    if (matching_node_it->first == prior_it->first) {
+      // Exact match
+      addPriorFactor(matching_node_it->second.key, prior_it->second);
+    } else if (params_.allow_interpolation) {
+      auto next_prior_it = std::next(prior_it);
+      // We do not yet have a bracket
+      if (next_prior_it == prior_buffer_.end()) return;
 
-      // Found match
-      if (graph_.exists(initial_pose_factor_id_)) {
-        // Remove initial placeholder prior
-        graph_.remove(initial_pose_factor_id_);
-        // Initial prior should be more confident on unknown axes
-        unc.setConstant(0.01);
-      }
+      double after_t_diff = next_prior_it->first - matching_node_it->first;
+      double before_t_diff = matching_node_it->first - prior_it->first;
       
-      if (prior_it->second.sigma_diag[0] > 0) {
-        // unc[2] is rot, unc[3:4] is pos
-        unc.segment<3>(2) = prior_it->second.sigma_diag;
-      } else {
-        // sigma not specified, fall back
-        unc.segment<3>(2) = params_.prior_uncertainty;
-      }
-      // Convert 2D pose to 3D
-      prior_3.translation().head<2>() = prior_it->second.pose.translation();
-      prior_3.rotate(Eigen::AngleAxisd(
-            Eigen::Rotation2Dd(prior_it->second.pose.rotation()).angle(), 
-                               Eigen::Vector3d::UnitZ()));
+      // Make sure that we are positive, if after is then before has to be
+      if (after_t_diff > 0) {
+        const auto& after_prior = next_prior_it->second;
+        const auto& before_prior = prior_it->second;
 
-      graph_.emplace_shared<gtsam::PriorFactor<gtsam::Pose3>>(matching_node->second.key,
-          Eigen2GTSAM(prior_3), 
-          gtsam::noiseModel::Diagonal::Sigmas(unc));
+        double diff_sum = after_t_diff + before_t_diff;
+        Prior2D interp_prior{};
+        interp_prior.pose.translate(((after_prior.pose.translation() * before_t_diff) +
+          (before_prior.pose.translation() * after_t_diff)) / diff_sum);
+        interp_prior.pose.rotate(Eigen::Rotation2Dd(before_prior.pose.rotation()).slerp(
+            after_t_diff/diff_sum, Eigen::Rotation2Dd(after_prior.pose.rotation())));
+        // Essentially the total sigma is the magnitude of two vectors perpendicular
+        interp_prior.sigma_diag = ((after_prior.sigma_diag * before_t_diff / diff_sum).array().pow(2) +
+          (before_prior.sigma_diag * after_t_diff / diff_sum).array().pow(2)).sqrt();
+
+        addPriorFactor(matching_node_it->second.key, interp_prior);
+      }
     }
+
+    // This also advances the loop
     prior_it = prior_buffer_.erase(prior_it);
   }
+}
+
+void PoseGraph::addPriorFactor(const gtsam::Key& key, const Prior2D& prior) {
+  Eigen::Isometry3d prior_3 = Eigen::Isometry3d::Identity();
+  // Large number
+  Eigen::Vector6d unc = Eigen::Vector6d::Constant(100);
+
+  // Found match
+  if (graph_.exists(initial_pose_factor_id_)) {
+    // Remove initial placeholder prior
+    graph_.remove(initial_pose_factor_id_);
+    // Initial prior should be more confident on unknown axes
+    unc.setConstant(0.01);
+  }
+  
+  if (prior.sigma_diag[0] > 0) {
+    // unc[2] is rot, unc[3:4] is pos
+    unc.segment<3>(2) = prior.sigma_diag;
+  } else {
+    // sigma not specified, fall back
+    unc.segment<3>(2) = params_.prior_uncertainty;
+  }
+  // Convert 2D pose to 3D
+  prior_3.translation().head<2>() = prior.pose.translation();
+  prior_3.rotate(Eigen::AngleAxisd(
+        Eigen::Rotation2Dd(prior.pose.rotation()).angle(), 
+                           Eigen::Vector3d::UnitZ()));
+
+  graph_.emplace_shared<gtsam::PriorFactor<gtsam::Pose3>>(key,
+      Eigen2GTSAM(prior_3), 
+      gtsam::noiseModel::Diagonal::Sigmas(unc));
 }
 
 std::optional<Eigen::Isometry3d> PoseGraph::getPoseAtTime(long stamp) const {

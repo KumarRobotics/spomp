@@ -40,10 +40,10 @@ TEST(pose_graph, test_opt) {
   pose.translate(Eigen::Vector3d(1,0,0));
   pg.addNode(2, pose);
   pose.translate(Eigen::Vector3d(1,0,0));
-  pg.addNode(3, pose);
+  pg.addNode(10, pose);
 
   ASSERT_TRUE(pg.getError() == 0);
-  ASSERT_FLOAT_EQ(pg.getPoseAtTime(3)->translation().norm(), 2);
+  ASSERT_FLOAT_EQ(pg.getPoseAtTime(10)->translation().norm(), 2);
 
   Eigen::Isometry2d prior = Eigen::Isometry2d::Identity();
   prior.translate(Eigen::Vector2d(0,1));
@@ -52,11 +52,16 @@ TEST(pose_graph, test_opt) {
   ASSERT_TRUE(pg.getError() > 0.001);
   pg.update();
   ASSERT_TRUE(pg.getError() < 0.001);
-  ASSERT_NEAR(pg.getPoseAtTime(3)->translation()[0], 0, 1e-5);
-  ASSERT_NEAR(pg.getPoseAtTime(3)->translation()[1], 3, 1e-5);
+  ASSERT_NEAR(pg.getPoseAtTime(10)->translation()[0], 0, 1e-5);
+  ASSERT_NEAR(pg.getPoseAtTime(10)->translation()[1], 3, 1e-5);
 
-  pg.addPrior(3, {prior});
+  pg.addPrior(9, {prior});
   auto error = pg.getError();
+  pg.update();
+  ASSERT_NEAR(pg.getError(), error, 1e-5);
+
+  pg.addPrior(10, {prior});
+  error = pg.getError();
   pg.update();
   ASSERT_TRUE(pg.getError() < error);
   ASSERT_TRUE(pg.getError() > 1);

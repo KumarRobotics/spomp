@@ -44,6 +44,7 @@ class PoseGraph {
 
       // Constructor for not specifying sigma
       Prior2D(const Eigen::Isometry2d& p) : pose(p) {}
+      Prior2D() = default;
     };
     //! Add prior to node.  Must have stamp matching exactly
     void addPrior(long stamp, const Prior2D& prior);
@@ -84,6 +85,8 @@ class PoseGraph {
      ***********************************************************/
     //! Add global priors to graph off of buffer
     void processGlobalBuffer();
+
+    void addPriorFactor(const gtsam::Key& key, const Prior2D& prior);
 
     //! Convert GTSAM pose to Eigen
     static gtsam::Pose3 Eigen2GTSAM(const Eigen::Isometry3d& eigen_pose) {
