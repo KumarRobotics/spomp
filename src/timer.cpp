@@ -7,6 +7,9 @@ namespace spomp {
 void Timer::end() {
   using namespace std::chrono;
   auto end_t = system_clock::now();
+
+  std::unique_lock lock(mtx_, std::defer_lock);
+  if (multithread_) lock.lock();
   last_t_ = duration_cast<microseconds>(end_t - start_t_).count();
   t_sum_ += last_t_;
   t_sq_sum_ += std::pow<long long>(last_t_, 2);
@@ -27,11 +30,18 @@ double Timer::std_us() const {
   return std::sqrt((t_sq_sum_/n_ - std::pow(avg_us(), 2)) * (n_ / (n_ - 1.)));
 }
 
-std::ostream& operator<<(std::ostream& os, const Timer& t) {
+std::ostream& operator<<(std::ostream& os, Timer& t) {
   static const std::array<std::string, 3> units = {"us", "ms", "s"};
-  double mean = t.avg_us();
-  double last = t.last_us();
-  double std = t.std_us();
+  double mean, last, std;
+  int count;
+  {
+    std::unique_lock lock(t.mtx_, std::defer_lock);
+    if (t.multithread_) lock.lock();
+    mean = t.avg_us();
+    last = t.last_us();
+    std = t.std_us();
+    count = t.count();
+  }
   int unit_i = 0;
 
   while (mean > 100 && unit_i < units.size()-1) {
@@ -47,12 +57,12 @@ std::ostream& operator<<(std::ostream& os, const Timer& t) {
         " mean: " << setw(10) << mean << unit << 
         " last: " << setw(10) << last << unit <<
         " std: " << setw(10) << std << unit <<
-        " count: " << setw(10) << t.count();
+        " count: " << setw(10) << count;
   return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const TimerManager& tm) {
-  for (const auto& timer : tm.timers_) {
+std::ostream& operator<<(std::ostream& os, TimerManager& tm) {
+  for (auto& timer : tm.timers_) {
     os << std::endl << timer;
   }
   return os;

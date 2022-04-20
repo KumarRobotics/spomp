@@ -5,6 +5,7 @@
 #include <string>
 #include <ostream>
 #include <cmath>
+#include <mutex>
 
 namespace spomp {
 
@@ -13,15 +14,22 @@ namespace spomp {
  */
 class Timer {
   public:
-    Timer(const std::string& name) : name_(name) {}
+    Timer(const std::string& name, bool mt = false) : 
+      name_(name), multithread_(mt) {}
     Timer() = default;
 
     void start() {
+      // Don't lock here, since we assume a given timer
+      // is only called from one thread
       start_t_ = std::chrono::system_clock::now();
     }
 
     void end();
 
+    friend std::ostream& operator<<(std::ostream& os, Timer& t);
+
+  private:
+    // These are private since they are not thread-safe
     double avg_us() const;
 
     double std_us() const;
@@ -34,10 +42,12 @@ class Timer {
       return n_;
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const Timer& t);
-
-  private:
     std::string name_{};
+
+    // Threading stuff
+    bool multithread_{false};
+    std::mutex mtx_{};
+
     // These things integrate us (or squared us), so make big
     long long t_sum_{0};
     long long t_sq_sum_{0};
@@ -49,20 +59,26 @@ class Timer {
 class TimerManager {
   public:
     //! Return global TimerManager instance
-    static TimerManager& getGlobal() {
-      static TimerManager tm{};
+    static TimerManager& getGlobal(bool multithread = false) {
+      static TimerManager tm(multithread);
       return tm;
     }
 
-    TimerManager() = default;
+    TimerManager(bool mt = false) : multithread_(mt) {}
 
     Timer* get(const std::string& name) {
-      return &timers_.emplace_back(name);
+      std::unique_lock lock(mtx_, std::defer_lock);
+      if (multithread_) lock.lock();
+
+      return &timers_.emplace_back(name, multithread_);
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const TimerManager& tm);
+    friend std::ostream& operator<<(std::ostream& os, TimerManager& tm);
 
   private:
+    bool multithread_{false};
+    std::mutex mtx_{};
+
     //! We use a list because lists are reference-safe
     //! For a vector, invalidated on realloc
     std::list<Timer> timers_{};
