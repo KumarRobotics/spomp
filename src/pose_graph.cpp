@@ -81,8 +81,11 @@ void PoseGraph::processGlobalBuffer() {
         interp_prior.pose.rotate(Eigen::Rotation2Dd(before_prior.pose.rotation()).slerp(
             after_t_diff/diff_sum, Eigen::Rotation2Dd(after_prior.pose.rotation())));
         // Essentially the total sigma is the magnitude of two vectors perpendicular
-        interp_prior.sigma_diag = ((after_prior.sigma_diag * before_t_diff / diff_sum).array().pow(2) +
-          (before_prior.sigma_diag * after_t_diff / diff_sum).array().pow(2)).sqrt();
+        if (after_prior.sigma_diag[0] > 0 && before_prior.sigma_diag[0] > 0) {
+          interp_prior.sigma_diag = 
+            ((after_prior.sigma_diag * before_t_diff / diff_sum).array().pow(2) +
+            (before_prior.sigma_diag * after_t_diff / diff_sum).array().pow(2)).sqrt();
+        }
 
         addPriorFactor(matching_node_it->second.key, interp_prior);
       }
