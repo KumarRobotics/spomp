@@ -3,6 +3,7 @@
 #include <thread>
 #include <shared_mutex>
 #include "spomp/pose_graph.h"
+#include "spomp/timer.h"
 
 namespace spomp {
 
@@ -24,6 +25,9 @@ class Mapper {
       PoseGraph::Prior2D prior{};
     };
     void addPrior(const StampedPrior& p);
+
+    //! @return Vector of keyframe poses oldest to most recent
+    std::vector<Eigen::Isometry3d> getGraph();
 
     ~Mapper();
 
@@ -66,10 +70,19 @@ class Mapper {
         bool operator()();
 
       private:
+        void parseBuffer();
+
+        void updateKeyframes();
+
         // Reference back to parent
         Mapper& mapper_;
 
         PoseGraph pg_;
+
+        // Timers
+        Timer* parse_buffer_t_{};
+        Timer* graph_update_t_{};
+        Timer* update_keyframes_t_{};
     };
 };
 
