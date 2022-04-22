@@ -23,12 +23,6 @@ class LocalWrapper {
     //! Startup subscribers
     void initialize();
 
-    static Eigen::Isometry3f ROS2Eigen(const geometry_msgs::TransformStamped& trans_msg);
-    static Eigen::Isometry3f ROS2Eigen(const geometry_msgs::PoseStamped& pose_msg);
-    static geometry_msgs::TransformStamped Eigen2ROS(const Eigen::Isometry3f& pose);
-    static geometry_msgs::PoseStamped Eigen2ROS(const Eigen::Isometry2f& pose);
-    static geometry_msgs::Twist Eigen2ROS(const Twistf& twist);
-
   private:
     /*********************************************************
      * LOCAL FUNCTIONS
@@ -71,7 +65,7 @@ class LocalWrapper {
     ros::Subscriber goal_sub_;
     ros::Subscriber pose_sub_;
 
-    // Object pointers
+    // Objects
     Local local_;
 
     Remote remote_;
