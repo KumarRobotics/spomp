@@ -23,7 +23,20 @@ Mapper MapperWrapper::createMapper(ros::NodeHandle& nh) {
 }
 
 void MapperWrapper::initialize() {
+  // Subscribers
+  odom_sub_ = nh_.subscribe("odom", 1, &MapperWrapper::odomCallback, this);
+  global_est_sub_ = nh_.subscribe("global_est", 
+      1, &MapperWrapper::globalEstCallback, this);
+
   ros::spin();
+}
+
+void MapperWrapper::odomCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
+}
+
+void MapperWrapper::globalEstCallback(
+    const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg)
+{
 }
 
 } // namespace spomp

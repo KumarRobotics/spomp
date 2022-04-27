@@ -30,6 +30,23 @@ inline Eigen::Vector2f polar2cart(const Eigen::Vector2f& pol) {
   return {pol[0] * cos(pol[1]), pol[0] * sin(pol[1])};
 }
 
+inline Eigen::Isometry3d pose22pose3(const Eigen::Isometry2d& pose_2) {
+  Eigen::Isometry3d pose_3 = Eigen::Isometry3d::Identity();
+  pose_3.translation().head<2>() = pose_2.translation();
+  pose_3.rotate(Eigen::AngleAxisd(
+        Eigen::Rotation2Dd(pose_2.rotation()).angle(), 
+                           Eigen::Vector3d::UnitZ()));
+  return pose_3;
+}
+
+inline Eigen::Isometry2d pose32pose2(const Eigen::Isometry3d& pose_3) {
+  Eigen::Isometry2d pose_2 = Eigen::Isometry2d::Identity();
+  pose_2.translation() = pose_3.translation().head<2>();
+  Eigen::Vector3d rot_x = pose_3.rotation() * Eigen::Vector3d::UnitX();
+  pose_2.rotate(Eigen::Rotation2D(atan2(rot_x[1], rot_x[0])));
+  return pose_2;
+}
+
 inline float regAngle(float angle) {
   if (angle < 0) {
     angle += 2 * pi;

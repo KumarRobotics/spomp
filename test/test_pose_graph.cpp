@@ -58,6 +58,7 @@ TEST(pose_graph, test_opt) {
   pg.addPrior(9, {prior});
   auto error = pg.getError();
   pg.update();
+  // Verify that nothing happens here because disallow interp
   ASSERT_NEAR(pg.getError(), error, 1e-5);
 
   pg.addPrior(10, {prior});
@@ -67,7 +68,7 @@ TEST(pose_graph, test_opt) {
   ASSERT_TRUE(pg.getError() > 1);
 }
 
-TEST(pose_graph, test_interp) {
+TEST(pose_graph, test_lin_interp) {
   PoseGraph::Params pg_p;
   pg_p.num_frames_opt = 0;
   pg_p.allow_interpolation = true;
@@ -101,6 +102,38 @@ TEST(pose_graph, test_interp) {
   pg.update();
   ASSERT_NEAR(pg.getPoseAtTime(0)->translation()[1], 1, 1e-5);
   ASSERT_NEAR(Eigen::AngleAxisd(pg.getPoseAtTime(0)->rotation()).angle(), pi/6, 1e-5);
+}
+
+TEST(pose_graph, test_exact_interp) {
+  PoseGraph::Params pg_p;
+  pg_p.num_frames_opt = 0;
+  pg_p.allow_interpolation = true;
+  PoseGraph pg(pg_p);
+
+  PoseGraph::Prior2D prior{};
+  prior.pose.translate(Eigen::Vector2d(10,0));
+  prior.pose.rotate(Eigen::Rotation2Dd(pi/2));
+
+  pg.addNode(0, prior.local_pose);
+  auto prior2 = prior;
+  prior2.pose.translate(Eigen::Vector2d(1, 0));
+  prior2.local_pose.translate(Eigen::Vector3d(1, 0, 0));
+  pg.addPrior(1, prior2);
+  pg.update();
+  ASSERT_NEAR((pg.getPoseAtTime(0)->translation() - 
+        Eigen::Vector3d(10, 0, 0)).norm(), 0, 1e-5);
+
+  auto prior3 = prior2;
+  prior3.pose.translate(Eigen::Vector2d(5, 0));
+  prior3.local_pose.translate(Eigen::Vector3d(5, 0, 0));
+  pg.addNode(2, prior3.local_pose);
+  pg.update();
+
+  ASSERT_NEAR(pg.getError(), 0, 1e-5);
+  ASSERT_NEAR((pg.getPoseAtTime(0)->translation() - 
+        Eigen::Vector3d(10, 0, 0)).norm(), 0, 1e-5);
+  ASSERT_NEAR((pg.getPoseAtTime(2)->translation() - 
+        Eigen::Vector3d(10, 6, 0)).norm(), 0, 1e-5);
 }
 
 } // namespace spomp

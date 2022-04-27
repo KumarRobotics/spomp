@@ -1,6 +1,7 @@
 #include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
 #include <gtsam/slam/BetweenFactor.h>
 #include "spomp/pose_graph.h"
+#include "spomp/utils.h"
 
 namespace spomp {
 
@@ -55,13 +56,30 @@ void PoseGraph::processGlobalBuffer() {
   for (auto prior_it = prior_buffer_.begin(); prior_it != prior_buffer_.end();) {
     // First pose after or at same time as prior
     auto matching_node_it = pose_history_.lower_bound(prior_it->first);
-    // Either pose_history_ is empty or all priors in the future
-    if (matching_node_it == pose_history_.end()) return;
 
-    if (matching_node_it->first == prior_it->first) {
+    // This is safe because if the first is false the second condition
+    // is never checked
+    if (matching_node_it != pose_history_.end() && 
+        matching_node_it->first == prior_it->first) 
+    {
       // Exact match
       addPriorFactor(matching_node_it->second.key, prior_it->second);
-    } else if (params_.allow_interpolation) {
+    } else if (matching_node_it != pose_history_.begin() && 
+               !prior_it->second.local_pose.matrix().isIdentity(1e-5) &&
+               params_.allow_interpolation) {
+      // We have knowledge of local motion from keyframe
+      // Get the last node with time before the prior
+      --matching_node_it;
+      Eigen::Isometry3d prior_T_key = prior_it->second.local_pose.inverse() * 
+                                      matching_node_it->second.pose;
+      
+      Prior2D trans_prior = prior_it->second;
+      // Current prior is world_T_prior
+      trans_prior.pose = trans_prior.pose * pose32pose2(prior_T_key);
+      addPriorFactor(matching_node_it->second.key, trans_prior);
+    } else if (matching_node_it != pose_history_.end() && 
+               params_.allow_interpolation) 
+    {
       auto next_prior_it = std::next(prior_it);
       // We do not yet have a bracket
       if (next_prior_it == prior_buffer_.end()) return;
@@ -89,6 +107,9 @@ void PoseGraph::processGlobalBuffer() {
 
         addPriorFactor(matching_node_it->second.key, interp_prior);
       }
+    } else if (matching_node_it == pose_history_.end()) {
+      // All priors in future, don't have local pose to interp
+      return;
     }
 
     // This also advances the loop
@@ -116,14 +137,9 @@ void PoseGraph::addPriorFactor(const gtsam::Key& key, const Prior2D& prior) {
     // sigma not specified, fall back
     unc.segment<3>(2) = params_.prior_uncertainty;
   }
-  // Convert 2D pose to 3D
-  prior_3.translation().head<2>() = prior.pose.translation();
-  prior_3.rotate(Eigen::AngleAxisd(
-        Eigen::Rotation2Dd(prior.pose.rotation()).angle(), 
-                           Eigen::Vector3d::UnitZ()));
 
   graph_.emplace_shared<gtsam::PriorFactor<gtsam::Pose3>>(key,
-      Eigen2GTSAM(prior_3), 
+      Eigen2GTSAM(pose22pose3(prior.pose)), 
       gtsam::noiseModel::Diagonal::Sigmas(unc));
 }
 

@@ -41,6 +41,9 @@ class PoseGraph {
     struct Prior2D {
       Eigen::Isometry2d pose = Eigen::Isometry2d::Identity();
       Eigen::Vector3d sigma_diag = Eigen::Vector3d::Constant(-1);
+      // Pose in odom frame at time of prior
+      // Leave identity if not available
+      Eigen::Isometry3d local_pose = Eigen::Isometry3d::Identity();
 
       // Constructor for not specifying sigma
       Prior2D(const Eigen::Isometry2d& p) : pose(p) {}

@@ -2,6 +2,8 @@
 
 #include <ros/ros.h>
 #include <tf2_ros/static_transform_broadcaster.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include "spomp/mapper.h"
 
 namespace spomp {
@@ -17,6 +19,9 @@ class MapperWrapper {
     /*********************************************************
      * LOCAL FUNCTIONS
      *********************************************************/
+    void odomCallback(const geometry_msgs::PoseStamped::ConstPtr& msg);
+    void globalEstCallback(
+        const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg);
 
     /*********************************************************
      * LOCAL VARIABLES
