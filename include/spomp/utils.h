@@ -118,6 +118,7 @@ class Twist {
 };
 
 using Twistf = Twist<float>;
+using Twistd = Twist<double>;
 
 struct AngularProj {
   float start_angle{};

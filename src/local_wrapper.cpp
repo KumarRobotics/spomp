@@ -128,7 +128,7 @@ bool LocalWrapper::getControlTrans(Eigen::Isometry3f& trans) {
     ros::Duration(0.5).sleep();
     try {
       auto trans_msg = tf_buffer.lookupTransform(body_frame_, control_frame_, ros::Time(0));
-      trans = ROS2Eigen(trans_msg);
+      trans = ROS2Eigen<float>(trans_msg);
       return true;
     } catch (tf2::TransformException& ex) {
       ROS_WARN("%s", ex.what());
@@ -217,7 +217,7 @@ void LocalWrapper::goalCallback(const geometry_msgs::PoseStamped::ConstPtr& pose
     // since the last update, which is a valid assumption to make.
     auto pose_odom_frame = tf_buffer_.transform(*pose_msg, odom_frame_, ros::Time(0), 
         pose_msg->header.frame_id);
-    local_.setGoal(ROS2Eigen(pose_odom_frame).translation());
+    local_.setGoal(ROS2Eigen<float>(pose_odom_frame).translation());
     // Publish transform so goals are updated properly
     publishTransform(pose_msg->header.stamp);
     visualizeGoals(pose_msg->header.stamp);
@@ -228,7 +228,7 @@ void LocalWrapper::goalCallback(const geometry_msgs::PoseStamped::ConstPtr& pose
 
 void LocalWrapper::poseCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg) {
   // Assume the pose_msg is already in the odom frame
-  auto twist = local_.getControlInput(ROS2Eigen(*pose_msg));
+  auto twist = local_.getControlInput(ROS2Eigen<float>(*pose_msg));
   control_pub_.publish(Eigen2ROS(twist));
   visualizeControl(pose_msg->header.stamp, twist);
 }

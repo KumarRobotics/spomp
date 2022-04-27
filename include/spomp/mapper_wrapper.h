@@ -1,6 +1,9 @@
 #pragma once
 
 #include <ros/ros.h>
+#include <message_filters/time_synchronizer.h>
+#include <message_filters/subscriber.h>
+#include <image_transport/image_transport.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
@@ -19,22 +22,31 @@ class MapperWrapper {
     /*********************************************************
      * LOCAL FUNCTIONS
      *********************************************************/
-    void odomCallback(const geometry_msgs::PoseStamped::ConstPtr& msg);
+    void panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
+      const sensor_msgs::CameraInfo::ConstPtr& info_msg);
     void globalEstCallback(
-        const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg);
+        const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& est_msg,
+        const geometry_msgs::PoseStamped::ConstPtr &odom_msg);
 
     /*********************************************************
      * LOCAL VARIABLES
      *********************************************************/
     ros::NodeHandle nh_;
+    image_transport::ImageTransport it_;
     tf2_ros::StaticTransformBroadcaster static_tf_broadcaster_{};
 
     // Pubs
     ros::Publisher graph_viz_pub_;
 
     // Subs
-    ros::Subscriber odom_sub_;
-    ros::Subscriber global_est_sub_;
+    image_transport::CameraSubscriber pano_sub_;
+    std::unique_ptr<message_filters::Subscriber<
+      geometry_msgs::PoseWithCovarianceStamped>> est_sub_;
+    std::unique_ptr<message_filters::Subscriber<
+      geometry_msgs::PoseStamped>> odom_sub_;
+    std::unique_ptr<message_filters::TimeSynchronizer<
+      geometry_msgs::PoseWithCovarianceStamped, 
+      geometry_msgs::PoseStamped>> global_est_odom_sync_;
 
     // Objects
     Mapper mapper_;
