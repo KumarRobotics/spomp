@@ -29,6 +29,12 @@ class Mapper {
     //! @return Vector of keyframe poses oldest to most recent
     std::vector<Eigen::Isometry3d> getGraph();
 
+    //! @return Corrective pose to transform odom into map frame
+    Eigen::Isometry3d getOdomCorrection();
+
+    //! @return Timestamp of most recent keyframe
+    long stamp();
+
     ~Mapper();
 
   private:
@@ -44,6 +50,7 @@ class Mapper {
       // Shared mutex here since a lot of places read only
       std::shared_mutex mtx;
       std::map<long, std::unique_ptr<Keyframe>> frames;
+      Eigen::Isometry3d odom_corr = Eigen::Isometry3d::Identity();
     } keyframes_;
 
     struct KeyframeInput {

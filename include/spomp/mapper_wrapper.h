@@ -29,6 +29,8 @@ class MapperWrapper {
         const geometry_msgs::PoseStamped::ConstPtr &odom_msg);
 
     void visualize(const ros::TimerEvent& timer = {});
+    void vizPoseGraph(const ros::Time& stamp);
+    void publishOdomCorrection(const ros::Time& stamp);
 
     /*********************************************************
      * LOCAL VARIABLES

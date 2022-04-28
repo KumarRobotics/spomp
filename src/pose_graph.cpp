@@ -157,4 +157,17 @@ Eigen::Isometry3d PoseGraph::getPoseAtIndex(size_t ind) const {
   return GTSAM2Eigen(current_opt_.at<gtsam::Pose3>(P(ind)));
 }
 
+Eigen::Isometry3d PoseGraph::getOdomCorrection() const {
+  Eigen::Isometry3d correction = Eigen::Isometry3d::Identity();
+
+  if (pose_history_.size() > 0) {
+    auto map_pose = getPoseAtTime(pose_history_.rbegin()->first);
+    if (map_pose) {
+      correction = *map_pose * pose_history_.rbegin()->second.pose.inverse();
+    }
+  }
+
+  return correction;
+}
+
 } // namespace spomp

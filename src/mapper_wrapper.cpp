@@ -73,9 +73,72 @@ void MapperWrapper::globalEstCallback(
 
 void MapperWrapper::visualize(const ros::TimerEvent& timer) {
   viz_t_->start();
+  ros::Time stamp;
+  stamp.fromNSec(mapper_.stamp());
+  vizPoseGraph(stamp);
+  publishOdomCorrection(stamp);
   viz_t_->end();
 
   ROS_INFO_STREAM("\033[34m" << TimerManager::getGlobal(true) << "\033[0m");
+}
+
+void MapperWrapper::vizPoseGraph(const ros::Time& stamp) {
+  visualization_msgs::MarkerArray marker_array;
+  visualization_msgs::Marker traj_marker, key_marker;
+
+  traj_marker.header.frame_id = "map";
+  traj_marker.header.stamp = stamp;
+  traj_marker.ns = "trajectory";
+  traj_marker.id = 0;
+  traj_marker.type = visualization_msgs::Marker::LINE_STRIP;
+  traj_marker.action = visualization_msgs::Marker::ADD;
+  traj_marker.pose.position.x = 0;
+  traj_marker.pose.position.y = 0;
+  traj_marker.pose.position.z = 0;
+  traj_marker.pose.orientation.x = 0;
+  traj_marker.pose.orientation.y = 0;
+  traj_marker.pose.orientation.z = 0;
+  traj_marker.pose.orientation.w = 1;
+  traj_marker.scale.x = 0.2; // Line width
+  traj_marker.color.a = 1;
+  traj_marker.color.r = 1;
+  traj_marker.color.g = 0;
+  traj_marker.color.b = 0;
+
+  key_marker.header = traj_marker.header;
+  key_marker.ns = "keys";
+  key_marker.id = 0;
+  key_marker.type = visualization_msgs::Marker::SPHERE_LIST;
+  key_marker.action = visualization_msgs::Marker::ADD;
+  key_marker.pose = traj_marker.pose;
+  key_marker.scale.x = 1;
+  key_marker.scale.y = 1;
+  key_marker.scale.z = 1;
+  key_marker.color.a = 1;
+  key_marker.color.r = 0;
+  key_marker.color.g = 1;
+  key_marker.color.b = 0;
+
+  auto graph = mapper_.getGraph();
+  for (const auto& pose : graph) {
+    auto pt_msg = Eigen2ROS<double>(pose.translation());
+    traj_marker.points.push_back(pt_msg);
+    key_marker.points.push_back(pt_msg);
+  }
+
+  marker_array.markers.push_back(traj_marker);
+  marker_array.markers.push_back(key_marker);
+
+  graph_viz_pub_.publish(marker_array);
+}
+
+void MapperWrapper::publishOdomCorrection(const ros::Time& stamp) {
+  Eigen::Isometry3d corr = mapper_.getOdomCorrection();
+  geometry_msgs::TransformStamped corr_msg = Eigen2ROS(corr);
+  corr_msg.header.stamp = stamp;
+  corr_msg.header.frame_id = "map";
+  corr_msg.child_frame_id = "odom";
+  static_tf_broadcaster_.sendTransform(corr_msg);
 }
 
 } // namespace spomp

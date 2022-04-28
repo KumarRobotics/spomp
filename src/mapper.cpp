@@ -33,6 +33,17 @@ std::vector<Eigen::Isometry3d> Mapper::getGraph() {
   return poses;
 }
 
+Eigen::Isometry3d Mapper::getOdomCorrection() {
+  std::shared_lock key_lock(keyframes_.mtx);
+  return keyframes_.odom_corr;
+}
+
+long Mapper::stamp() {
+  std::shared_lock key_lock(keyframes_.mtx);
+  if (keyframes_.frames.size() < 1) return 0;
+  return keyframes_.frames.rbegin()->first;
+}
+
 /*********************************************************
  * POSE GRAPH THREAD
  *********************************************************/
@@ -105,6 +116,8 @@ void Mapper::PoseGraphThread::updateKeyframes() {
       key.second->pose = *new_pose;
     }
   }
+  mapper_.keyframes_.odom_corr = pg_.getOdomCorrection();
+
   update_keyframes_t_->end();
 }
 

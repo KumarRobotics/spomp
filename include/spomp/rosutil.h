@@ -60,7 +60,7 @@ geometry_msgs::TransformStamped Eigen2ROS(
   pose_msg.transform.translation.x = pose.translation()[0];
   pose_msg.transform.translation.y = pose.translation()[1];
   pose_msg.transform.translation.z = pose.translation()[2];
-  Eigen::Quaternionf quat(pose.rotation());
+  Eigen::Quaternion<T> quat(pose.rotation());
   pose_msg.transform.rotation.x = quat.x();
   pose_msg.transform.rotation.y = quat.y();
   pose_msg.transform.rotation.z = quat.z();
@@ -76,8 +76,8 @@ geometry_msgs::PoseStamped Eigen2ROS(
   pose_msg.pose.position.x = pose.translation()[0];
   pose_msg.pose.position.y = pose.translation()[1];
   pose_msg.pose.position.z = 0;
-  Eigen::Rotation2Df rot(pose.rotation());
-  Eigen::Quaternionf quat(Eigen::AngleAxisf(rot.angle(), Eigen::Vector3f::UnitZ()));
+  Eigen::Rotation2D<T> rot(pose.rotation());
+  Eigen::Quaternion<T> quat(Eigen::AngleAxis<T>(rot.angle(), Eigen::Matrix<T, 3, 1>::UnitZ()));
   pose_msg.pose.orientation.x = quat.x();
   pose_msg.pose.orientation.y = quat.y();
   pose_msg.pose.orientation.z = quat.z();
@@ -95,6 +95,15 @@ geometry_msgs::Twist Eigen2ROS(const Twist<T>& twist) {
   twist_msg.angular.y = 0;
   twist_msg.angular.z = twist.ang();
   return twist_msg;
+}
+
+template<typename T>
+geometry_msgs::Point Eigen2ROS(const Eigen::Matrix<T, 3, 1>& pos) {
+  geometry_msgs::Point point;
+  point.x = pos[0];
+  point.y = pos[1];
+  point.z = pos[2];
+  return point;
 }
 
 } // namespace spomp

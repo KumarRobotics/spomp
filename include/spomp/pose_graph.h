@@ -72,7 +72,6 @@ class PoseGraph {
      */
     Eigen::Isometry3d getPoseAtIndex(size_t ind) const;
 
-
     //! @return Number of nodes in graph
     size_t size() const {
       return size_;
@@ -82,6 +81,8 @@ class PoseGraph {
     double getError() const {
       return graph_.error(current_opt_);
     }
+
+    Eigen::Isometry3d getOdomCorrection() const;
 
   private:
     /***********************************************************
