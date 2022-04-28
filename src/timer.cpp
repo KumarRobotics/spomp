@@ -27,7 +27,8 @@ double Timer::std_us() const {
   if (n_ < 2) {
     return 0;
   }
-  return std::sqrt((t_sq_sum_/n_ - std::pow(avg_us(), 2)) * (n_ / (n_ - 1.)));
+  return std::sqrt((static_cast<double>(t_sq_sum_)/n_ - std::pow(avg_us(), 2)) * 
+         (static_cast<double>(n_) / (n_ - 1.)));
 }
 
 std::ostream& operator<<(std::ostream& os, Timer& t) {

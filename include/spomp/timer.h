@@ -53,7 +53,7 @@ class Timer {
     long long t_sq_sum_{0};
     long last_t_{0};
     int n_{0};
-    std::chrono::time_point<std::chrono::system_clock> start_t_{};
+    std::chrono::time_point<std::chrono::system_clock> start_t_;
 };
 
 class TimerManager {

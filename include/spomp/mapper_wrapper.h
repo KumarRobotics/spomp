@@ -28,12 +28,17 @@ class MapperWrapper {
         const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& est_msg,
         const geometry_msgs::PoseStamped::ConstPtr &odom_msg);
 
+    void visualize(const ros::TimerEvent& timer = {});
+
     /*********************************************************
      * LOCAL VARIABLES
      *********************************************************/
     ros::NodeHandle nh_;
     image_transport::ImageTransport it_;
     tf2_ros::StaticTransformBroadcaster static_tf_broadcaster_{};
+
+    // Timers
+    ros::Timer viz_timer_;
 
     // Pubs
     ros::Publisher graph_viz_pub_;

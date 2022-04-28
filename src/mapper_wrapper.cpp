@@ -35,6 +35,9 @@ void MapperWrapper::initialize() {
     geometry_msgs::PoseStamped>>(*est_sub_, *odom_sub_, 10);
   global_est_odom_sync_->registerCallback(&MapperWrapper::globalEstCallback, this);
 
+  // Timers
+  viz_timer_ = nh_.createTimer(ros::Duration(1), &MapperWrapper::visualize, this);
+
   ros::spin();
 }
 
@@ -60,10 +63,19 @@ void MapperWrapper::globalEstCallback(
   // organized as pos, rot, flipped from gtsam
   const auto cov = Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(
       &est_msg->pose.covariance[0]); 
+  // For now, just take the diagonal
+  // In the future, could use the full covariance
   prior.prior.sigma_diag[0] = std::sqrt(cov.diagonal()[5]);
   prior.prior.sigma_diag.tail<2>() = cov.diagonal().head<2>().array().sqrt();
 
   mapper_.addPrior(prior);
+}
+
+void MapperWrapper::visualize(const ros::TimerEvent& timer) {
+  viz_t_->start();
+  viz_t_->end();
+
+  ROS_INFO_STREAM("\033[34m" << TimerManager::getGlobal(true) << "\033[0m");
 }
 
 } // namespace spomp
