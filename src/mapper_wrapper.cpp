@@ -29,7 +29,7 @@ void MapperWrapper::initialize() {
   est_sub_ = std::make_unique<message_filters::Subscriber<
     geometry_msgs::PoseWithCovarianceStamped>>(nh_, "global_est", 1);
   odom_sub_ = std::make_unique<message_filters::Subscriber<
-    geometry_msgs::PoseStamped>>(nh_, "odom", 1);
+    geometry_msgs::PoseStamped>>(nh_, "pose", 1);
   global_est_odom_sync_ = std::make_unique<message_filters::TimeSynchronizer<
     geometry_msgs::PoseWithCovarianceStamped, 
     geometry_msgs::PoseStamped>>(*est_sub_, *odom_sub_, 10);

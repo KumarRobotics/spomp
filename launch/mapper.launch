@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <node pkg="spomp" type="node_mapper" name="spomp_mapper" output="screen">
+    <remap from="~pano/img" to="/os_node/llol_odom/pano/img"/>
+    <remap from="~pano/camera_info" to="/os_node/llol_odom/pano/camera_info"/>
+    <remap from="~pose" to="/os_node/llol_odom/pose"/>
+  </node>
+</launch>
