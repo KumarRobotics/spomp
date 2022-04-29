@@ -11,6 +11,7 @@ class Mapper {
   public:
     struct Params {
       int pgo_thread_period_ms = 1000;
+      bool correct_odom_per_frame = true;
     };
     Mapper(const Params& m_p, const PoseGraph::Params& pg_p);
 
@@ -46,6 +47,8 @@ class Mapper {
     /*********************************************************
      * LOCAL VARIABLES
      *********************************************************/
+    StampedPrior last_prior_{};
+
     struct Keyframes {
       // Shared mutex here since a lot of places read only
       std::shared_mutex mtx;
@@ -88,7 +91,6 @@ class Mapper {
 
         // Timers
         Timer* parse_buffer_t_{};
-        Timer* graph_update_t_{};
         Timer* update_keyframes_t_{};
     };
 };

@@ -4,7 +4,7 @@
 #include <message_filters/time_synchronizer.h>
 #include <message_filters/subscriber.h>
 #include <image_transport/image_transport.h>
-#include <tf2_ros/static_transform_broadcaster.h>
+#include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include "spomp/mapper.h"
@@ -37,7 +37,7 @@ class MapperWrapper {
      *********************************************************/
     ros::NodeHandle nh_;
     image_transport::ImageTransport it_;
-    tf2_ros::StaticTransformBroadcaster static_tf_broadcaster_{};
+    tf2_ros::TransformBroadcaster tf_broadcaster_{};
 
     // Timers
     ros::Timer viz_timer_;

@@ -5,7 +5,10 @@
 
 namespace spomp {
 
-PoseGraph::PoseGraph(const Params& params) : params_(params) {}
+PoseGraph::PoseGraph(const Params& params) : params_(params) {
+  auto& tm = TimerManager::getGlobal(true);
+  graph_update_t_ = tm.get("PG_graph_update");
+}
 
 size_t PoseGraph::addNode(long stamp, const Eigen::Isometry3d& pose) {
   if (size_ > 0) {
@@ -45,9 +48,11 @@ void PoseGraph::update() {
     return;
   }
 
+  graph_update_t_->start();
   gtsam::LevenbergMarquardtParams opt_params;
   gtsam::LevenbergMarquardtOptimizer opt(graph_, current_opt_, opt_params);
   current_opt_ = opt.optimize();
+  graph_update_t_->end();
 
   last_opt_size_ = size_;
 }
@@ -118,16 +123,13 @@ void PoseGraph::processGlobalBuffer() {
 }
 
 void PoseGraph::addPriorFactor(const gtsam::Key& key, const Prior2D& prior) {
-  Eigen::Isometry3d prior_3 = Eigen::Isometry3d::Identity();
-  // Large number
-  Eigen::Vector6d unc = Eigen::Vector6d::Constant(100);
+  // (Relatively) large number
+  Eigen::Vector6d unc = Eigen::Vector6d::Constant(1);
 
   // Found match
   if (graph_.exists(initial_pose_factor_id_)) {
     // Remove initial placeholder prior
     graph_.remove(initial_pose_factor_id_);
-    // Initial prior should be more confident on unknown axes
-    unc.setConstant(0.01);
   }
   
   if (prior.sigma_diag[0] > 0) {

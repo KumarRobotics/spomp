@@ -136,4 +136,21 @@ TEST(pose_graph, test_exact_interp) {
         Eigen::Vector3d(10, 6, 0)).norm(), 0, 1e-5);
 }
 
+TEST(utils, test_pose2_pose3_conv) {
+  Eigen::Isometry3d pose3 = Eigen::Isometry3d::Identity();
+  pose3.translate(Eigen::Vector3d(2,1,0));
+  pose3.rotate(Eigen::AngleAxisd(pi/2, Eigen::Vector3d::UnitZ()));
+
+  Eigen::Isometry3d pose3_p = pose22pose3(pose32pose2(pose3));
+  ASSERT_TRUE((pose3.inverse() * pose3_p).affine().isIdentity(1e-5));
+
+  pose3.rotate(Eigen::AngleAxisd(-pi*1.23, Eigen::Vector3d::UnitZ()));
+  pose3_p = pose22pose3(pose32pose2(pose3));
+  ASSERT_TRUE((pose3.inverse() * pose3_p).affine().isIdentity(1e-5));
+
+  pose3.prerotate(Eigen::AngleAxisd(pi*12.3, -Eigen::Vector3d::UnitZ()));
+  pose3_p = pose22pose3(pose32pose2(pose3));
+  ASSERT_TRUE((pose3.inverse() * pose3_p).affine().isIdentity(1e-5));
+}
+
 } // namespace spomp

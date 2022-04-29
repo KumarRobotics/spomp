@@ -4,6 +4,7 @@
 #include <gtsam/nonlinear/Values.h>
 #include <gtsam/inference/Symbol.h>
 #include <gtsam/geometry/Pose3.h>
+#include "spomp/timer.h"
 
 namespace Eigen {
   using Vector6d = Matrix<double, 6, 1>;
@@ -17,9 +18,9 @@ class PoseGraph {
   public:
     struct Params {
       int num_frames_opt = 10;
+      bool allow_interpolation = false;
       Eigen::Vector6d between_uncertainty = Eigen::Vector6d::Constant(0.1);
       Eigen::Vector3d prior_uncertainty = Eigen::Vector3d::Constant(0.1);
-      bool allow_interpolation = false;
 
       void setBetweenUncertainty(double loc, double rot) {
         // gtsam stores rot info first
@@ -136,6 +137,9 @@ class PoseGraph {
 
     //! Index of temporary origin factor before adding priors
     int initial_pose_factor_id_{};
+
+    // Timers
+    Timer* graph_update_t_{};
 };
 
 } // namespace spomp

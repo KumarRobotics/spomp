@@ -1,4 +1,5 @@
 #include "spomp/mapper.h"
+#include "spomp/utils.h"
 
 namespace spomp {
 
@@ -17,6 +18,7 @@ void Mapper::addKeyframe(const Keyframe& k) {
 }
 
 void Mapper::addPrior(const StampedPrior& p) {
+  last_prior_ = p;
   std::scoped_lock lock(prior_input_.mtx);
   prior_input_.priors.emplace_back(std::make_unique<StampedPrior>(p));
 }
@@ -34,8 +36,15 @@ std::vector<Eigen::Isometry3d> Mapper::getGraph() {
 }
 
 Eigen::Isometry3d Mapper::getOdomCorrection() {
-  std::shared_lock key_lock(keyframes_.mtx);
-  return keyframes_.odom_corr;
+  Eigen::Isometry3d corr;
+  if (!params_.correct_odom_per_frame) {
+    std::shared_lock key_lock(keyframes_.mtx);
+    corr = keyframes_.odom_corr;
+  } else {
+    corr = pose22pose3(last_prior_.prior.pose) * 
+           last_prior_.prior.local_pose.inverse();
+  }
+  return corr;
 }
 
 long Mapper::stamp() {
@@ -50,16 +59,13 @@ long Mapper::stamp() {
 bool Mapper::PoseGraphThread::operator()() {
   auto& tm = TimerManager::getGlobal(true);
   parse_buffer_t_ = tm.get("PG_parse_buffer");
-  graph_update_t_ = tm.get("PG_graph_update");
   update_keyframes_t_ = tm.get("PG_update_keyframes");
 
   using namespace std::chrono;
   auto next = steady_clock::now();
   while (!mapper_.exit_threads_flag_) {
     parseBuffer(); 
-    graph_update_t_->start();
     pg_.update();
-    graph_update_t_->end();
     updateKeyframes();
 
     // Sleep until next loop

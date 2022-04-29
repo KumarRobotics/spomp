@@ -17,8 +17,38 @@ MapperWrapper::MapperWrapper(ros::NodeHandle& nh) :
 }
 
 Mapper MapperWrapper::createMapper(ros::NodeHandle& nh) {
-  Mapper::Params m_params;
-  PoseGraph::Params pg_params;
+  Mapper::Params m_params{};
+  PoseGraph::Params pg_params{};
+
+  nh.getParam("M_pgo_thread_period_ms", m_params.pgo_thread_period_ms);
+  nh.getParam("M_correct_odom_per_frame", m_params.correct_odom_per_frame);
+
+  nh.getParam("PG_num_frames_opt", pg_params.num_frames_opt);
+  nh.getParam("PG_allow_interpolation", pg_params.allow_interpolation);
+  float loc, rot;
+  bool have_unc = false;
+  if (nh.getParam("PG_between_uncertainty_loc", loc) &&
+      nh.getParam("PG_between_uncertainty_rot", rot)) {
+    pg_params.setBetweenUncertainty(loc, rot);
+  }
+  have_unc = false;
+  if (nh.getParam("PG_prior_uncertainty_loc", loc) &&
+      nh.getParam("PG_prior_uncertainty_rot", rot)) {
+    pg_params.setPriorUncertainty(loc, rot);
+  }
+
+  constexpr int width = 30;
+  using namespace std;
+  ROS_INFO_STREAM("\033[32m" << endl << "[ROS] ======== Configuration ========" << 
+    endl << left << 
+    setw(width) << "[ROS] M_pgo_thread_period_ms: " << m_params.pgo_thread_period_ms << endl <<
+    setw(width) << "[ROS] M_correct_odom_per_frame: " << m_params.correct_odom_per_frame << endl <<
+    "[ROS] ===============================" << endl <<
+    setw(width) << "[ROS] PG_num_frames_opt: " << pg_params.num_frames_opt << endl <<
+    setw(width) << "[ROS] PG_allow_interpolation: " << pg_params.allow_interpolation << endl <<
+    setw(width) << "[ROS] PG_between_uncertainty: " << pg_params.between_uncertainty.transpose() << endl <<
+    setw(width) << "[ROS] PG_prior_uncertainty: " << pg_params.prior_uncertainty.transpose() << endl <<
+    "[ROS] ====== End Configuration ======" << "\033[0m");
 
   return Mapper(m_params, pg_params);
 }
@@ -68,6 +98,7 @@ void MapperWrapper::globalEstCallback(
   prior.prior.sigma_diag[0] = std::sqrt(cov.diagonal()[5]);
   prior.prior.sigma_diag.tail<2>() = cov.diagonal().head<2>().array().sqrt();
 
+  publishOdomCorrection(est_msg->header.stamp);
   mapper_.addPrior(prior);
 }
 
@@ -76,7 +107,6 @@ void MapperWrapper::visualize(const ros::TimerEvent& timer) {
   ros::Time stamp;
   stamp.fromNSec(mapper_.stamp());
   vizPoseGraph(stamp);
-  publishOdomCorrection(stamp);
   viz_t_->end();
 
   ROS_INFO_STREAM("\033[34m" << TimerManager::getGlobal(true) << "\033[0m");
@@ -138,7 +168,7 @@ void MapperWrapper::publishOdomCorrection(const ros::Time& stamp) {
   corr_msg.header.stamp = stamp;
   corr_msg.header.frame_id = "map";
   corr_msg.child_frame_id = "odom";
-  static_tf_broadcaster_.sendTransform(corr_msg);
+  tf_broadcaster_.sendTransform(corr_msg);
 }
 
 } // namespace spomp
