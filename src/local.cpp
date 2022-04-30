@@ -6,7 +6,13 @@ Local::Local(const Local::Params& l_p, const TerrainPano::Params& tp_p,
     const PanoPlanner::Params& pp_p, const Controller::Params& c_p) : 
   params_(l_p), pano_(tp_p), planner_(pp_p), controller_(c_p) {}
 
-void Local::updatePano(const Eigen::ArrayXXf& pano, const Eigen::Isometry3f& pose) {
+void Local::updatePano(const Eigen::ArrayXXf& pano, const Eigen::Isometry3f& pose,
+    const Eigen::Vector3f& global_goal)
+{
+  if (global_goal.norm() > 0 && global_goal_) {
+    // We have an updated version of the current goal
+    global_goal_ = global_goal;
+  }
   Eigen::Vector3f last_local_l = Eigen::Vector3f::Zero();
   last_local_l.head<2>() = controller_.getLocalGoal();
   Eigen::Vector3f old_goal_g = pano_.getPose() * last_local_l;

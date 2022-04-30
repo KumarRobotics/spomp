@@ -72,8 +72,8 @@ Eigen::Vector2f PanoPlanner::plan(const Eigen::Vector2f& goal,
     // This encourages consistency in giving goals
     Eigen::Vector2f old_goal_norm = old_goal.normalized();
     // Cross product
-    dists += (samples.row(0) * old_goal_norm[1] - 
-              samples.row(1) * old_goal_norm[0]).abs().matrix();
+    dists += params_.consistency_cost * (samples.row(0) * old_goal_norm[1] - 
+        samples.row(1) * old_goal_norm[0]).abs().matrix();
   }
   int best_ind;
   dists.minCoeff(&best_ind);

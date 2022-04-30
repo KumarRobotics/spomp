@@ -10,6 +10,7 @@ class PanoPlanner {
       int tbb = -1;
       float max_spacing_m = 0.5;
       int sample_size = 100;
+      float consistency_cost = 0.2;
     };
 
     PanoPlanner(const Params& params);

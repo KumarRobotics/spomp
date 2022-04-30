@@ -14,7 +14,9 @@ class Local {
     Local(const Local::Params& l_p, const TerrainPano::Params& tp_p, 
         const PanoPlanner::Params& pp_p, const Controller::Params& c_p);
 
-    void updatePano(const Eigen::ArrayXXf& pano, const Eigen::Isometry3f& pose);
+    // Provide new global goal if desired to compensate for transforms updating
+    void updatePano(const Eigen::ArrayXXf& pano, const Eigen::Isometry3f& pose, 
+        const Eigen::Vector3f& global_goal = Eigen::Vector3f::Zero());
 
     //! @param state The robot pose in the odom frame
     Twistf getControlInput(const Eigen::Isometry3f& state);

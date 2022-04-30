@@ -68,6 +68,7 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
 
   nh.getParam("PP_max_spacing_m", pp_params.max_spacing_m);
   nh.getParam("PP_sample_size", pp_params.sample_size);
+  nh.getParam("PP_consistency_cost", pp_params.consistency_cost);
 
   nh.getParam("CO_freq", co_params.freq);
   nh.getParam("CO_max_lin_accel", co_params.max_lin_accel);
@@ -101,6 +102,7 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] PP_max_spacing_m: " << pp_params.max_spacing_m << endl <<
     setw(width) << "[ROS] PP_sample_size: " << pp_params.sample_size << endl <<
+    setw(width) << "[ROS] PP_consistency_cost: " << pp_params.consistency_cost << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] CO_freq: " << co_params.freq << endl <<
     setw(width) << "[ROS] CO_max_lin_accel: " << co_params.max_lin_accel << endl <<
@@ -200,7 +202,18 @@ void LocalWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
     depth_scale = info_msg->R[0];
   }
   pano_eig /= depth_scale;
-  local_.updatePano(pano_eig, pano_pose);
+
+  Eigen::Vector3f goal = Eigen::Vector3f::Zero();
+  if (last_goal_msg_.header.frame_id != "") {
+    try {
+      auto pose_odom_frame = tf_buffer_.transform(last_goal_msg_, odom_frame_, 
+          img_msg->header.stamp, last_goal_msg_.header.frame_id, ros::Duration(0.05));
+      goal = ROS2Eigen<float>(pose_odom_frame).translation();
+    } catch (tf2::TransformException& ex) {
+      ROS_WARN_STREAM("Unable to update goal transform: " << ex.what());
+    }
+  }
+  local_.updatePano(pano_eig, pano_pose, goal);
 
   publishTransform(img_msg->header.stamp);
   visualizePano(img_msg->header.stamp);
@@ -221,6 +234,7 @@ void LocalWrapper::goalCallback(const geometry_msgs::PoseStamped::ConstPtr& pose
     // Publish transform so goals are updated properly
     publishTransform(pose_msg->header.stamp);
     visualizeGoals(pose_msg->header.stamp);
+    last_goal_msg_ = *pose_msg;
   } catch (tf2::TransformException& ex) {
     ROS_ERROR_STREAM("Cannot transform goal: " << ex.what());
   }

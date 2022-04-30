@@ -77,6 +77,8 @@ class LocalWrapper {
     static std::string body_frame_;
     static std::string control_frame_;
 
+    geometry_msgs::PoseStamped last_goal_msg_{};
+
     // Timers
     Timer* viz_pano_t_{};
     Timer* viz_cloud_t_{};
