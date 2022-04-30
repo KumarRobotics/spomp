@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <include file="$(find spomp)/launch/mapper.launch"/>
+  <include file="$(find spomp)/launch/local.launch"/>
+
+  <node pkg="spomp" type="waypoint_sequence.py" name="waypoint_sequence" output="screen">
+    <param name="path_file" value="./default.npy"/>
+    <remap from="~waypt_goal" to="/clicked_point"/>
+    <remap from="~pose" to="/os_node/llol_odom/pose"/>
+    <remap from="~local_waypt" to="/spomp_local/goal"/>
+  </node>
+</launch>
