@@ -14,6 +14,9 @@ MapperWrapper::MapperWrapper(ros::NodeHandle& nh) :
 
   // Publishers
   graph_viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("graph_viz", 1);
+
+  // Publish initial ident transform
+  publishOdomCorrection(ros::Time::now());
 }
 
 Mapper MapperWrapper::createMapper(ros::NodeHandle& nh) {
@@ -168,7 +171,7 @@ void MapperWrapper::publishOdomCorrection(const ros::Time& stamp) {
   corr_msg.header.stamp = stamp;
   corr_msg.header.frame_id = "map";
   corr_msg.child_frame_id = "odom";
-  tf_broadcaster_.sendTransform(corr_msg);
+  tf_static_broadcaster_.sendTransform(corr_msg);
 }
 
 } // namespace spomp
