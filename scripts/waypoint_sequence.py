@@ -8,6 +8,7 @@ from geometry_msgs.msg import PointStamped, PoseStamped, Pose, Point
 from nav_msgs.msg import Path
 from visualization_msgs.msg import Marker
 from std_msgs.msg import ColorRGBA
+from os import path
 
 def ros2np(pose):
     return np.array([pose.position.x, pose.position.y, pose.position.z])
@@ -20,7 +21,8 @@ class WaypointSequence():
 
         self.tf_buffer_ = tf2_ros.Buffer()
         self.tf_listener_ = tf2_ros.TransformListener(self.tf_buffer_)
-        self.path_file_ = rospy.get_param('~path_file', './default.npy')
+        
+        self.path_file_ = rospy.get_param('~path_file', './default_path.npy')
 
         self.waypt_sub_ = rospy.Subscriber('~waypt_goal', PointStamped, self.waypt_cb)
         self.pose_sub_ = rospy.Subscriber('~pose', PoseStamped, self.pose_cb)
@@ -29,6 +31,8 @@ class WaypointSequence():
         self.path_viz_pub_ = rospy.Publisher('~path_viz', Path, queue_size=1)
         self.waypt_viz_pub_ = rospy.Publisher('~waypt_viz', Marker, queue_size=1)
 
+        self.load_path()
+
     def save_path(self):
         np.save(self.path_file_, self.path_)
 
@@ -36,6 +40,7 @@ class WaypointSequence():
         if path.exists(self.path_file_):
             rospy.loginfo("Loading path " + self.path_file_)
             self.path_ = np.load(self.path_file_)
+            self.pub_path()
         else:
             rospy.loginfo("No saved path found at " + self.path_file_)
 
