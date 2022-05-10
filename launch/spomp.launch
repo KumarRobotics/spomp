@@ -10,6 +10,6 @@
     <param name="path_file" value="./default.npy"/>
     <remap from="~waypt_goal" to="/clicked_point"/>
     <remap from="~pose" to="/os_node/llol_odom/pose"/>
-    <remap from="~local_waypt" to="/spomp_local/goal"/>
+    <remap from="~local_waypt" to="/move_base_simple/goal"/>
   </node>
 </launch>

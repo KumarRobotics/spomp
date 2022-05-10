@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <node pkg="rostopic" type="rostopic" name="start_waypt" args="pub --once /waypoint_sequence/start std_msgs/Empty '{}'" output="screen"/>
+</launch>

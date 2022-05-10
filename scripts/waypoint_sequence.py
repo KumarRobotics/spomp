@@ -7,7 +7,7 @@ import tf2_geometry_msgs
 from geometry_msgs.msg import PointStamped, PoseStamped, Pose, Point
 from nav_msgs.msg import Path
 from visualization_msgs.msg import Marker
-from std_msgs.msg import ColorRGBA
+from std_msgs.msg import ColorRGBA, Empty
 from os import path
 
 def ros2np(pose):
@@ -26,6 +26,7 @@ class WaypointSequence():
 
         self.waypt_sub_ = rospy.Subscriber('~waypt_goal', PointStamped, self.waypt_cb)
         self.pose_sub_ = rospy.Subscriber('~pose', PoseStamped, self.pose_cb)
+        self.start_sub_ = rospy.Subscriber('~start', Empty, self.start_cb)
 
         self.local_waypt_pub_ = rospy.Publisher('~local_waypt', PoseStamped, queue_size=1)
         self.path_viz_pub_ = rospy.Publisher('~path_viz', Path, queue_size=1)
@@ -104,10 +105,6 @@ class WaypointSequence():
         self.pub_path()
 
     def pose_cb(self, pose):
-        if self.next_waypt_ind_ == 0 and self.path_.shape[0] > 0 and not self.in_progress_:
-            # start mission if waypoint available
-            self.pub_local_goal()
-
         if self.next_waypt_ind_ < self.path_.shape[0] and self.in_progress_:
             pose_map = pose
             if pose.header.frame_id != 'map':
@@ -129,10 +126,15 @@ class WaypointSequence():
 
         self.pub_path()
 
+    def start_cb(self, _):
+        if self.path_.shape[0] > 0:
+            self.next_waypoint_ind_ = 0
+            self.pub_local_goal()
+
     def pub_local_goal(self):
         next_goal = PoseStamped()
         next_goal.header.frame_id = 'map'
-        next_goal.header.stamp = rospy.Time()
+        next_goal.header.stamp = rospy.Time.now()
         next_goal.pose.position.x = self.path_[self.next_waypt_ind_, 0]
         next_goal.pose.position.y = self.path_[self.next_waypt_ind_, 1]
         next_goal.pose.orientation.w = 1

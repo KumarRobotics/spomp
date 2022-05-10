@@ -87,6 +87,11 @@ void TerrainPano::fillHoles(Eigen::ArrayXXf& pano) const {
 }
 
 float TerrainPano::getObstacleDistAt(const Eigen::Vector2f& pt) const {
+  if (rows() < 1) {
+    // No pano, assume free space
+    return params_.max_distance_m;
+  }
+
   Eigen::Vector2f polar = cart2polar(pt);
   int col_i = az_p_.indAt(polar[1]);
 

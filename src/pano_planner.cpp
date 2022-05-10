@@ -47,7 +47,11 @@ Eigen::Vector2f PanoPlanner::plan(const Eigen::Vector2f& goal,
 {
   Eigen::Array2Xf samples(2, params_.sample_size);
 
-  float max_range = reachability_.scan.maxCoeff();
+  float max_range = 0;
+  if (reachability_.scan.size() > 0) {
+    max_range = reachability_.scan.maxCoeff();
+  }
+
   if (max_range < 0.1) {
     // Basically nothing is free, just stay put
     return {0, 0};
