@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
+  <arg name="llol" default="True"/>
+  <include file="$(find llol)/launch/llol.launch" if="$(arg llol)"/>
+
   <include file="$(find spomp)/launch/mapper.launch"/>
   <include file="$(find spomp)/launch/local.launch"/>
 
