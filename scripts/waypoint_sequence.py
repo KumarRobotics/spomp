@@ -23,7 +23,7 @@ class WaypointSequence():
         self.tf_listener_ = tf2_ros.TransformListener(self.tf_buffer_)
         
         self.path_file_ = rospy.get_param('~path_file', './default_path.npy')
-        self.dist_thresh_ = rospy.get_param('~dist_thresh', 2)
+        self.dist_thresh_ = rospy.get_param('~dist_thresh', 2.5)
 
         self.waypt_sub_ = rospy.Subscriber('~waypt_goal', PointStamped, self.waypt_cb)
         self.pose_sub_ = rospy.Subscriber('~pose', PoseStamped, self.pose_cb)
