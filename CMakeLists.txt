@@ -270,6 +270,58 @@ target_link_libraries(${PROJECT_NAME}_node_mapper
   ${PROJECT_NAME}_mapper
 )
 
+###############################################################
+# SPOMP-Global
+###############################################################
+
+## Declare a C++ library
+add_library(${PROJECT_NAME}_global
+  src/timer.cpp
+  src/trav_graph.cpp
+  src/global.cpp
+)
+
+## Add cmake target dependencies of the library
+## as an example, code may need to be generated before libraries
+## either from message generation or dynamic reconfigure
+add_dependencies(${PROJECT_NAME}_global
+  ${${PROJECT_NAME}_EXPORTED_TARGETS} 
+  ${catkin_EXPORTED_TARGETS}
+)
+
+target_link_libraries(${PROJECT_NAME}_global
+  Eigen3::Eigen
+  TBB::tbb
+  opencv_core
+  opencv_imgproc
+  opencv_imgcodecs
+  opencv_highgui
+  ${catkin_LIBRARIES}
+)
+
+## Declare a C++ executable
+## With catkin_make all packages are built within a single CMake context
+## The recommended prefix ensures that target names across packages don't collide
+add_executable(${PROJECT_NAME}_node_global
+  src/node_global.cpp
+  src/global_wrapper.cpp
+)
+
+## Rename C++ executable without prefix
+## The above recommended prefix causes long target names, the following renames the
+## target back to the shorter version for ease of user use
+## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
+set_target_properties(${PROJECT_NAME}_node_global PROPERTIES OUTPUT_NAME node_global PREFIX "")
+
+## Add cmake target dependencies of the executable
+## same as for the library above
+add_dependencies(${PROJECT_NAME}_node_global ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(${PROJECT_NAME}_node_global
+  ${PROJECT_NAME}_global
+)
+
 #############
 ## Install ##
 #############
@@ -324,6 +376,7 @@ if(CATKIN_ENABLE_TESTING)
     test/test_pano_planner.cpp
     test/test_controller.cpp
     test/test_pose_graph.cpp
+    test/test_trav_graph.cpp
   )
   
   catkin_add_gtest(${PROJECT_NAME}-bench
@@ -344,6 +397,7 @@ if(CATKIN_ENABLE_TESTING)
   target_link_libraries(${PROJECT_NAME}-test 
     ${PROJECT_NAME}_local
     ${PROJECT_NAME}_mapper
+    ${PROJECT_NAME}_global
     benchmark::benchmark
     ${catkin_LIBRARIES}
   )

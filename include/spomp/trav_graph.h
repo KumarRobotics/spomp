@@ -11,9 +11,8 @@ class TravGraph {
   public:
     TravGraph();
 
-    std::vector<const Node*> getPath();
-
-  private:
+    // Forward declaration
+    struct Edge;
     struct Node {
       std::vector<Edge*> edges;
       
@@ -27,6 +26,10 @@ class TravGraph {
       float cost{0};
       int cls{0};
     };
+
+    std::vector<const Node*> getPath();
+
+  private:
 
     std::vector<Node> nodes_;
     std::vector<Edge> edges_;
