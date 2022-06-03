@@ -278,6 +278,7 @@ target_link_libraries(${PROJECT_NAME}_node_mapper
 add_library(${PROJECT_NAME}_global
   src/timer.cpp
   src/trav_graph.cpp
+  src/trav_map.cpp
   src/global.cpp
 )
 
@@ -376,7 +377,7 @@ if(CATKIN_ENABLE_TESTING)
     test/test_pano_planner.cpp
     test/test_controller.cpp
     test/test_pose_graph.cpp
-    test/test_trav_graph.cpp
+    test/test_trav_graph_map.cpp
   )
   
   catkin_add_gtest(${PROJECT_NAME}-bench

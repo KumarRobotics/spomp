@@ -60,6 +60,14 @@ class TravGraph {
 
     void addEdge(const Edge& edge);
 
+    auto& getNodes() {
+      return nodes_;
+    }
+
+    auto& getEdges() {
+      return edges_;
+    }
+
   private:
     /*********************************************************
      * LOCAL FUNCTIONS

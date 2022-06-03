@@ -1,16 +1,17 @@
 #include <gtest/gtest.h>
 
 #include "spomp/trav_graph.h"
+#include "spomp/trav_map.h"
 
 namespace spomp {
 
 TEST(trav_graph, test_graph_search) {
   TravGraph g;
-  TravGraph::Node* n0 = g.addNode({{0, 0}});
-  TravGraph::Node* n1 = g.addNode({{1, 0}});
-  TravGraph::Node* n2 = g.addNode({{2, 0}});
-  TravGraph::Node* n3 = g.addNode({{3, 0}});
-  TravGraph::Node* n4 = g.addNode({{4, 1}});
+  auto* n0 = g.addNode({{0, 0}});
+  auto* n1 = g.addNode({{1, 0}});
+  auto* n2 = g.addNode({{2, 0}});
+  auto* n3 = g.addNode({{3, 0}});
+  auto* n4 = g.addNode({{4, 1}});
 
   g.addEdge({n0, n1});
   g.addEdge({n1, n2});
