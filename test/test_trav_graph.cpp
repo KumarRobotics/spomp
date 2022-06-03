@@ -23,14 +23,17 @@ TEST(trav_graph, test_graph_search) {
   g.addEdge({n3, n4});
   path = g.getPath(n0, n4);
   ASSERT_EQ(path.size(), 5);
+  ASSERT_FLOAT_EQ(path.back()->cost, 3 + std::sqrt(2));
 
   g.addEdge({n1, n4});
   path = g.getPath(n0, n4);
   ASSERT_EQ(path.size(), 3);
+  ASSERT_FLOAT_EQ(path.back()->cost, 1 + std::sqrt(9 + 1));
 
   g.addEdge({n0, n4});
   path = g.getPath(n0, n4);
   ASSERT_EQ(path.size(), 2);
+  ASSERT_FLOAT_EQ(path.back()->cost, std::sqrt(16 + 1));
 }
 
 } // namespace spomp

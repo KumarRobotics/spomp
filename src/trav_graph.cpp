@@ -33,6 +33,7 @@ std::list<const TravGraph::Node*> TravGraph::getPath(
 
     for (const auto& edge : cur_n->edges) {
       Node* next_n = edge->getOtherNode(cur_n);
+      if (next_n->visited) continue;
       float new_cost = cur_n->cost + edge->totalCost();
       if (new_cost < next_n->cost) {
         next_n->cost = new_cost;

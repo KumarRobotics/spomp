@@ -43,7 +43,7 @@ class TravGraph {
       }
 
       float totalCost() {
-        return length + cost + 1e6 * cls;
+        return length + cost + std::pow(100, cls)-1;
       }
 
       Node* getOtherNode(const Node* n) const {
