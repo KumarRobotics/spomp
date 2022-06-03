@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <list>
 #include <Eigen/Dense>
 
@@ -35,8 +36,8 @@ class TravGraph {
       float cost{0};
       int cls{0};
 
-      Edge(Node* const n1, Node* const n2, float c, int cls) :
-        node1(n1), node2(n2), cost(c), cls(cls) 
+      Edge(Node* const n1, Node* const n2, float c = 0, int cls = 0) :
+        node1(n1), node2(n2), cost(c), cls(cls)
       {
         length = (n1->pos - n2->pos).norm();
       }
@@ -52,12 +53,12 @@ class TravGraph {
     };
 
     //! Djikstra shortest-path solver
-    std::list<const Node*> getPath(int start_id, int end_id);
+    std::list<const Node*> getPath(Node* const start_n, Node* const end_n);
 
     //! @return index of inserted node
-    int addNode(const Node& node);
+    Node* addNode(const Node& node);
 
-    void addEdge(int n1_id, int n2_id, float c = 0, int cls = 0);
+    void addEdge(const Edge& edge);
 
   private:
     /*********************************************************
@@ -68,8 +69,8 @@ class TravGraph {
     /*********************************************************
      * LOCAL VARIABLES
      *********************************************************/
-    std::vector<Node> nodes_;
-    std::vector<Edge> edges_;
+    std::list<Node> nodes_;
+    std::list<Edge> edges_;
 };
 
 } // namespace spomp

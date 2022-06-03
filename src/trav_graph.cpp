@@ -6,16 +6,11 @@ namespace spomp {
 TravGraph::TravGraph() {}
 
 std::list<const TravGraph::Node*> TravGraph::getPath(
-    int start_id, int end_id) 
+    Node* const start_n, Node* const end_n) 
 {
-  // Use the bounds-checking version
-  Node* start_n = &nodes_.at(start_id);
-  Node* end_n = &nodes_.at(end_id);
-
   // Initial conditions
   reset();
   start_n->cost = 0;
-  start_n->visited = true;
   // We need to make a custom comparison, or we will end up sorting by
   // the pointers' order in mem
   auto node_comp = [](Node* a, Node* b) { return a->cost < b->cost; };
@@ -60,22 +55,21 @@ std::list<const TravGraph::Node*> TravGraph::getPath(
   return path;
 }
 
-int TravGraph::addNode(const Node& node) {
+TravGraph::Node* TravGraph::addNode(const Node& node) {
   nodes_.push_back(node);
   nodes_.back().id = nodes_.size() - 1;
-  return nodes_.back().id;
+  return &nodes_.back();
 }
 
-void TravGraph::addEdge(int n1_id, int n2_id, float c, int cls) {
-  Node* n1 = &nodes_.at(n1_id);
-  Node* n2 = &nodes_.at(n2_id);
+void TravGraph::addEdge(const Edge& edge) {
+  if (edge.node1 && edge.node2) {
+    edges_.push_back(edge);
 
-  edges_.push_back({n1, n2, c, cls});
-
-  // Add edge to nodes
-  Edge* edge_ptr = &edges_.back();
-  n1->edges.push_back(edge_ptr);
-  n2->edges.push_back(edge_ptr);
+    // Add edge to nodes
+    Edge* edge_ptr = &edges_.back();
+    edge.node1->edges.push_back(edge_ptr);
+    edge.node2->edges.push_back(edge_ptr);
+  }
 }
 
 void TravGraph::reset() {
