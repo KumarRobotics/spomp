@@ -297,6 +297,7 @@ target_link_libraries(${PROJECT_NAME}_global
   opencv_imgproc
   opencv_imgcodecs
   opencv_highgui
+  yaml-cpp
   ${catkin_LIBRARIES}
 )
 
