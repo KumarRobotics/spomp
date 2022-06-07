@@ -9,6 +9,7 @@ class TravMap {
   public:
     struct Params {
       std::string terrain_types_path = "";
+      float map_res = 2;
     };
     TravMap(const Params& p);
 
@@ -16,13 +17,14 @@ class TravMap {
 
     cv::Mat viz() const;
 
+    Eigen::Vector2f world2img(const Eigen::Vector2f& world_c) const;
+    Eigen::Vector2f img2world(const Eigen::Vector2f& img_c) const;
+
   private:
     /*********************************************************
      * LOCAL FUNCTIONS
      *********************************************************/
     void loadTerrainLUT();
-    Eigen::Vector2f world2img(const Eigen::Vector2f& world_c);
-    Eigen::Vector2f img2world(const Eigen::Vector2f& img_c);
 
     /*********************************************************
      * LOCAL CONSTANTS

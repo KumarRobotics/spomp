@@ -39,6 +39,19 @@ TEST(trav_graph, test_graph_search) {
   ASSERT_FLOAT_EQ(path.back()->cost, std::sqrt(16 + 1));
 }
 
+TEST(trav_map, test_transforms) {
+  TravMap::Params m_p;
+  m_p.terrain_types_path = ros::package::getPath("spomp") + "/config/terrain_types.yaml";
+  TravMap m(m_p);
+  cv::Mat map_img = cv::imread(ros::package::getPath("spomp") + 
+                               "/test/map.png");
+  m.updateMap(map_img, {-24.1119060516, 62.8522758484});
+
+  Eigen::Vector2f im_pt{100, 200};
+  Eigen::Vector2f world_pt = m.img2world(im_pt);
+  ASSERT_FLOAT_EQ((im_pt - m.world2img(world_pt)).norm(), 0);
+}
+
 TEST(trav_map, test) {
   TravMap::Params m_p;
   m_p.terrain_types_path = ros::package::getPath("spomp") + "/config/terrain_types.yaml";
