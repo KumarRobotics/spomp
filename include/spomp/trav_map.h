@@ -21,6 +21,8 @@ class TravMap {
      * LOCAL FUNCTIONS
      *********************************************************/
     void loadTerrainLUT();
+    Eigen::Vector2f world2img(const Eigen::Vector2f& world_c);
+    Eigen::Vector2f img2world(const Eigen::Vector2f& img_c);
 
     /*********************************************************
      * LOCAL CONSTANTS
@@ -30,6 +32,7 @@ class TravMap {
     /*********************************************************
      * LOCAL VARIABLES
      *********************************************************/
+    int max_terrain_{1};
     cv::Mat terrain_lut_{};
     cv::Mat map_{};
     Eigen::Vector2f map_center_{};

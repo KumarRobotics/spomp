@@ -40,10 +40,15 @@ TEST(trav_graph, test_graph_search) {
 }
 
 TEST(trav_map, test) {
-  TravMap m({});
-  cv::Mat map_img = cv::imread(ros::package::getPath("asoom") + 
+  TravMap::Params m_p;
+  m_p.terrain_types_path = ros::package::getPath("spomp") + "/config/terrain_types.yaml";
+  TravMap m(m_p);
+  cv::Mat map_img = cv::imread(ros::package::getPath("spomp") + 
                                "/test/map.png");
   m.updateMap(map_img, {-24.1119060516, 62.8522758484});
+
+  // save
+  cv::imwrite("spomp_trav_map.png", m.viz());
 }
 
 } // namespace spomp
