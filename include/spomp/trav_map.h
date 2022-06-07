@@ -12,9 +12,9 @@ class TravMap {
     };
     TravMap(const Params& p);
 
-    void updateMap(const cv::Mat& map);
+    void updateMap(const cv::Mat& map, const Eigen::Vector2f& center);
 
-    cv::Mat viz();
+    cv::Mat viz() const;
 
   private:
     /*********************************************************
@@ -32,6 +32,7 @@ class TravMap {
      *********************************************************/
     cv::Mat terrain_lut_{};
     cv::Mat map_{};
+    Eigen::Vector2f map_center_{};
     
     TravGraph graph_{};
 };

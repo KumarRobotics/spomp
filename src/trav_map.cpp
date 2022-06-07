@@ -20,17 +20,19 @@ void TravMap::loadTerrainLUT() {
       ++terrain_id;
     }
   } else {
-    // Default: assume first class is traversable, no others
-    terrain_lut_.at<uint8_t>(0) = 0;
-    terrain_lut_.at<uint8_t>(1) = 1;
+    // Default: assume first class is traversable, not second
+    // Rest unknown
+    terrain_lut_.at<uint8_t>(0) = 1;
+    terrain_lut_.at<uint8_t>(1) = 0;
   }
 }
 
-void TravMap::updateMap(const cv::Mat &map) {
+void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center) {
   map_ = map;
+  map_center_ = center;
 }
 
-cv::Mat TravMap::viz() {
+cv::Mat TravMap::viz() const {
   return {};
 }
 

@@ -1,4 +1,6 @@
 #include <gtest/gtest.h>
+#include <ros/package.h>
+#include <opencv2/imgcodecs/imgcodecs.hpp>
 
 #include "spomp/trav_graph.h"
 #include "spomp/trav_map.h"
@@ -35,6 +37,13 @@ TEST(trav_graph, test_graph_search) {
   path = g.getPath(n0, n4);
   ASSERT_EQ(path.size(), 2);
   ASSERT_FLOAT_EQ(path.back()->cost, std::sqrt(16 + 1));
+}
+
+TEST(trav_map, test) {
+  TravMap m({});
+  cv::Mat map_img = cv::imread(ros::package::getPath("asoom") + 
+                               "/test/map.png");
+  m.updateMap(map_img, {-24.1119060516, 62.8522758484});
 }
 
 } // namespace spomp
