@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <map>
 #include <list>
 #include <Eigen/Dense>
 
@@ -26,6 +27,7 @@ class TravGraph {
       Edge* best_prev_edge{nullptr};
 
       Node(const Eigen::Vector2f& p) : pos(p) {}
+      Node() = default;
     };
 
     struct Edge {
@@ -56,9 +58,13 @@ class TravGraph {
     std::list<const Node*> getPath(Node* const start_n, Node* const end_n);
 
     //! @return index of inserted node
-    Node* addNode(const Node& node);
+    int addNode(const Node& node);
 
     void addEdge(const Edge& edge);
+
+    auto& getNode(int ind) {
+      return nodes_[ind];
+    }
 
     auto& getNodes() {
       return nodes_;
@@ -77,7 +83,7 @@ class TravGraph {
     /*********************************************************
      * LOCAL VARIABLES
      *********************************************************/
-    std::list<Node> nodes_;
+    std::map<int, Node> nodes_;
     std::list<Edge> edges_;
 };
 

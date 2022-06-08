@@ -56,10 +56,10 @@ std::list<const TravGraph::Node*> TravGraph::getPath(
   return path;
 }
 
-TravGraph::Node* TravGraph::addNode(const Node& node) {
-  nodes_.push_back(node);
-  nodes_.back().id = nodes_.size() - 1;
-  return &nodes_.back();
+int TravGraph::addNode(const Node& node) {
+  int id = nodes_.size();
+  auto [it, success] = nodes_.emplace(id, node);
+  return id;
 }
 
 void TravGraph::addEdge(const Edge& edge) {
@@ -75,8 +75,8 @@ void TravGraph::addEdge(const Edge& edge) {
 
 void TravGraph::reset() {
   for (auto& node : nodes_) {
-    node.visited = false;
-    node.cost = std::numeric_limits<float>::infinity();
+    node.second.visited = false;
+    node.second.cost = std::numeric_limits<float>::infinity();
   }
 }
 

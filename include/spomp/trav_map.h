@@ -1,6 +1,7 @@
 #pragma once
 
 #include <opencv2/core.hpp>
+#include <set>
 #include "spomp/trav_graph.h"
 
 namespace spomp {
@@ -10,6 +11,7 @@ class TravMap {
     struct Params {
       std::string terrain_types_path = "";
       float map_res = 2;
+      float max_hole_fill_size_m = 2;
     };
     TravMap(const Params& p);
 
@@ -25,19 +27,31 @@ class TravMap {
      * LOCAL FUNCTIONS
      *********************************************************/
     void loadTerrainLUT();
+    void computeDistMaps();
+    void moveVisibilityGraph(const Eigen::Vector2f& old_center);
+    void reweightGraph();
+    void buildGraph();
+
+    std::pair<int, float> traceEdge(const Eigen::Vector2f& n1, 
+        const Eigen::Vector2f& n2);
+    //! @return set of neighboring nodes
+    std::set<int> addNode(const TravGraph::Node& n);
 
     /*********************************************************
      * LOCAL CONSTANTS
      *********************************************************/
     Params params_;
+    cv::Mat terrain_lut_{};
+    int max_terrain_{1};
 
     /*********************************************************
      * LOCAL VARIABLES
      *********************************************************/
-    int max_terrain_{1};
-    cv::Mat terrain_lut_{};
     cv::Mat map_{};
     Eigen::Vector2f map_center_{};
+
+    std::vector<cv::Mat> dist_maps_{};
+    cv::Mat visibility_map_{};
     
     TravGraph graph_{};
 };

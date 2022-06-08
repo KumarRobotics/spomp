@@ -1,8 +1,8 @@
 # list of classes, with traversability difficulty
-- 1    # road
-- 0   # veg
-- 0   # bldg
-- 3    # grass
-- 4    # vehicle
-- 4    # human
-- 2    # gravel
+- 0    # road
+- 4    # veg
+- 4    # bldg
+- 2    # grass
+- 3    # vehicle
+- 3    # human
+- 1    # gravel

@@ -13,23 +13,26 @@ void TravMap::loadTerrainLUT() {
   terrain_lut_ = cv::Mat::ones(256, 1, CV_8UC1) * 255;
   if (params_.terrain_types_path != "") {
     const YAML::Node terrain_types = YAML::LoadFile(params_.terrain_types_path);
-    int terrain_id = 0;
+    int terrain_ind = 0;
     for (const auto& terrain_type : terrain_types) {
       int type = terrain_type.as<int>();
-      if (type >= 0) {
-        // If less than 0, leave as untraversable
-        terrain_lut_.at<uint8_t>(terrain_id) = type;
-        if (type > max_terrain_) {
-          max_terrain_ = type;
-        }
+      terrain_lut_.at<uint8_t>(terrain_ind) = type;
+      if (type > max_terrain_) {
+        max_terrain_ = type;
       }
-      ++terrain_id;
+      ++terrain_ind;
     }
   } else {
     // Default: assume first class is traversable, not second
     // Rest unknown
     terrain_lut_.at<uint8_t>(0) = 1;
     terrain_lut_.at<uint8_t>(1) = 0;
+  }
+
+  // Initialize dist_maps_
+  dist_maps_.reserve(max_terrain_+1);
+  for (int terrain_ind=0; terrain_ind<=max_terrain_; ++terrain_ind) {
+    dist_maps_.emplace_back();
   }
 }
 
@@ -58,20 +61,96 @@ void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center) {
     cv::cvtColor(map, map_, cv::COLOR_BGR2GRAY);
   }
   cv::LUT(map_, terrain_lut_, map_);
+  auto old_center = map_center_;
   map_center_ = center;
+
+  computeDistMaps();
+  moveVisibilityGraph(old_center);
+  reweightGraph();
+  buildGraph();
+}
+
+void TravMap::computeDistMaps() {
+  int terrain_ind = 0;
+  auto kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(
+        params_.max_hole_fill_size_m * params_.map_res,
+        params_.max_hole_fill_size_m * params_.map_res));
+
+  for (auto& dist_map : dist_maps_) {
+    cv::Mat trav_map = map_ <= terrain_ind;
+    cv::morphologyEx(trav_map, trav_map, cv::MORPH_CLOSE, kernel);
+    cv::distanceTransform(trav_map, dist_map, cv::DIST_L2, cv::DIST_MASK_5);
+    ++terrain_ind;
+  }
+}
+
+void TravMap::moveVisibilityGraph(const Eigen::Vector2f& old_center) {
+  if (visibility_map_.empty()) {
+    visibility_map_ = cv::Mat::zeros(map_.rows, map_.cols, CV_16UC1);
+    return;
+  }
+
+  cv::Mat old_viz_map = visibility_map_;
+  auto old_center_in_new = world2img(old_center);
+
+  visibility_map_ = cv::Mat::zeros(map_.rows, map_.cols, CV_16UC1);
+  old_viz_map.copyTo(visibility_map_(cv::Rect(
+          old_center_in_new[0] - old_viz_map.rows/2,
+          old_center_in_new[1] - old_viz_map.cols/2,
+          old_viz_map.rows,
+          old_viz_map.cols
+          )));
+}
+
+void TravMap::reweightGraph() {
+  for (auto& edge : graph_.getEdges()) {
+    auto edge_info = traceEdge(edge.node1->pos, edge.node2->pos);
+    edge.cls = edge_info.first;
+    edge.cost = 1./(edge_info.second + 0.01);
+  }
+}
+
+void TravMap::buildGraph() {
+}
+
+std::pair<int, float> TravMap::traceEdge(const Eigen::Vector2f& n1, 
+    const Eigen::Vector2f& n2)
+{
+  auto img_pt1 = world2img(n1);
+  auto img_pt2 = world2img(n2);
+  float dist = (img_pt1 - img_pt2).norm();
+  Eigen::Vector2f dir = (img_pt2 - img_pt1).normalized();
+
+  int worst_cls = max_terrain_;
+  float worst_dist = 0;
+
+  for (float cur_dist=0; cur_dist<dist; cur_dist+=0.5) {
+    Eigen::Vector2f sample_pt = img_pt1 + dir*cur_dist;
+    auto cls = map_.at<uint8_t>(sample_pt[0], sample_pt[1]);
+    float dist = 0;
+    if (cls < 255) {
+      dist = dist_maps_[cls].at<uint16_t>(sample_pt[0], sample_pt[1]);
+    
+      if (cls > worst_cls) {
+        worst_cls = cls;
+        worst_dist = dist;
+      } else if (dist < worst_dist && cls == worst_cls) {
+        worst_dist = dist;
+      }
+    }
+  } 
+
+  return {worst_cls, worst_dist/params_.map_res};
+}
+
+std::set<int> TravMap::addNode(const TravGraph::Node& n) {
+  return {};
 }
 
 cv::Mat TravMap::viz() const {
   cv::Mat scaled_map = map_.clone();
   // Rescale for increasing order of trav difficulty 0->255
-  scaled_map.forEach<uint8_t>([&](uint8_t& p, const int* position) -> void {
-    if (p == 0) {
-      p = 255;
-    } else {
-      p = 255 * (p - 1) / max_terrain_;
-    }
-  });
-  
+  scaled_map *= 255. / max_terrain_;
   cv::Mat viz, cmapped_map;
   cv::applyColorMap(scaled_map, cmapped_map, cv::COLORMAP_PARULA);
   // Mask unknown regions

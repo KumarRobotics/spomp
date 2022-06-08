@@ -9,11 +9,16 @@ namespace spomp {
 
 TEST(trav_graph, test_graph_search) {
   TravGraph g;
-  auto* n0 = g.addNode({{0, 0}});
-  auto* n1 = g.addNode({{1, 0}});
-  auto* n2 = g.addNode({{2, 0}});
-  auto* n3 = g.addNode({{3, 0}});
-  auto* n4 = g.addNode({{4, 1}});
+  int n_id0 = g.addNode({{0, 0}});
+  int n_id1 = g.addNode({{1, 0}});
+  int n_id2 = g.addNode({{2, 0}});
+  int n_id3 = g.addNode({{3, 0}});
+  int n_id4 = g.addNode({{4, 1}});
+  TravGraph::Node* n0 = &g.getNode(n_id0);
+  TravGraph::Node* n1 = &g.getNode(n_id1);
+  TravGraph::Node* n2 = &g.getNode(n_id2);
+  TravGraph::Node* n3 = &g.getNode(n_id3);
+  TravGraph::Node* n4 = &g.getNode(n_id4);
 
   g.addEdge({n0, n1});
   g.addEdge({n1, n2});
