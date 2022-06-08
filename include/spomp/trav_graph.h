@@ -66,8 +66,12 @@ class TravGraph {
       return nodes_[ind];
     }
 
-    auto& getNodes() {
+    const auto& getNodes() const {
       return nodes_;
+    }
+
+    const auto& getEdges() const {
+      return edges_;
     }
 
     auto& getEdges() {
