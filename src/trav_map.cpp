@@ -2,6 +2,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <iostream>
 #include "spomp/trav_map.h"
+#include "spomp/utils.h"
 
 namespace spomp {
 
@@ -30,8 +31,8 @@ void TravMap::loadTerrainLUT() {
   }
 
   // Initialize dist_maps_
-  dist_maps_.reserve(max_terrain_+1);
-  for (int terrain_ind=0; terrain_ind<=max_terrain_; ++terrain_ind) {
+  dist_maps_.reserve(max_terrain_);
+  for (int terrain_ind=0; terrain_ind<max_terrain_; ++terrain_ind) {
     dist_maps_.emplace_back();
   }
 }
@@ -71,29 +72,29 @@ void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center) {
 }
 
 void TravMap::computeDistMaps() {
-  int terrain_ind = 0;
+  int t_cls = 0;
   auto kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(
         params_.max_hole_fill_size_m * params_.map_res,
         params_.max_hole_fill_size_m * params_.map_res));
 
   for (auto& dist_map : dist_maps_) {
-    cv::Mat trav_map = map_ <= terrain_ind;
-    cv::morphologyEx(trav_map, trav_map, cv::MORPH_CLOSE, kernel);
+    cv::Mat trav_map = map_ <= t_cls;
+    //cv::morphologyEx(trav_map, trav_map, cv::MORPH_CLOSE, kernel);
     cv::distanceTransform(trav_map, dist_map, cv::DIST_L2, cv::DIST_MASK_5);
-    ++terrain_ind;
+    ++t_cls;
   }
 }
 
 void TravMap::moveVisibilityGraph(const Eigen::Vector2f& old_center) {
   if (visibility_map_.empty()) {
-    visibility_map_ = cv::Mat::zeros(map_.rows, map_.cols, CV_16UC1);
+    visibility_map_ = -cv::Mat::ones(map_.rows, map_.cols, CV_32SC1);
     return;
   }
 
   cv::Mat old_viz_map = visibility_map_;
   auto old_center_in_new = world2img(old_center);
 
-  visibility_map_ = cv::Mat::zeros(map_.rows, map_.cols, CV_16UC1);
+  visibility_map_ = -cv::Mat::ones(map_.rows, map_.cols, CV_32SC1);
   old_viz_map.copyTo(visibility_map_(cv::Rect(
           old_center_in_new[0] - old_viz_map.rows/2,
           old_center_in_new[1] - old_viz_map.cols/2,
@@ -108,9 +109,40 @@ void TravMap::reweightGraph() {
     edge.cls = edge_info.first;
     edge.cost = 1./(edge_info.second + 0.01);
   }
+
+  for (auto& [node_id, node] : graph_.getNodes()) {
+    auto img_loc = world2img(node.pos);
+    int node_cls = map_.at<uint8_t>(cv::Point(img_loc[0], img_loc[1]));
+    if (node_cls == max_terrain_) {
+      // Node is no longer traversable, sad
+      visibility_map_.setTo(-1, visibility_map_ == node_id);
+    }
+  }
 }
 
 void TravMap::buildGraph() {
+  double min_v, max_v;
+  cv::Point min_l, max_l;
+
+  for (int t_cls=0; t_cls<max_terrain_; ++t_cls) {
+    int num_to_cover = cv::countNonZero(map_ <= t_cls);
+    cv::Mat dist_map_masked = dist_maps_[t_cls];
+    do {
+      // Ignore points already visible
+      dist_map_masked.setTo(0, visibility_map_ >= 0);
+      // Select next best node location
+      cv::minMaxLoc(dist_maps_[t_cls], &min_v, &max_v, &min_l, &max_l);
+      TravGraph::Node* n = graph_.addNode({img2world({max_l.x, max_l.y})});
+      auto overlapping_nodes = addNode(*n);
+      std::cout << "=============" << std::endl;
+      std::cout << "target cls: " << t_cls << std::endl;
+      std::cout << n->pos.transpose() << std::endl;
+      std::cout << max_v << std::endl;
+      std::cout << max_l << std::endl;
+      std::cout << cv::countNonZero(visibility_map_ >= 0) << std::endl;
+      std::cout << num_to_cover << std::endl;
+    } while (cv::countNonZero(visibility_map_ >= 0) < 0.99 * num_to_cover);
+  }
 }
 
 std::pair<int, float> TravMap::traceEdge(const Eigen::Vector2f& n1, 
@@ -126,25 +158,70 @@ std::pair<int, float> TravMap::traceEdge(const Eigen::Vector2f& n1,
 
   for (float cur_dist=0; cur_dist<dist; cur_dist+=0.5) {
     Eigen::Vector2f sample_pt = img_pt1 + dir*cur_dist;
-    auto cls = map_.at<uint8_t>(sample_pt[0], sample_pt[1]);
+    auto t_cls = map_.at<uint8_t>(cv::Point(sample_pt[0], sample_pt[1]));
     float dist = 0;
-    if (cls < 255) {
-      dist = dist_maps_[cls].at<uint16_t>(sample_pt[0], sample_pt[1]);
+    if (t_cls < max_terrain_) {
+      dist = dist_maps_[t_cls].at<uint16_t>(cv::Point(sample_pt[0], sample_pt[1]));
     
-      if (cls > worst_cls) {
-        worst_cls = cls;
+      if (t_cls > worst_cls) {
+        worst_cls = t_cls;
         worst_dist = dist;
-      } else if (dist < worst_dist && cls == worst_cls) {
+      } else if (dist < worst_dist && t_cls == worst_cls) {
         worst_dist = dist;
       }
+    } else if (t_cls == max_terrain_) {
+      worst_cls = max_terrain_;
+      worst_dist = 0;
+      // Can't get any worse than this
+      break;
     }
   } 
 
   return {worst_cls, worst_dist/params_.map_res};
 }
 
-std::set<int> TravMap::addNode(const TravGraph::Node& n) {
-  return {};
+std::map<int, Eigen::Vector2f> TravMap::addNode(const TravGraph::Node& n) {
+  // Get class of node location
+  std::cout << "+++++++++++" << std::endl;
+  auto img_loc = world2img(n.pos);
+  std::cout << img_loc.transpose() << std::endl;
+  int node_cls = map_.at<uint8_t>(cv::Point(img_loc[0], img_loc[1]));
+  std::cout << node_cls << std::endl;
+
+  std::map<int, Eigen::Vector2f> overlapping_nodes;
+
+  // Choose delta such that ends of rays are within 0.5 cells
+  float delta_t = 0.5 / (params_.vis_dist_m * params_.map_res);
+  for (float theta=0; theta<2*pi; theta+=delta_t) {
+    for (float r=0; r<params_.map_res*params_.vis_dist_m; r+=0.5) {
+      Eigen::Vector2f img_cell = img_loc + Eigen::Vector2f(cos(theta), sin(theta))*r;
+      if ((img_cell.array() < 0).any() || 
+          (img_cell.array() >= Eigen::Vector2f(map_.rows, map_.cols).array()).any()) {
+        // We have left the image
+        continue;
+      }
+
+      int cell_cls = map_.at<uint8_t>(cv::Point(img_cell[0], img_cell[1]));
+      auto& vis_cell = visibility_map_.at<int32_t>(cv::Point(img_cell[0], img_cell[1]));
+
+      // We want cells to be visible from more difficult regions
+      if (cell_cls < max_terrain_ && (vis_cell < 0 || cell_cls >= node_cls)) {
+        // Either this cell is not yet visbile, or is less traversable than target node
+        if (vis_cell >= 0) {
+          overlapping_nodes.emplace(vis_cell, img_cell);
+        }
+        vis_cell = n.id;
+      } else if (cell_cls != 255) {
+        // Include ray endpoint
+        // This helps prevent infinite loops, so we don't select same point again
+        vis_cell = n.id;
+        // End ray
+        break;
+      }
+    }
+  }
+
+  return overlapping_nodes;
 }
 
 cv::Mat TravMap::viz() const {
@@ -159,6 +236,18 @@ cv::Mat TravMap::viz() const {
   auto origin_img = world2img({0, 0});
   cv::circle(viz, cv::Point(origin_img[0], origin_img[1]), 3, cv::Scalar(0, 0, 255), 2);
   return viz;
+}
+
+cv::Mat TravMap::viz_visibility() const {
+  double min_v, max_v;
+  cv::Point min_l, max_l;
+  cv::minMaxLoc(visibility_map_, &min_v, &max_v, &min_l, &max_l);
+
+  cv::Mat visibility_viz;
+  visibility_map_.convertTo(visibility_viz, CV_8UC1, 255./graph_.size());
+  cv::Mat cmapped_map;
+  cv::applyColorMap(visibility_viz, cmapped_map, cv::COLORMAP_PARULA);
+  return cmapped_map;
 }
 
 } // namespace spomp

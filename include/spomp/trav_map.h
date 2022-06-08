@@ -12,12 +12,14 @@ class TravMap {
       std::string terrain_types_path = "";
       float map_res = 2;
       float max_hole_fill_size_m = 2;
+      float vis_dist_m = 10;
     };
     TravMap(const Params& p);
 
     void updateMap(const cv::Mat& map, const Eigen::Vector2f& center);
 
     cv::Mat viz() const;
+    cv::Mat viz_visibility() const;
 
     Eigen::Vector2f world2img(const Eigen::Vector2f& world_c) const;
     Eigen::Vector2f img2world(const Eigen::Vector2f& img_c) const;
@@ -35,7 +37,7 @@ class TravMap {
     std::pair<int, float> traceEdge(const Eigen::Vector2f& n1, 
         const Eigen::Vector2f& n2);
     //! @return set of neighboring nodes
-    std::set<int> addNode(const TravGraph::Node& n);
+    std::map<int, Eigen::Vector2f> addNode(const TravGraph::Node& n);
 
     /*********************************************************
      * LOCAL CONSTANTS

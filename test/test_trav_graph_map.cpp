@@ -9,16 +9,11 @@ namespace spomp {
 
 TEST(trav_graph, test_graph_search) {
   TravGraph g;
-  int n_id0 = g.addNode({{0, 0}});
-  int n_id1 = g.addNode({{1, 0}});
-  int n_id2 = g.addNode({{2, 0}});
-  int n_id3 = g.addNode({{3, 0}});
-  int n_id4 = g.addNode({{4, 1}});
-  TravGraph::Node* n0 = &g.getNode(n_id0);
-  TravGraph::Node* n1 = &g.getNode(n_id1);
-  TravGraph::Node* n2 = &g.getNode(n_id2);
-  TravGraph::Node* n3 = &g.getNode(n_id3);
-  TravGraph::Node* n4 = &g.getNode(n_id4);
+  TravGraph::Node* n0 = g.addNode({{0, 0}});
+  TravGraph::Node* n1 = g.addNode({{1, 0}});
+  TravGraph::Node* n2 = g.addNode({{2, 0}});
+  TravGraph::Node* n3 = g.addNode({{3, 0}});
+  TravGraph::Node* n4 = g.addNode({{4, 1}});
 
   g.addEdge({n0, n1});
   g.addEdge({n1, n2});
@@ -67,6 +62,7 @@ TEST(trav_map, test) {
 
   // save
   cv::imwrite("spomp_trav_map.png", m.viz());
+  cv::imwrite("spomp_viz_map.png", m.viz_visibility());
 }
 
 } // namespace spomp

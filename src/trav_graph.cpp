@@ -56,10 +56,11 @@ std::list<const TravGraph::Node*> TravGraph::getPath(
   return path;
 }
 
-int TravGraph::addNode(const Node& node) {
+TravGraph::Node* TravGraph::addNode(const Node& node) {
   int id = nodes_.size();
   auto [it, success] = nodes_.emplace(id, node);
-  return id;
+  it->second.id = id;
+  return &(it->second);
 }
 
 void TravGraph::addEdge(const Edge& edge) {

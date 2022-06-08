@@ -57,8 +57,8 @@ class TravGraph {
     //! Djikstra shortest-path solver
     std::list<const Node*> getPath(Node* const start_n, Node* const end_n);
 
-    //! @return index of inserted node
-    int addNode(const Node& node);
+    //! @return pointer to inserted node
+    Node* addNode(const Node& node);
 
     void addEdge(const Edge& edge);
 
@@ -72,6 +72,10 @@ class TravGraph {
 
     auto& getEdges() {
       return edges_;
+    }
+
+    int size() const {
+      return nodes_.size();
     }
 
   private:
