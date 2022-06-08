@@ -67,8 +67,8 @@ void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center) {
   map_center_ = center;
 
   computeDistMaps();
-  moveVisibilityGraph(old_center);
   reweightGraph();
+  rebuildVisibility();
   buildGraph();
 }
 
@@ -122,22 +122,12 @@ void TravMap::computeDistMaps() {
   }
 }
 
-void TravMap::moveVisibilityGraph(const Eigen::Vector2f& old_center) {
-  if (visibility_map_.empty()) {
-    visibility_map_ = -cv::Mat::ones(map_.rows, map_.cols, CV_32SC1);
-    return;
-  }
-
-  cv::Mat old_viz_map = visibility_map_;
-  auto old_center_in_new = world2img(old_center);
-
+void TravMap::rebuildVisibility() {
   visibility_map_ = -cv::Mat::ones(map_.rows, map_.cols, CV_32SC1);
-  old_viz_map.copyTo(visibility_map_(cv::Rect(
-          old_center_in_new[0] - old_viz_map.rows/2,
-          old_center_in_new[1] - old_viz_map.cols/2,
-          old_viz_map.rows,
-          old_viz_map.cols
-          )));
+  for (const auto& [node_id, node] : graph_.getNodes()) {
+    // Rebuild node visibility
+    addNodeToVisibility(node);
+  }
 }
 
 void TravMap::reweightGraph() {
@@ -170,7 +160,7 @@ void TravMap::buildGraph() {
       // Select next best node location
       cv::minMaxLoc(dist_map_masked, &min_v, &max_v, &min_l, &max_l);
       TravGraph::Node* n = graph_.addNode({img2world({max_l.x, max_l.y})});
-      auto overlapping_nodes = addNode(*n);
+      auto overlapping_nodes = addNodeToVisibility(*n);
       //std::cout << "=============" << std::endl;
       //std::cout << "target cls: " << t_cls << std::endl;
       //std::cout << n->pos.transpose() << std::endl;
@@ -187,7 +177,7 @@ void TravMap::buildGraph() {
         } else if (map_.at<uint8_t>(cv::Point(overlap_loc[0], overlap_loc[1])) <= t_cls) {
           // Add new intermediate node
           auto intermed_n = graph_.addNode({img2world(overlap_loc)});
-          addNode(*intermed_n);
+          addNodeToVisibility(*intermed_n);
           auto edge_info = traceEdge(n->pos, intermed_n->pos);
           graph_.addEdge({n, intermed_n, edge_info.second, edge_info.first});
           edge_info = traceEdge(overlap_n->pos, intermed_n->pos);
@@ -237,7 +227,7 @@ std::pair<int, float> TravMap::traceEdge(const Eigen::Vector2f& n1,
   return {worst_cls, 1/(worst_dist/params_.map_res + 0.01)};
 }
 
-std::map<int, Eigen::Vector2f> TravMap::addNode(const TravGraph::Node& n) {
+std::map<int, Eigen::Vector2f> TravMap::addNodeToVisibility(const TravGraph::Node& n) {
   // Get class of node location
   auto img_loc = world2img(n.pos);
   int node_cls = map_.at<uint8_t>(cv::Point(img_loc[0], img_loc[1]));

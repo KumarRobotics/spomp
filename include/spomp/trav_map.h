@@ -32,14 +32,14 @@ class TravMap {
      *********************************************************/
     void loadTerrainLUT();
     void computeDistMaps();
-    void moveVisibilityGraph(const Eigen::Vector2f& old_center);
+    void rebuildVisibility();
     void reweightGraph();
     void buildGraph();
 
     std::pair<int, float> traceEdge(const Eigen::Vector2f& n1, 
         const Eigen::Vector2f& n2);
     //! @return set of neighboring nodes
-    std::map<int, Eigen::Vector2f> addNode(const TravGraph::Node& n);
+    std::map<int, Eigen::Vector2f> addNodeToVisibility(const TravGraph::Node& n);
 
     /*********************************************************
      * LOCAL CONSTANTS
