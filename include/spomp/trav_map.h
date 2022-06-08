@@ -17,12 +17,14 @@ class TravMap {
     TravMap(const Params& p);
 
     void updateMap(const cv::Mat& map, const Eigen::Vector2f& center);
-
-    cv::Mat viz() const;
-    cv::Mat viz_visibility() const;
+    std::list<TravGraph::Node*> getPath(const Eigen::Vector2f& start_p,
+        const Eigen::Vector2f& end_p);
 
     Eigen::Vector2f world2img(const Eigen::Vector2f& world_c) const;
     Eigen::Vector2f img2world(const Eigen::Vector2f& img_c) const;
+
+    cv::Mat viz() const;
+    cv::Mat viz_visibility() const;
 
   private:
     /*********************************************************

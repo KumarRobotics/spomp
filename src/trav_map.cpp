@@ -72,6 +72,40 @@ void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center) {
   buildGraph();
 }
 
+std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,
+    const Eigen::Vector2f& end_p)
+{
+  std::list<TravGraph::Node*> path;
+
+  auto n1_img_pos = world2img(start_p);
+  auto n2_img_pos = world2img(end_p);
+  if ((n1_img_pos.array() < 0).any() || 
+      (n1_img_pos.array() >= Eigen::Vector2f(map_.cols, map_.rows).array()).any() ||
+      (n2_img_pos.array() < 0).any() ||
+      (n2_img_pos.array() >= Eigen::Vector2f(map_.cols, map_.rows).array()).any())
+  {
+    // Out of bounds
+    return path;
+  }
+
+  int n1_id = visibility_map_.at<int32_t>(cv::Point(n1_img_pos[0], n1_img_pos[1]));
+  int n2_id = visibility_map_.at<int32_t>(cv::Point(n2_img_pos[0], n2_img_pos[1]));
+  if (n1_id < 0 || n2_id < 0) {
+    // At least one of the endpoints not visible
+    return path;
+  }
+
+  TravGraph::Node *n1 = &graph_.getNode(n1_id);
+  TravGraph::Node *n2 = &graph_.getNode(n2_id);
+
+  path = graph_.getPath(n1, n2);
+  if (path.size() > 0 && path.back()->cost >= std::pow(100, max_terrain_)-1) {
+    // If cost is this high, we have an obstacle edge
+    path = {};
+  }
+  return path;
+}
+
 void TravMap::computeDistMaps() {
   int t_cls = 0;
   auto kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(
@@ -146,18 +180,18 @@ void TravMap::buildGraph() {
       //std::cout << num_to_cover << std::endl;
 
       for (const auto& [overlap_n_id, overlap_loc] : overlapping_nodes) {
-        auto& overlap_n = graph_.getNode(overlap_n_id);
-        auto [worst_cls, worst_cost] = traceEdge(n->pos, overlap_n.pos);
+        auto overlap_n = &graph_.getNode(overlap_n_id);
+        auto [worst_cls, worst_cost] = traceEdge(n->pos, overlap_n->pos);
         if (worst_cls <= t_cls) {
-          graph_.addEdge({n, &overlap_n, worst_cost, worst_cls});
+          graph_.addEdge({n, overlap_n, worst_cost, worst_cls});
         } else if (map_.at<uint8_t>(cv::Point(overlap_loc[0], overlap_loc[1])) <= t_cls) {
           // Add new intermediate node
           auto intermed_n = graph_.addNode({img2world(overlap_loc)});
           addNode(*intermed_n);
           auto edge_info = traceEdge(n->pos, intermed_n->pos);
           graph_.addEdge({n, intermed_n, edge_info.second, edge_info.first});
-          edge_info = traceEdge(overlap_n.pos, intermed_n->pos);
-          graph_.addEdge({&overlap_n, intermed_n, edge_info.second, edge_info.first});
+          edge_info = traceEdge(overlap_n->pos, intermed_n->pos);
+          graph_.addEdge({overlap_n, intermed_n, edge_info.second, edge_info.first});
         }
       }
 
@@ -182,8 +216,8 @@ std::pair<int, float> TravMap::traceEdge(const Eigen::Vector2f& n1,
     float dist = 0;
     if (t_cls < max_terrain_) {
       dist = dist_maps_[t_cls].at<float>(cv::Point(sample_pt[0], sample_pt[1]));
-      std::cout << sample_pt.transpose() << std::endl;
-      std::cout << dist << std::endl;
+      //std::cout << sample_pt.transpose() << std::endl;
+      //std::cout << dist << std::endl;
     
       if (t_cls > worst_cls) {
         worst_cls = t_cls;
@@ -219,7 +253,7 @@ std::map<int, Eigen::Vector2f> TravMap::addNode(const TravGraph::Node& n) {
     for (float r=0; r<params_.map_res*params_.vis_dist_m; r+=0.5) {
       Eigen::Vector2f img_cell = img_loc + Eigen::Vector2f(cos(theta), sin(theta))*r;
       if ((img_cell.array() < 0).any() || 
-          (img_cell.array() >= Eigen::Vector2f(map_.rows, map_.cols).array()).any()) {
+          (img_cell.array() >= Eigen::Vector2f(map_.cols, map_.rows).array()).any()) {
         // We have left the image
         continue;
       }
@@ -228,7 +262,7 @@ std::map<int, Eigen::Vector2f> TravMap::addNode(const TravGraph::Node& n) {
       auto& vis_cell = visibility_map_.at<int32_t>(cv::Point(img_cell[0], img_cell[1]));
 
       // Always do this before breaking loop so we include endpoints
-      if (vis_cell >= 0) {
+      if (vis_cell >= 0 && vis_cell != n.id) {
         overlapping_nodes.emplace(vis_cell, img_cell);
       }
       vis_cell = n.id;

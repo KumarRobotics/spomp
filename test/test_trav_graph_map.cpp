@@ -63,6 +63,15 @@ TEST(trav_map, test) {
   // save
   cv::imwrite("spomp_trav_map.png", m.viz());
   cv::imwrite("spomp_viz_map.png", m.viz_visibility());
+
+  // test path
+  auto path = m.getPath({38, -11}, {-107, 42});
+  ASSERT_TRUE(path.size() > 0);
+  ASSERT_TRUE(path.back()->cost < std::pow(100, 3));
+
+  path = m.getPath({38, -11}, {0, 0});
+  ASSERT_TRUE(path.size() > 0);
+  ASSERT_TRUE(path.back()->cost < std::pow(100, 1));
 }
 
 } // namespace spomp

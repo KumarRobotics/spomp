@@ -45,7 +45,7 @@ class TravGraph {
       }
 
       float totalCost() {
-        return length + cost + std::pow(100, cls)-1;
+        return length + 10*cost + std::pow(100, cls)-1;
       }
 
       Node* getOtherNode(const Node* n) const {
@@ -55,7 +55,7 @@ class TravGraph {
     };
 
     //! Djikstra shortest-path solver
-    std::list<const Node*> getPath(Node* const start_n, Node* const end_n);
+    std::list<Node*> getPath(Node* const start_n, Node* const end_n);
 
     //! @return pointer to inserted node
     Node* addNode(const Node& node);

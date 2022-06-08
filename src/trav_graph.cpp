@@ -5,7 +5,7 @@ namespace spomp {
 
 TravGraph::TravGraph() {}
 
-std::list<const TravGraph::Node*> TravGraph::getPath(
+std::list<TravGraph::Node*> TravGraph::getPath(
     Node* const start_n, Node* const end_n) 
 {
   // Initial conditions
@@ -13,7 +13,7 @@ std::list<const TravGraph::Node*> TravGraph::getPath(
   start_n->cost = 0;
   // We need to make a custom comparison, or we will end up sorting by
   // the pointers' order in mem
-  auto node_comp = [](Node* a, Node* b) { return a->cost < b->cost; };
+  auto node_comp = [](Node* a, Node* b) { return a->cost > b->cost; };
   std::priority_queue<Node*, std::vector<Node*>, decltype(node_comp)> node_q(node_comp);
   node_q.emplace(start_n);
 
@@ -45,7 +45,7 @@ std::list<const TravGraph::Node*> TravGraph::getPath(
   }
 
   // Traverse the graph to actually find the path
-  std::list<const Node*> path;
+  std::list<Node*> path;
   if (end_n->visited) {
     // We have found a path
     path.push_front(end_n);
