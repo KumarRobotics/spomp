@@ -279,6 +279,7 @@ add_library(${PROJECT_NAME}_global
   src/timer.cpp
   src/trav_graph.cpp
   src/trav_map.cpp
+  src/waypoint_manager.cpp
   src/global.cpp
 )
 

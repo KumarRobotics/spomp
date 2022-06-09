@@ -7,7 +7,7 @@ GlobalWrapper::GlobalWrapper(ros::NodeHandle& nh) : nh_(nh) {
 
 Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   // Load ROS params here
-  return Global();
+  return Global({});
 }
 
 void GlobalWrapper::initialize() {

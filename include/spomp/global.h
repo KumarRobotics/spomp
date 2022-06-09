@@ -1,6 +1,7 @@
 #pragma once
 
 #include "spomp/trav_map.h"
+#include "spomp/waypoint_manager.h"
 
 namespace spomp {
 
@@ -27,6 +28,8 @@ class Global {
 
   private:
     TravMap map_;
+
+    WaypointManager waypoint_manager_;
 };
 
 } // namespace spomp
