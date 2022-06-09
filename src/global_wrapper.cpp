@@ -1,14 +1,21 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <nav_msgs/Path.h>
 #include <cv_bridge/cv_bridge.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include "spomp/global_wrapper.h"
 #include "spomp/timer.h"
+#include "spomp/rosutil.h"
 
 namespace spomp {
 
+std::string GlobalWrapper::odom_frame_{"odom"};
+std::string GlobalWrapper::map_frame_{"map"};
+
 GlobalWrapper::GlobalWrapper(ros::NodeHandle& nh) : 
   nh_(nh), 
-  global_(createGlobal(nh))
+  global_(createGlobal(nh)),
+  tf_buffer_(),
+  tf_listener_(tf_buffer_)
 {
   // Publishers
   local_goal_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("local_goal", 1);
@@ -85,7 +92,7 @@ void GlobalWrapper::processMapBuffers() {
 
       global_.updateMap(
           cv_bridge::toCvShare(img_it->second, sensor_msgs::image_encodings::BGR8)->image,
-          Eigen::Vector2f(loc_it->second->point.x, loc_it->second->point.y));
+          {loc_it->second->point.x, loc_it->second->point.y});
 
       //Clean up buffers
       map_sem_buf_.erase(map_sem_buf_.begin(), ++img_it);
@@ -95,9 +102,51 @@ void GlobalWrapper::processMapBuffers() {
   }
 }
 
+void GlobalWrapper::poseCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg) {
+  try {
+    // Ask for most recent transform, treating the odom frame as fixed
+    // This essentially tells tf to assume that the odom frame has not changed
+    // since the last update, which is a valid assumption to make.
+    auto pose_map_frame = tf_buffer_.transform(*pose_msg, map_frame_, ros::Time(0), 
+        pose_msg->header.frame_id);
+    global_.setState(ROS2Eigen<float>(pose_map_frame));
+    publishLocalGoal(pose_msg->header.stamp);
+  } catch (tf2::TransformException& ex) {
+    ROS_ERROR_STREAM("Cannot transform pose to map: " << ex.what());
+  }
+}
+
 void GlobalWrapper::goalCallback(
     const geometry_msgs::PoseStamped::ConstPtr& goal_msg) 
 {
+  try {
+    // Ask for most recent transform, treating the odom frame as fixed
+    // This essentially tells tf to assume that the odom frame has not changed
+    // since the last update, which is a valid assumption to make.
+    auto goal_map_frame = tf_buffer_.transform(*goal_msg, map_frame_, ros::Time(0), 
+        goal_msg->header.frame_id);
+    global_.setGoal(ROS2Eigen<float>(goal_map_frame).translation());
+  } catch (tf2::TransformException& ex) {
+    ROS_ERROR_STREAM("Cannot transform goal to map: " << ex.what());
+  }
+}
+
+void GlobalWrapper::publishLocalGoal(const ros::Time& stamp) {
+  auto cur_goal = global_.getNextWaypoint();
+  if (!cur_goal) return;
+
+  if ((last_goal_ - *cur_goal).norm() > 0.0001) {
+    // We have a new goal, publish it
+    geometry_msgs::PoseStamped local_goal_msg;
+    local_goal_msg.header.stamp = stamp;
+    local_goal_msg.header.frame_id = map_frame_;
+    local_goal_msg.pose.position.x = (*cur_goal)[0];
+    local_goal_msg.pose.position.y = (*cur_goal)[1];
+    local_goal_msg.pose.orientation.w = 1;
+    local_goal_pub_.publish(local_goal_msg);
+
+    last_goal_ = *cur_goal;
+  }
 }
 
 void GlobalWrapper::printTimings() {
