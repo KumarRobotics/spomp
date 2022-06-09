@@ -93,6 +93,7 @@ void GlobalWrapper::processMapBuffers() {
       global_.updateMap(
           cv_bridge::toCvShare(img_it->second, sensor_msgs::image_encodings::BGR8)->image,
           {loc_it->second->point.x, loc_it->second->point.y});
+      visualizeGraph(loc_it->second->header.stamp);
 
       //Clean up buffers
       map_sem_buf_.erase(map_sem_buf_.begin(), ++img_it);
@@ -126,6 +127,7 @@ void GlobalWrapper::goalCallback(
     auto goal_map_frame = tf_buffer_.transform(*goal_msg, map_frame_, ros::Time(0), 
         goal_msg->header.frame_id);
     global_.setGoal(ROS2Eigen<float>(goal_map_frame).translation());
+    visualizePath(goal_msg->header.stamp);
   } catch (tf2::TransformException& ex) {
     ROS_ERROR_STREAM("Cannot transform goal to map: " << ex.what());
   }
@@ -147,6 +149,12 @@ void GlobalWrapper::publishLocalGoal(const ros::Time& stamp) {
 
     last_goal_ = *cur_goal;
   }
+}
+
+void GlobalWrapper::visualizeGraph(const ros::Time& stamp) {
+}
+
+void GlobalWrapper::visualizePath(const ros::Time& stamp) {
 }
 
 void GlobalWrapper::printTimings() {

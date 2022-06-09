@@ -28,6 +28,8 @@ class GlobalWrapper {
 
     void processMapBuffers();
     void publishLocalGoal(const ros::Time& stamp);
+    void visualizeGraph(const ros::Time& stamp);
+    void visualizePath(const ros::Time& stamp);
     void printTimings();
 
     /*********************************************************
