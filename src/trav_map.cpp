@@ -63,7 +63,6 @@ void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center) {
     cv::cvtColor(map, map_, cv::COLOR_BGR2GRAY);
   }
   cv::LUT(map_, terrain_lut_, map_);
-  auto old_center = map_center_;
   map_center_ = center;
 
   computeDistMaps();
@@ -123,6 +122,7 @@ void TravMap::computeDistMaps() {
 }
 
 void TravMap::rebuildVisibility() {
+  // This is brute-force, can definitely do better
   visibility_map_ = -cv::Mat::ones(map_.rows, map_.cols, CV_32SC1);
   for (const auto& [node_id, node] : graph_.getNodes()) {
     // Rebuild node visibility
