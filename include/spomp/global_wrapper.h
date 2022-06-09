@@ -1,6 +1,9 @@
 #pragma once
 
 #include <ros/ros.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/PointStamped.h>
+#include <sensor_msgs/Image.h>
 #include "spomp/global.h"
 
 namespace spomp {
@@ -14,7 +17,32 @@ class GlobalWrapper {
     void initialize();
 
   private:
+    /*********************************************************
+     * LOCAL FUNCTIONS
+     *********************************************************/
+    void mapSemImgCallback(const sensor_msgs::Image::ConstPtr& img_msg);
+    void mapSemImgCenterCallback(const geometry_msgs::PointStamped::ConstPtr& pt_msg);
+    void goalCallback(const geometry_msgs::PoseStamped::ConstPtr& goal_msg);
+
+    void printTimings();
+
+    /*********************************************************
+     * LOCAL VARIABLES
+     *********************************************************/
     ros::NodeHandle nh_;
+
+    // Pubs
+    ros::Publisher local_goal_pub_;
+    ros::Publisher graph_viz_pub_;
+    ros::Publisher path_viz_pub_;
+
+    // Subs
+    ros::Subscriber map_sem_img_sub_;
+    ros::Subscriber map_sem_img_center_sub_;
+    ros::Subscriber goal_sub_;
+
+    // Objects
+    Global global_;
 };
 
 } // namespace spomp

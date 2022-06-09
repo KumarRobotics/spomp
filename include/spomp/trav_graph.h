@@ -4,6 +4,7 @@
 #include <map>
 #include <list>
 #include <Eigen/Dense>
+#include "spomp/timer.h"
 
 namespace spomp {
 
@@ -102,6 +103,8 @@ class TravGraph {
      *********************************************************/
     std::map<int, Node> nodes_;
     std::list<Edge> edges_;
+
+    Timer* get_path_t_;
 };
 
 } // namespace spomp

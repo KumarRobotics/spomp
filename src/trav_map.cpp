@@ -8,6 +8,12 @@
 namespace spomp {
 
 TravMap::TravMap(const Params& p) : params_(p) {
+  auto& tm = TimerManager::getGlobal();
+  compute_dist_maps_t_ = tm.get("TM_compute_dist_maps");
+  reweight_graph_t_ = tm.get("TM_reweight_graph");
+  rebuild_visibility_t_ = tm.get("TM_rebuild_visibility");
+  build_graph_t_ = tm.get("TM_build_graph");
+
   loadTerrainLUT();
 }
 
@@ -106,6 +112,8 @@ std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,
 }
 
 void TravMap::computeDistMaps() {
+  compute_dist_maps_t_->start();
+
   int t_cls = 0;
   auto kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(
         params_.max_hole_fill_size_m * params_.map_res,
@@ -119,18 +127,26 @@ void TravMap::computeDistMaps() {
     dist_map.setTo(0, map_ == 255);
     ++t_cls;
   }
+
+  compute_dist_maps_t_->end();
 }
 
 void TravMap::rebuildVisibility() {
+  rebuild_visibility_t_->start();
+
   // This is brute-force, can definitely do better
   visibility_map_ = -cv::Mat::ones(map_.rows, map_.cols, CV_32SC1);
   for (const auto& [node_id, node] : graph_.getNodes()) {
     // Rebuild node visibility
     addNodeToVisibility(node);
   }
+
+  rebuild_visibility_t_->end();
 }
 
 void TravMap::reweightGraph() {
+  reweight_graph_t_->start();
+
   for (auto& edge : graph_.getEdges()) {
     auto [edge_cls, edge_cost] = traceEdge(edge.node1->pos, edge.node2->pos);
     edge.cls = edge_cls;
@@ -145,9 +161,13 @@ void TravMap::reweightGraph() {
       visibility_map_.setTo(-1, visibility_map_ == node_id);
     }
   }
+
+  reweight_graph_t_->end();
 }
 
 void TravMap::buildGraph() {
+  build_graph_t_->start();
+
   double min_v, max_v;
   cv::Point min_l, max_l;
 
@@ -187,6 +207,8 @@ void TravMap::buildGraph() {
 
     } while (cv::countNonZero(dist_map_masked) > 0.01 * num_to_cover);
   }
+
+  build_graph_t_->end();
 }
 
 std::pair<int, float> TravMap::traceEdge(const Eigen::Vector2f& n1, 

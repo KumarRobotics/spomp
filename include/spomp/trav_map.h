@@ -3,6 +3,7 @@
 #include <opencv2/core.hpp>
 #include <set>
 #include "spomp/trav_graph.h"
+#include "spomp/timer.h"
 
 namespace spomp {
 
@@ -58,6 +59,11 @@ class TravMap {
     cv::Mat visibility_map_{};
     
     TravGraph graph_{};
+
+    Timer* compute_dist_maps_t_;
+    Timer* reweight_graph_t_;
+    Timer* rebuild_visibility_t_;
+    Timer* build_graph_t_;
 };
 
 } // namespace spomp

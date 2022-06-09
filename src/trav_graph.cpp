@@ -3,11 +3,16 @@
 
 namespace spomp {
 
-TravGraph::TravGraph() {}
+TravGraph::TravGraph() {
+  auto& tm = TimerManager::getGlobal();
+  get_path_t_ = tm.get("TG_get_path");
+}
 
 std::list<TravGraph::Node*> TravGraph::getPath(
     Node* const start_n, Node* const end_n) 
 {
+  get_path_t_->start();
+
   // Initial conditions
   reset();
   start_n->cost = 0;
@@ -54,6 +59,8 @@ std::list<TravGraph::Node*> TravGraph::getPath(
     }
   }
   return path;
+
+  get_path_t_->end();
 }
 
 TravGraph::Node* TravGraph::addNode(const Node& node) {
