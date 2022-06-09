@@ -43,6 +43,7 @@ class GlobalWrapper {
     ros::Publisher local_goal_pub_;
     ros::Publisher graph_viz_pub_;
     ros::Publisher path_viz_pub_;
+    ros::Publisher map_img_viz_pub_;
 
     // Subs
     ros::Subscriber map_sem_img_sub_;

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <node pkg="spomp" type="node_global" name="spomp_global" output="screen">
+    <param name="TM_terrain_types_path" value="$(find spomp)/config/terrain_types.yaml"/>
+    <remap from="~map_sem_img" to="/asoom/map_sem_img"/>
+    <remap from="~map_sem_img_center" to="/asoom/map_sem_img_center"/>
+  </node>
+</launch>

@@ -29,12 +29,16 @@ class Global {
       return waypoint_manager_.getNextWaypoint();
     }
 
-    const auto& getEdges() {
+    const auto& getEdges() const {
       return map_.getEdges();
     }
 
-    const auto& getPath() {
+    const auto& getPath() const {
       return waypoint_manager_.getPath();
+    }
+
+    const cv::Mat getMapImageViz() const {
+      return map_.viz();
     }
 
   private:

@@ -31,7 +31,7 @@ void WaypointManager::setState(const Eigen::Vector2f& pos) {
   }
 }
 
-std::optional<Eigen::Vector2f> WaypointManager::getNextWaypoint() {
+std::optional<Eigen::Vector2f> WaypointManager::getNextWaypoint() const {
   if (path_.size() > 0) {
     return (*next_node_)->pos;
   }

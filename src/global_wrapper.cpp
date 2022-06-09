@@ -21,6 +21,7 @@ GlobalWrapper::GlobalWrapper(ros::NodeHandle& nh) :
   local_goal_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("local_goal", 1);
   graph_viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("graph_viz", 1);
   path_viz_pub_ = nh_.advertise<nav_msgs::Path>("path_viz", 1);
+  map_img_viz_pub_ = nh_.advertise<sensor_msgs::Image>("viz_img", 1);
 }
 
 Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
@@ -31,6 +32,8 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   nh.getParam("TM_map_res", tm_params.map_res);
   nh.getParam("TM_max_hole_fill_size_m", tm_params.max_hole_fill_size_m);
   nh.getParam("TM_vis_dist_m", tm_params.vis_dist_m);
+  nh.getParam("TM_unvis_start_thresh", tm_params.unvis_start_thresh);
+  nh.getParam("TM_unvis_stop_thresh", tm_params.unvis_stop_thresh);
 
   nh.getParam("WM_waypoint_thresh_m", wm_params.waypoint_thresh_m);
 
@@ -42,6 +45,8 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
     setw(width) << "[ROS] TM_map_res: " << tm_params.map_res << endl <<
     setw(width) << "[ROS] TM_max_hole_fill_size_m: " << tm_params.max_hole_fill_size_m << endl <<
     setw(width) << "[ROS] TM_vis_dist_m: " << tm_params.vis_dist_m << endl <<
+    setw(width) << "[ROS] TM_unvis_start_thresh: " << tm_params.unvis_start_thresh << endl <<
+    setw(width) << "[ROS] TM_unvis_stop_thresh: " << tm_params.unvis_stop_thresh << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] WM_waypoint_thresh_m: " << wm_params.waypoint_thresh_m << endl <<
     "[ROS] ====== End Configuration ======" << "\033[0m");
@@ -87,11 +92,12 @@ void GlobalWrapper::processMapBuffers() {
   for (auto loc_it = map_loc_buf_.rbegin(); loc_it != map_loc_buf_.rend(); ++loc_it) {
     auto img_it = map_sem_buf_.find(loc_it->first);
     if (img_it != map_sem_buf_.end()) {
-      ROS_INFO_STREAM("Got new map");
+      ROS_DEBUG_STREAM("Got new map");
+      printTimings();
       last_map_stamp_ = loc_it->first;
 
       global_.updateMap(
-          cv_bridge::toCvShare(img_it->second, sensor_msgs::image_encodings::BGR8)->image,
+          cv_bridge::toCvCopy(img_it->second, sensor_msgs::image_encodings::MONO8)->image,
           {loc_it->second->point.x, loc_it->second->point.y});
       visualizeGraph(loc_it->second->header.stamp);
 
@@ -197,6 +203,11 @@ void GlobalWrapper::visualizeGraph(const ros::Time& stamp) {
 
   viz_msg.markers.push_back(edge_viz);
   graph_viz_pub_.publish(viz_msg);
+
+  // Publish as image as well
+  sensor_msgs::Image::Ptr img_msg = cv_bridge::CvImage(edge_viz.header, "bgr8", 
+      global_.getMapImageViz()).toImageMsg();
+  map_img_viz_pub_.publish(img_msg);
 }
 
 void GlobalWrapper::visualizePath(const ros::Time& stamp) {

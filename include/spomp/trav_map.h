@@ -14,6 +14,8 @@ class TravMap {
       float map_res = 2;
       float max_hole_fill_size_m = 2;
       float vis_dist_m = 10;
+      float unvis_start_thresh = 0.1;
+      float unvis_stop_thresh = 0.01;
     };
     TravMap(const Params& p);
 
@@ -27,7 +29,7 @@ class TravMap {
     cv::Mat viz() const;
     cv::Mat viz_visibility() const;
 
-    const auto& getEdges() {
+    const auto& getEdges() const {
       return graph_.getEdges();
     }
 

@@ -33,8 +33,8 @@ void TravMap::loadTerrainLUT() {
   } else {
     // Default: assume first class is traversable, not second
     // Rest unknown
-    terrain_lut_.at<uint8_t>(0) = 1;
-    terrain_lut_.at<uint8_t>(1) = 0;
+    terrain_lut_.at<uint8_t>(0) = 0;
+    terrain_lut_.at<uint8_t>(1) = 1;
   }
 
   // Initialize dist_maps_
@@ -122,7 +122,6 @@ void TravMap::computeDistMaps() {
   for (auto& dist_map : dist_maps_) {
     cv::Mat trav_map;
     cv::bitwise_or(map_ <= t_cls, map_ == 255, trav_map);
-    //cv::morphologyEx(trav_map, trav_map, cv::MORPH_CLOSE, kernel);
     cv::distanceTransform(trav_map, dist_map, cv::DIST_L2, cv::DIST_MASK_5);
     dist_map.setTo(0, map_ == 255);
     ++t_cls;
@@ -174,11 +173,23 @@ void TravMap::buildGraph() {
   for (int t_cls=0; t_cls<max_terrain_; ++t_cls) {
     int num_to_cover = cv::countNonZero(map_ <= t_cls);
     cv::Mat dist_map_masked = dist_maps_[t_cls].clone();
-    do {
+    dist_map_masked.setTo(0, visibility_map_ >= 0);
+
+    if (cv::countNonZero(dist_map_masked) < 
+        params_.unvis_start_thresh * num_to_cover) continue;
+
+    while (cv::countNonZero(dist_map_masked) > 
+           params_.unvis_stop_thresh * num_to_cover) 
+    {
       // Ignore points already visible
       dist_map_masked.setTo(0, visibility_map_ >= 0);
       // Select next best node location
       cv::minMaxLoc(dist_map_masked, &min_v, &max_v, &min_l, &max_l);
+      if (max_v == 0) {
+        // If best point is 0, then clearly we are done here
+        break;
+      }
+
       TravGraph::Node* n = graph_.addNode({img2world({max_l.x, max_l.y})});
       auto overlapping_nodes = addNodeToVisibility(*n);
       //std::cout << "=============" << std::endl;
@@ -205,7 +216,7 @@ void TravMap::buildGraph() {
         }
       }
 
-    } while (cv::countNonZero(dist_map_masked) > 0.01 * num_to_cover);
+    }
   }
 
   build_graph_t_->end();

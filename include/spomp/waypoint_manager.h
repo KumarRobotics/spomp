@@ -14,13 +14,13 @@ class WaypointManager {
     void setState(const Eigen::Vector2f& pos);
     void setPath(const std::list<TravGraph::Node*>& path);
 
-    std::optional<Eigen::Vector2f> getPos() {
+    std::optional<Eigen::Vector2f> getPos() const {
       return robot_pos_;
     }
 
-    std::optional<Eigen::Vector2f> getNextWaypoint();
+    std::optional<Eigen::Vector2f> getNextWaypoint() const;
 
-    const auto& getPath() {
+    const auto& getPath() const {
       return path_;
     }
 
