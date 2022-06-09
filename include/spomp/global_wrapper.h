@@ -54,9 +54,9 @@ class GlobalWrapper {
     // Objects
     Global global_;
 
-    long last_map_stamp_{0};
-    std::map<long, const sensor_msgs::Image::ConstPtr> map_sem_buf_{};
-    std::map<long, const geometry_msgs::PointStamped::ConstPtr> map_loc_buf_{};
+    uint64_t last_map_stamp_{0};
+    std::map<uint64_t, const sensor_msgs::Image::ConstPtr> map_sem_buf_{};
+    std::map<uint64_t, const geometry_msgs::PointStamped::ConstPtr> map_loc_buf_{};
 
     Eigen::Vector2f last_goal_{0, 0};
 

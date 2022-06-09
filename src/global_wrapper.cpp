@@ -59,6 +59,7 @@ void GlobalWrapper::initialize() {
   map_sem_img_sub_ = nh_.subscribe("map_sem_img", 1, &GlobalWrapper::mapSemImgCallback, this);
   map_sem_img_center_sub_ = nh_.subscribe("map_sem_img_center", 1, 
       &GlobalWrapper::mapSemImgCenterCallback, this);
+  pose_sub_ = nh_.subscribe("pose", 1, &GlobalWrapper::poseCallback, this);
   goal_sub_ = nh_.subscribe("goal", 1, &GlobalWrapper::goalCallback, this);
 
   ros::spin();
@@ -110,33 +111,43 @@ void GlobalWrapper::processMapBuffers() {
 }
 
 void GlobalWrapper::poseCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg) {
-  try {
-    // Ask for most recent transform, treating the odom frame as fixed
-    // This essentially tells tf to assume that the odom frame has not changed
-    // since the last update, which is a valid assumption to make.
-    auto pose_map_frame = tf_buffer_.transform(*pose_msg, map_frame_, ros::Time(0), 
-        pose_msg->header.frame_id);
-    global_.setState(ROS2Eigen<float>(pose_map_frame));
-    publishLocalGoal(pose_msg->header.stamp);
-  } catch (tf2::TransformException& ex) {
-    ROS_ERROR_STREAM("Cannot transform pose to map: " << ex.what());
+  auto pose_map_frame = *pose_msg;
+  if (pose_map_frame.header.frame_id != map_frame_) {
+    try {
+      // Ask for most recent transform, treating the odom frame as fixed
+      // This essentially tells tf to assume that the odom frame has not changed
+      // since the last update, which is a valid assumption to make.
+      pose_map_frame = tf_buffer_.transform(*pose_msg, map_frame_, ros::Time(0), 
+          pose_msg->header.frame_id);
+    } catch (tf2::TransformException& ex) {
+      ROS_ERROR_STREAM("Cannot transform pose to map: " << ex.what());
+      return;
+    }
   }
+
+  global_.setState(ROS2Eigen<float>(pose_map_frame));
+  publishLocalGoal(pose_msg->header.stamp);
 }
 
 void GlobalWrapper::goalCallback(
     const geometry_msgs::PoseStamped::ConstPtr& goal_msg) 
 {
-  try {
-    // Ask for most recent transform, treating the odom frame as fixed
-    // This essentially tells tf to assume that the odom frame has not changed
-    // since the last update, which is a valid assumption to make.
-    auto goal_map_frame = tf_buffer_.transform(*goal_msg, map_frame_, ros::Time(0), 
-        goal_msg->header.frame_id);
-    global_.setGoal(ROS2Eigen<float>(goal_map_frame).translation());
-    visualizePath(goal_msg->header.stamp);
-  } catch (tf2::TransformException& ex) {
-    ROS_ERROR_STREAM("Cannot transform goal to map: " << ex.what());
+  auto goal_map_frame = *goal_msg;
+  if (goal_map_frame.header.frame_id != map_frame_) {
+    try {
+      // Ask for most recent transform, treating the odom frame as fixed
+      // This essentially tells tf to assume that the odom frame has not changed
+      // since the last update, which is a valid assumption to make.
+      goal_map_frame = tf_buffer_.transform(*goal_msg, map_frame_, ros::Time(0), 
+          goal_msg->header.frame_id);
+    } catch (tf2::TransformException& ex) {
+      ROS_ERROR_STREAM("Cannot transform goal to map: " << ex.what());
+      return;
+    }
   }
+
+  global_.setGoal(ROS2Eigen<float>(goal_map_frame).translation());
+  visualizePath(goal_msg->header.stamp);
 }
 
 void GlobalWrapper::publishLocalGoal(const ros::Time& stamp) {

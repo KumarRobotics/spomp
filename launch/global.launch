@@ -4,5 +4,6 @@
     <param name="TM_terrain_types_path" value="$(find spomp)/config/terrain_types.yaml"/>
     <remap from="~map_sem_img" to="/asoom/map_sem_img"/>
     <remap from="~map_sem_img_center" to="/asoom/map_sem_img_center"/>
+    <remap from="~goal" to="/move_base_simple/goal"/>
   </node>
 </launch>

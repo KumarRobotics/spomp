@@ -58,9 +58,9 @@ std::list<TravGraph::Node*> TravGraph::getPath(
       path.push_front(path.front()->best_prev_edge->getOtherNode(path.front()));
     }
   }
-  return path;
 
   get_path_t_->end();
+  return path;
 }
 
 TravGraph::Node* TravGraph::addNode(const Node& node) {
