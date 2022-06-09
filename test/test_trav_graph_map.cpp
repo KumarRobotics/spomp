@@ -37,6 +37,15 @@ TEST(trav_graph, test_graph_search) {
   path = g.getPath(n0, n4);
   ASSERT_EQ(path.size(), 2);
   ASSERT_FLOAT_EQ(path.back()->cost, std::sqrt(16 + 1));
+
+  auto edge = n0->getEdgeToNode(n4);
+  ASSERT_TRUE(edge);
+  ASSERT_FLOAT_EQ(edge->length, std::sqrt(16 + 1));
+  edge = n0->getEdgeToNode(n1);
+  ASSERT_TRUE(edge);
+  ASSERT_FLOAT_EQ(edge->length, 1);
+  edge = n0->getEdgeToNode(n2);
+  ASSERT_TRUE(!edge);
 }
 
 TEST(trav_map, test_transforms) {

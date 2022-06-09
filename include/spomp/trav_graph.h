@@ -28,6 +28,15 @@ class TravGraph {
 
       Node(const Eigen::Vector2f& p) : pos(p) {}
       Node() = default;
+
+      Edge* getEdgeToNode(const Node* n) {
+        for (const auto& edge : edges) {
+          if (edge->getOtherNode(this) == n) {
+            return edge;
+          }
+        }
+        return nullptr;
+      }
     };
 
     struct Edge {
