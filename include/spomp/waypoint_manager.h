@@ -20,6 +20,10 @@ class WaypointManager {
 
     std::optional<Eigen::Vector2f> getNextWaypoint();
 
+    const auto& getPath() {
+      return path_;
+    }
+
   private:
     /*********************************************************
      * LOCAL CONSTANTS

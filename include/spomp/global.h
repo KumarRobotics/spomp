@@ -29,6 +29,14 @@ class Global {
       return waypoint_manager_.getNextWaypoint();
     }
 
+    const auto& getEdges() {
+      return map_.getEdges();
+    }
+
+    const auto& getPath() {
+      return waypoint_manager_.getPath();
+    }
+
   private:
     /*********************************************************
      * LOCAL VARIABLES

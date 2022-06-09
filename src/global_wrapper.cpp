@@ -152,9 +152,69 @@ void GlobalWrapper::publishLocalGoal(const ros::Time& stamp) {
 }
 
 void GlobalWrapper::visualizeGraph(const ros::Time& stamp) {
+  visualization_msgs::MarkerArray viz_msg;
+
+  visualization_msgs::Marker edge_viz;
+  edge_viz.header.stamp = stamp;
+  edge_viz.header.frame_id = map_frame_;
+  edge_viz.ns = "edge_viz";
+  edge_viz.id = 0;
+  edge_viz.type = visualization_msgs::Marker::LINE_LIST;
+  edge_viz.action = visualization_msgs::Marker::ADD;
+  edge_viz.pose.orientation.w = 1;
+  edge_viz.scale.x = 0.5; // Width of segment
+  edge_viz.color.a = 1;
+
+  for (const auto& edge : global_.getEdges()) {
+    Eigen::Vector3f point_3 = {0, 0, 1};
+    point_3.head<2>() = edge.node1->pos;
+    geometry_msgs::Point pt_msg = Eigen2ROS(point_3);
+    edge_viz.points.push_back(pt_msg);
+
+    point_3.head<2>() = edge.node2->pos;
+    pt_msg = Eigen2ROS(point_3);
+    edge_viz.points.push_back(pt_msg);
+
+    std_msgs::ColorRGBA color;
+    color.a = 1;
+    float color_mag = std::min<float>(1./edge.cost, 1);
+    if (edge.cls == 0) {
+      color.g = color_mag;
+    } else if (edge.cls == 1) {
+      color.g = color_mag;
+      color.b = color_mag;
+    } else if (edge.cls == 2) {
+      color.b = color_mag;
+    } else if (edge.cls == 3) {
+      color.r = color_mag;
+    }
+    // Otherwise leave black
+
+    // Do twice to handle both endpts
+    edge_viz.colors.push_back(color);
+    edge_viz.colors.push_back(color);
+  }
+
+  viz_msg.markers.push_back(edge_viz);
+  graph_viz_pub_.publish(viz_msg);
 }
 
 void GlobalWrapper::visualizePath(const ros::Time& stamp) {
+  nav_msgs::Path path_msg;
+  path_msg.header.stamp = stamp;
+  path_msg.header.frame_id = map_frame_;
+
+  geometry_msgs::PoseStamped path_pose_msg;
+  path_pose_msg.header = path_msg.header;
+  path_pose_msg.pose.orientation.w = 1;
+  for (const auto& node : global_.getPath()) {
+    path_pose_msg.pose.position.x = node->pos[0];
+    path_pose_msg.pose.position.y = node->pos[1];
+
+    path_msg.poses.push_back(path_pose_msg);
+  }
+
+  path_viz_pub_.publish(path_msg);
 }
 
 void GlobalWrapper::printTimings() {

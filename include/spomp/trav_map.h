@@ -27,6 +27,10 @@ class TravMap {
     cv::Mat viz() const;
     cv::Mat viz_visibility() const;
 
+    const auto& getEdges() {
+      return graph_.getEdges();
+    }
+
   private:
     /*********************************************************
      * LOCAL FUNCTIONS
