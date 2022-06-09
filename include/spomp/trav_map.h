@@ -42,6 +42,7 @@ class TravMap {
     void rebuildVisibility();
     void reweightGraph();
     void buildGraph();
+    std::list<TravGraph::Node*> prunePath(const std::list<TravGraph::Node*>& path);
 
     std::pair<int, float> traceEdge(const Eigen::Vector2f& n1, 
         const Eigen::Vector2f& n2);

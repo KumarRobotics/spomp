@@ -108,7 +108,35 @@ std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,
     // If cost is this high, we have an obstacle edge
     path = {};
   }
-  return path;
+  return prunePath(path);
+}
+
+std::list<TravGraph::Node*> TravMap::prunePath(
+    const std::list<TravGraph::Node*>& path) 
+{
+  std::list<TravGraph::Node*> pruned_path;
+  if (path.size() < 1) return pruned_path;
+
+  TravGraph::Node* last_node = path.front();
+  float summed_cost = 0;
+  for (const auto& node : path) {
+    if (pruned_path.size() == 0) {
+      pruned_path.push_back(node);
+    } else {
+      summed_cost += node->getEdgeToNode(last_node)->totalCost();
+
+      const auto [edge_cls, edge_cost] = traceEdge(pruned_path.back()->pos, node->pos);
+      TravGraph::Edge direct_edge(pruned_path.back(), node, edge_cost, edge_cls);
+      if (direct_edge.totalCost() > summed_cost + 0.01) {
+        summed_cost = 0;
+        pruned_path.push_back(last_node);
+      }
+    }
+    last_node = node;
+  }
+  pruned_path.push_back(path.back());
+
+  return pruned_path;
 }
 
 void TravMap::computeDistMaps() {
