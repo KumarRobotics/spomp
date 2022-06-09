@@ -6,14 +6,15 @@
     <param name="tbb" value="-1"/>
     <param name="TP_max_distance_m" value="2"/>
     <param name="TP_inflation_m" value="0.5"/>
-    <param name="CO_max_lin_vel" value="1"/>
+    <param name="CO_max_lin_vel" value="1.5"/>
     <param name="CO_max_lin_accel" value="2"/>
     <param name="CO_max_ang_vel" value="1"/>
     <param name="CO_max_ang_accel" value="2"/>
     <param name="CO_ang_disc" value="4"/>
-    <param name="CO_horizon_sec" value="2"/>
+    <param name="CO_horizon_sec" value="1.5"/>
     <param name="CO_obs_cost_weight" value="1"/>
     <param name="PP_sample_size" value="1000"/>
+    <param name="PP_max_spacing_m" value="2"/>
     <remap from="~pano/img" to="/os_node/llol_odom/pano/img"/>
     <remap from="~pano/camera_info" to="/os_node/llol_odom/pano/camera_info"/>
     <remap from="~pose" to="/os_node/llol_odom/pose"/>

@@ -180,7 +180,7 @@ void GlobalWrapper::visualizeGraph(const ros::Time& stamp) {
   edge_viz.type = visualization_msgs::Marker::LINE_LIST;
   edge_viz.action = visualization_msgs::Marker::ADD;
   edge_viz.pose.orientation.w = 1;
-  edge_viz.scale.x = 0.5; // Width of segment
+  edge_viz.scale.x = 0.2; // Width of segment
   edge_viz.color.a = 1;
 
   for (const auto& edge : global_.getEdges()) {
