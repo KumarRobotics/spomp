@@ -104,10 +104,27 @@ std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,
   TravGraph::Node *n2 = &graph_.getNode(n2_id);
 
   path = graph_.getPath(n1, n2);
-  if (path.size() > 0 && path.back()->cost >= std::pow(100, max_terrain_)-1) {
-    // If cost is this high, we have an obstacle edge
-    path = {};
+  if (path.size() > 0) {
+    if (path.back()->cost >= std::pow(100, max_terrain_)-1) {
+      // If cost is this high, we have an obstacle edge
+      path = {};
+    } else {
+      // Add start and end nodes to graph, if they are far enough away
+      if ((start_p - path.front()->pos).norm() > 2) {
+        auto [worst_cls, worst_cost] = traceEdge(start_p, path.front()->pos);
+        auto new_n = addNode(start_p, -1);
+        graph_.addEdge({path.front(), new_n, worst_cost, worst_cls});
+        path.push_front(new_n);
+      }
+      if ((end_p - path.back()->pos).norm() > 2) {
+        auto [worst_cls, worst_cost] = traceEdge(end_p, path.back()->pos);
+        auto new_n = addNode(end_p, -1);
+        graph_.addEdge({path.back(), new_n, worst_cost, worst_cls});
+        path.push_back(new_n);
+      }
+    }
   }
+
   return prunePath(path);
 }
 
@@ -118,6 +135,7 @@ std::list<TravGraph::Node*> TravMap::prunePath(
   if (path.size() < 1) return pruned_path;
 
   TravGraph::Node* last_node = path.front();
+  TravGraph::Edge last_edge;
   float summed_cost = 0;
   for (const auto& node : path) {
     if (pruned_path.size() == 0) {
@@ -129,10 +147,26 @@ std::list<TravGraph::Node*> TravMap::prunePath(
       TravGraph::Edge direct_edge(pruned_path.back(), node, edge_cost, edge_cls);
       if (direct_edge.totalCost() > summed_cost + 0.01) {
         summed_cost = 0;
+        if (!(last_node->getEdgeToNode(pruned_path.back())) &&
+            last_edge.node1 && last_edge.node2) 
+        {
+          // No edge found, so add
+          graph_.addEdge(last_edge);
+          last_edge = TravGraph::Edge();
+        }
         pruned_path.push_back(last_node);
       }
+      last_edge = direct_edge;
     }
     last_node = node;
+  }
+
+  // Do check again for last pt
+  if (!(path.back()->getEdgeToNode(pruned_path.back())) &&
+      last_edge.node1 && last_edge.node2) 
+  {
+    // No edge found, so add
+    graph_.addEdge(last_edge);
   }
   pruned_path.push_back(path.back());
 
@@ -218,32 +252,7 @@ void TravMap::buildGraph() {
         break;
       }
 
-      TravGraph::Node* n = graph_.addNode({img2world({max_l.x, max_l.y})});
-      auto overlapping_nodes = addNodeToVisibility(*n);
-      //std::cout << "=============" << std::endl;
-      //std::cout << "target cls: " << t_cls << std::endl;
-      //std::cout << n->pos.transpose() << std::endl;
-      //std::cout << max_v << std::endl;
-      //std::cout << max_l << std::endl;
-      //std::cout << cv::countNonZero(visibility_map_ >= 0) << std::endl;
-      //std::cout << num_to_cover << std::endl;
-
-      for (const auto& [overlap_n_id, overlap_loc] : overlapping_nodes) {
-        auto overlap_n = &graph_.getNode(overlap_n_id);
-        auto [worst_cls, worst_cost] = traceEdge(n->pos, overlap_n->pos);
-        if (worst_cls <= t_cls) {
-          graph_.addEdge({n, overlap_n, worst_cost, worst_cls});
-        } else if (map_.at<uint8_t>(cv::Point(overlap_loc[0], overlap_loc[1])) <= t_cls) {
-          // Add new intermediate node
-          auto intermed_n = graph_.addNode({img2world(overlap_loc)});
-          addNodeToVisibility(*intermed_n);
-          auto edge_info = traceEdge(n->pos, intermed_n->pos);
-          graph_.addEdge({n, intermed_n, edge_info.second, edge_info.first});
-          edge_info = traceEdge(overlap_n->pos, intermed_n->pos);
-          graph_.addEdge({overlap_n, intermed_n, edge_info.second, edge_info.first});
-        }
-      }
-
+      addNode({img2world({max_l.x, max_l.y})}, t_cls);
     }
   }
 
@@ -286,6 +295,38 @@ std::pair<int, float> TravMap::traceEdge(const Eigen::Vector2f& n1,
   } 
 
   return {worst_cls, 1/(worst_dist/params_.map_res + 0.01)};
+}
+
+TravGraph::Node* TravMap::addNode(const Eigen::Vector2f& pos, int t_cls) {
+  TravGraph::Node* n = graph_.addNode(pos);
+  auto overlapping_nodes = addNodeToVisibility(*n);
+  //std::cout << "=============" << std::endl;
+  //std::cout << "target cls: " << t_cls << std::endl;
+  //std::cout << n->pos.transpose() << std::endl;
+  //std::cout << max_v << std::endl;
+  //std::cout << max_l << std::endl;
+  //std::cout << cv::countNonZero(visibility_map_ >= 0) << std::endl;
+  //std::cout << num_to_cover << std::endl;
+
+  if (t_cls >= 0) {
+    for (const auto& [overlap_n_id, overlap_loc] : overlapping_nodes) {
+      auto overlap_n = &graph_.getNode(overlap_n_id);
+      auto [worst_cls, worst_cost] = traceEdge(n->pos, overlap_n->pos);
+      if (worst_cls <= t_cls) {
+        graph_.addEdge({n, overlap_n, worst_cost, worst_cls});
+      } else if (map_.at<uint8_t>(cv::Point(overlap_loc[0], overlap_loc[1])) <= t_cls) {
+        // Add new intermediate node
+        auto intermed_n = graph_.addNode({img2world(overlap_loc)});
+        addNodeToVisibility(*intermed_n);
+        auto edge_info = traceEdge(n->pos, intermed_n->pos);
+        graph_.addEdge({n, intermed_n, edge_info.second, edge_info.first});
+        edge_info = traceEdge(overlap_n->pos, intermed_n->pos);
+        graph_.addEdge({overlap_n, intermed_n, edge_info.second, edge_info.first});
+      }
+    }
+  }
+
+  return n;
 }
 
 std::map<int, Eigen::Vector2f> TravMap::addNodeToVisibility(const TravGraph::Node& n) {

@@ -53,6 +53,7 @@ class TravGraph {
       {
         length = (n1->pos - n2->pos).norm();
       }
+      Edge() = default;
 
       float totalCost() {
         return length + 10*cost + std::pow(100, cls)-1;

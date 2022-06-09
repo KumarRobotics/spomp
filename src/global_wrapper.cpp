@@ -148,6 +148,7 @@ void GlobalWrapper::goalCallback(
 
   global_.setGoal(ROS2Eigen<float>(goal_map_frame).translation());
   visualizePath(goal_msg->header.stamp);
+  visualizeGraph(goal_msg->header.stamp);
 }
 
 void GlobalWrapper::publishLocalGoal(const ros::Time& stamp) {
