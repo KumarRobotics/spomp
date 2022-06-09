@@ -1,5 +1,6 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <nav_msgs/Path.h>
+#include <cv_bridge/cv_bridge.h>
 #include "spomp/global_wrapper.h"
 #include "spomp/timer.h"
 
@@ -54,11 +55,44 @@ void GlobalWrapper::initialize() {
 void GlobalWrapper::mapSemImgCallback(
     const sensor_msgs::Image::ConstPtr& img_msg) 
 {
+  if (img_msg->header.stamp.toNSec() > last_map_stamp_) {
+    // Initial sanity check
+    if (img_msg->height > 0 && img_msg->width > 0) {
+      ROS_DEBUG("Got map img");
+      map_sem_buf_.insert({img_msg->header.stamp.toNSec(), img_msg});
+      processMapBuffers();
+    }
+  }
 }
 
 void GlobalWrapper::mapSemImgCenterCallback(
     const geometry_msgs::PointStamped::ConstPtr& pt_msg) 
 {
+  if (pt_msg->header.stamp.toNSec() > last_map_stamp_) {
+    ROS_DEBUG("Got map loc");
+    map_loc_buf_.insert({pt_msg->header.stamp.toNSec(), pt_msg});
+    processMapBuffers();
+  }
+}
+
+void GlobalWrapper::processMapBuffers() {
+  // Loop starting with most recent
+  for (auto loc_it = map_loc_buf_.rbegin(); loc_it != map_loc_buf_.rend(); ++loc_it) {
+    auto img_it = map_sem_buf_.find(loc_it->first);
+    if (img_it != map_sem_buf_.end()) {
+      ROS_INFO_STREAM("Got new map");
+      last_map_stamp_ = loc_it->first;
+
+      global_.updateMap(
+          cv_bridge::toCvShare(img_it->second, sensor_msgs::image_encodings::BGR8)->image,
+          Eigen::Vector2f(loc_it->second->point.x, loc_it->second->point.y));
+
+      //Clean up buffers
+      map_sem_buf_.erase(map_sem_buf_.begin(), ++img_it);
+      map_loc_buf_.erase(map_loc_buf_.begin(), loc_it.base());
+      break;
+    }
+  }
 }
 
 void GlobalWrapper::goalCallback(

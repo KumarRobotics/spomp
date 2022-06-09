@@ -24,6 +24,7 @@ class GlobalWrapper {
     void mapSemImgCenterCallback(const geometry_msgs::PointStamped::ConstPtr& pt_msg);
     void goalCallback(const geometry_msgs::PoseStamped::ConstPtr& goal_msg);
 
+    void processMapBuffers();
     void printTimings();
 
     /*********************************************************
@@ -43,6 +44,10 @@ class GlobalWrapper {
 
     // Objects
     Global global_;
+
+    long last_map_stamp_{0};
+    std::map<long, const sensor_msgs::Image::ConstPtr> map_sem_buf_{};
+    std::map<long, const geometry_msgs::PointStamped::ConstPtr> map_loc_buf_{};
 };
 
 } // namespace spomp
