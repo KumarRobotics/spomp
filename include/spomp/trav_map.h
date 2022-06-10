@@ -4,6 +4,7 @@
 #include <set>
 #include "spomp/trav_graph.h"
 #include "spomp/timer.h"
+#include "spomp/semantic_color_lut.h"
 
 namespace spomp {
 
@@ -11,6 +12,8 @@ class TravMap {
   public:
     struct Params {
       std::string terrain_types_path = "";
+      std::string static_map_path = "";
+      std::string semantic_lut_path = "";
       float map_res = 2;
       float max_hole_fill_size_m = 2;
       float vis_dist_m = 10;
@@ -38,6 +41,7 @@ class TravMap {
      * LOCAL FUNCTIONS
      *********************************************************/
     void loadTerrainLUT();
+    void loadStaticMap();
     void computeDistMaps();
     void rebuildVisibility();
     void reweightGraph();

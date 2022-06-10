@@ -1,6 +1,6 @@
 #include <yaml-cpp/yaml.h>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgcodecs/imgcodecs.hpp>
 #include <iostream>
 #include "spomp/trav_map.h"
 #include "spomp/utils.h"
@@ -15,6 +15,7 @@ TravMap::TravMap(const Params& p) : params_(p) {
   build_graph_t_ = tm.get("TM_build_graph");
 
   loadTerrainLUT();
+  loadStaticMap();
 }
 
 void TravMap::loadTerrainLUT() {
@@ -42,6 +43,39 @@ void TravMap::loadTerrainLUT() {
   for (int terrain_ind=0; terrain_ind<max_terrain_; ++terrain_ind) {
     dist_maps_.emplace_back();
   }
+}
+
+void TravMap::loadStaticMap() {
+  if (params_.static_map_path == "") {
+    return;
+  }
+
+  SemanticColorLut semantic_color_lut;
+  try {
+    semantic_color_lut = SemanticColorLut(params_.semantic_lut_path);
+  } catch (const std::exception& ex) {
+    // This usually happens when there is a yaml reading error
+    std::cout << "\033[31m" << "[ERROR] Cannot create semantic LUT: " << ex.what() 
+      << "\033[0m" << std::endl;
+    return;
+  }
+
+  cv::Mat color_sem, class_sem;
+  color_sem = cv::imread(params_.static_map_path);
+  if (color_sem.data == NULL) {
+    std::cout << "\033[31m" << "[ERROR] Static Map path specified but not read correctly" 
+      << "\033[0m" << std::endl;
+    return;
+  }
+
+  semantic_color_lut.color2Ind(color_sem, class_sem);
+  map_center_ = Eigen::Vector2f(class_sem.cols, class_sem.rows)/2 / params_.map_res;
+
+  // Set map now so that world2img works properly
+  cv::rotate(class_sem, class_sem, cv::ROTATE_90_COUNTERCLOCKWISE);
+
+  // We have set map_center_ already, but want to postproc
+  updateMap(class_sem, map_center_);
 }
 
 Eigen::Vector2f TravMap::world2img(const Eigen::Vector2f& world_c) const {
@@ -137,6 +171,7 @@ std::list<TravGraph::Node*> TravMap::prunePath(
   TravGraph::Node* last_node = path.front();
   TravGraph::Edge last_edge;
   float summed_cost = 0;
+  float total_path_cost = 0;
   for (const auto& node : path) {
     if (pruned_path.size() == 0) {
       pruned_path.push_back(node);
@@ -154,6 +189,9 @@ std::list<TravGraph::Node*> TravMap::prunePath(
           graph_.addEdge(last_edge);
           last_edge = TravGraph::Edge();
         }
+        total_path_cost += last_node->getEdgeToNode(pruned_path.back())->totalCost();
+        // Update the node costs
+        last_node->cost = total_path_cost;
         pruned_path.push_back(last_node);
       }
       last_edge = direct_edge;
@@ -168,6 +206,9 @@ std::list<TravGraph::Node*> TravMap::prunePath(
     // No edge found, so add
     graph_.addEdge(last_edge);
   }
+  total_path_cost += path.back()->getEdgeToNode(pruned_path.back())->totalCost();
+  // Update the node costs
+  last_node->cost = total_path_cost;
   pruned_path.push_back(path.back());
 
   return pruned_path;
@@ -252,7 +293,9 @@ void TravMap::buildGraph() {
         break;
       }
 
-      addNode({img2world({max_l.x, max_l.y})}, t_cls);
+      auto n_ptr = addNode(img2world({max_l.x, max_l.y}), t_cls);
+      // Make absolutely sure that we don't pick the same pt again
+      visibility_map_.at<int32_t>(max_l) = n_ptr->id;
     }
   }
 
@@ -342,8 +385,10 @@ std::map<int, Eigen::Vector2f> TravMap::addNodeToVisibility(const TravGraph::Nod
   // Choose delta such that ends of rays are within 0.5 cells
   float delta_t = 0.5 / (params_.vis_dist_m * params_.map_res);
   for (float theta=0; theta<2*pi; theta+=delta_t) {
+    Eigen::Vector2f dir = {cos(theta), sin(theta)};
+
     for (float r=0; r<params_.map_res*params_.vis_dist_m; r+=0.5) {
-      Eigen::Vector2f img_cell = img_loc + Eigen::Vector2f(cos(theta), sin(theta))*r;
+      Eigen::Vector2f img_cell = img_loc + dir*r;
       if ((img_cell.array() < 0).any() || 
           (img_cell.array() >= Eigen::Vector2f(map_.cols, map_.rows).array()).any()) {
         // We have left the image

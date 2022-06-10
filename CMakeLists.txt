@@ -281,6 +281,7 @@ add_library(${PROJECT_NAME}_global
   src/trav_map.cpp
   src/waypoint_manager.cpp
   src/global.cpp
+  src/semantic_color_lut.cpp
 )
 
 ## Add cmake target dependencies of the library
