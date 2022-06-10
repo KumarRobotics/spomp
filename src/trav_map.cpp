@@ -76,6 +76,7 @@ void TravMap::loadStaticMap() {
 
   // We have set map_center_ already, but want to postproc
   updateMap(class_sem, map_center_);
+  std::cout << "\033[34m" << "[SPOMP-Global] Static Map loaded" << "\033[0m" << std::endl;
 }
 
 Eigen::Vector2f TravMap::world2img(const Eigen::Vector2f& world_c) const {

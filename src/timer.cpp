@@ -64,7 +64,7 @@ std::ostream& operator<<(std::ostream& os, Timer& t) {
 
 std::ostream& operator<<(std::ostream& os, TimerManager& tm) {
   for (auto& timer : tm.timers_) {
-    os << std::endl << timer;
+    os << timer << std::endl;
   }
   return os;
 }

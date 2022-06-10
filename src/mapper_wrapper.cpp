@@ -42,7 +42,7 @@ Mapper MapperWrapper::createMapper(ros::NodeHandle& nh) {
 
   constexpr int width = 30;
   using namespace std;
-  ROS_INFO_STREAM("\033[32m" << endl << "[ROS] ======== Configuration ========" << 
+  ROS_INFO_STREAM("\033[32m" << "[SPOMP-Mapper]" << endl << "[ROS] ======== Configuration ========" << 
     endl << left << 
     setw(width) << "[ROS] M_pgo_thread_period_ms: " << m_params.pgo_thread_period_ms << endl <<
     setw(width) << "[ROS] M_correct_odom_per_frame: " << m_params.correct_odom_per_frame << endl <<
@@ -112,7 +112,8 @@ void MapperWrapper::visualize(const ros::TimerEvent& timer) {
   vizPoseGraph(stamp);
   viz_t_->end();
 
-  ROS_INFO_STREAM("\033[34m" << TimerManager::getGlobal(true) << "\033[0m");
+  ROS_INFO_STREAM("\033[34m" << "[SPOMP-Mapper]" << std::endl << 
+      TimerManager::getGlobal(true) << "\033[0m");
 }
 
 void MapperWrapper::vizPoseGraph(const ros::Time& stamp) {

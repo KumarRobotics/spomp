@@ -85,7 +85,7 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
 
   constexpr int width = 30;
   using namespace std;
-  ROS_INFO_STREAM("\033[32m" << endl << "[ROS] ======== Configuration ========" << 
+  ROS_INFO_STREAM("\033[32m" << "[SPOMP-Local]" << endl << "[ROS] ======== Configuration ========" << 
     endl << left << 
     setw(width) << "[ROS] tbb: " << tp_params.tbb << endl <<
     "[ROS] ===============================" << endl <<
@@ -423,7 +423,8 @@ void LocalWrapper::visualizeGoals(const ros::Time& stamp) {
 }
 
 void LocalWrapper::printTimings() {
-  ROS_INFO_STREAM("\033[34m" << TimerManager::getGlobal() << "\033[0m");
+  ROS_INFO_STREAM("\033[34m" << "[SPOMP-Local]" << std::endl << 
+      TimerManager::getGlobal() << "\033[0m");
 }
 
 } // namespace spomp
