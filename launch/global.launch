@@ -8,5 +8,6 @@
     <remap from="~map_sem_img" to="/asoom/map_sem_img"/>
     <remap from="~map_sem_img_center" to="/asoom/map_sem_img_center"/>
     <remap from="~goal" to="/move_base_simple/goal"/>
+    <remap from="~pose" to="/os_node/llol_odom/pose"/>
   </node>
 </launch>
