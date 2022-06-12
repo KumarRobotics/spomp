@@ -18,9 +18,10 @@ GlobalWrapper::GlobalWrapper(ros::NodeHandle& nh) :
   tf_listener_(tf_buffer_)
 {
   // Publishers
-  local_goal_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("local_goal", 1);
-  graph_viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("graph_viz", 1);
-  path_viz_pub_ = nh_.advertise<nav_msgs::Path>("path_viz", 1);
+  // Latch goal so it is received even if local planner hasn't started yet
+  local_goal_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("local_goal", 1, true);
+  graph_viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("graph_viz", 1, true);
+  path_viz_pub_ = nh_.advertise<nav_msgs::Path>("path_viz", 1, true);
   map_img_viz_pub_ = nh_.advertise<sensor_msgs::Image>("viz_img", 1);
 }
 
