@@ -5,7 +5,9 @@
     <param name="TM_static_map_path" value="$(find spomp)/test/static_map.png"/>
     <param name="TM_semantic_lut_path" value="$(find spomp)/config/semantic_lut.yaml"/>
     <param name="TM_map_res" value="1.014"/>
+    <!--param name="TM_map_res" value="2"/-->
     <param name="TM_prune" value="True"/>
+    <param name="WM_waypoint_thresh_m" value="2.5"/>
     <remap from="~map_sem_img" to="/titan/asoom/map_sem_img"/>
     <remap from="~map_sem_img_center" to="/titan/asoom/map_sem_img_center"/>
     <remap from="~goal" to="/move_base_simple/goal"/>
