@@ -36,6 +36,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   nh.getParam("TM_vis_dist_m", tm_params.vis_dist_m);
   nh.getParam("TM_unvis_start_thresh", tm_params.unvis_start_thresh);
   nh.getParam("TM_unvis_stop_thresh", tm_params.unvis_stop_thresh);
+  nh.getParam("TM_prune", tm_params.prune);
 
   nh.getParam("WM_waypoint_thresh_m", wm_params.waypoint_thresh_m);
 
@@ -51,6 +52,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
     setw(width) << "[ROS] TM_vis_dist_m: " << tm_params.vis_dist_m << endl <<
     setw(width) << "[ROS] TM_unvis_start_thresh: " << tm_params.unvis_start_thresh << endl <<
     setw(width) << "[ROS] TM_unvis_stop_thresh: " << tm_params.unvis_stop_thresh << endl <<
+    setw(width) << "[ROS] TM_prune: " << tm_params.prune << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] WM_waypoint_thresh_m: " << wm_params.waypoint_thresh_m << endl <<
     "[ROS] ====== End Configuration ======" << "\033[0m");

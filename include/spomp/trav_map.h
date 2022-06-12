@@ -19,6 +19,7 @@ class TravMap {
       float vis_dist_m = 10;
       float unvis_start_thresh = 0.1;
       float unvis_stop_thresh = 0.01;
+      bool prune = true;
     };
     TravMap(const Params& p);
 

@@ -160,7 +160,11 @@ std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,
     }
   }
 
-  return prunePath(path);
+  auto final_path = path;
+  if (params_.prune) {
+    final_path = prunePath(path);
+  }
+  return final_path;
 }
 
 std::list<TravGraph::Node*> TravMap::prunePath(
@@ -182,7 +186,9 @@ std::list<TravGraph::Node*> TravMap::prunePath(
       const auto [edge_cls, edge_cost] = traceEdge(pruned_path.back()->pos, node->pos);
       TravGraph::Edge direct_edge(pruned_path.back(), node, edge_cost, edge_cls);
       if (direct_edge.totalCost() > summed_cost + 0.01) {
-        summed_cost = 0;
+        // The direct cost is now the single last leg
+        summed_cost = node->getEdgeToNode(last_node)->totalCost();
+
         if (!(last_node->getEdgeToNode(pruned_path.back())) &&
             last_edge.node1 && last_edge.node2) 
         {
@@ -195,9 +201,9 @@ std::list<TravGraph::Node*> TravMap::prunePath(
         last_node->cost = total_path_cost;
         pruned_path.push_back(last_node);
       }
+      last_node = node;
       last_edge = direct_edge;
     }
-    last_node = node;
   }
 
   // Do check again for last pt
