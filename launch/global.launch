@@ -6,8 +6,8 @@
     <param name="TM_semantic_lut_path" value="$(find spomp)/config/semantic_lut.yaml"/>
     <param name="TM_map_res" value="1.014"/>
     <param name="TM_prune" value="True"/>
-    <remap from="~map_sem_img" to="/asoom/map_sem_img"/>
-    <remap from="~map_sem_img_center" to="/asoom/map_sem_img_center"/>
+    <remap from="~map_sem_img" to="/titan/asoom/map_sem_img"/>
+    <remap from="~map_sem_img_center" to="/titan/asoom/map_sem_img_center"/>
     <remap from="~goal" to="/move_base_simple/goal"/>
     <remap from="~pose" to="/os_node/llol_odom/pose"/>
   </node>
