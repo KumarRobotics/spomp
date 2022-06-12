@@ -236,6 +236,7 @@ void GlobalWrapper::visualizePath(const ros::Time& stamp) {
   geometry_msgs::PoseStamped path_pose_msg;
   path_pose_msg.header = path_msg.header;
   path_pose_msg.pose.orientation.w = 1;
+  path_pose_msg.pose.position.z = 1;
   for (const auto& node : global_.getPath()) {
     path_pose_msg.pose.position.x = node->pos[0];
     path_pose_msg.pose.position.y = node->pos[1];
