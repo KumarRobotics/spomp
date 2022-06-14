@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import cv2
 import numpy as np
 import rospy
 from sensor_msgs.msg import Image
@@ -51,10 +50,10 @@ class GoalManager:
         preempted = False
         self.other_claimed_goals_[robot] = np.zeros((0, 2))
         for pose in goals.poses:
-            last_pt = np.array([pose.position.x, pose.position.y])
-            self.other_claimed_goals_[robot] = np.vstack([self.other_claimed_goals_[robot], last_pt])
+            goal_pt = np.array([pose.position.x, pose.position.y])
+            self.other_claimed_goals_[robot] = np.vstack([self.other_claimed_goals_[robot], goal_pt])
             if self.in_progress_ and self.current_goal_ is not None:
-               dist = np.linalg.norm(self.current_goal_ - last_pt)
+               dist = np.linalg.norm(self.current_goal_ - goal_pt)
                if dist < 2 * self.region_size_ / self.scale_ and not take_pri:
                    preempted = True
         rospy.loginfo(self.other_claimed_goals_)
@@ -70,8 +69,10 @@ class GoalManager:
             # manually trigger looking for new goal
             self.check_for_new_goal()
 
-    def target_goals_cb(self):
-        pass
+    def target_goals_cb(self, goal_msg):
+        for goal in goal_msg.poses:
+            goal_pt = np.array([pose.position.x, pose.position.y])
+            self.goal_list_ = np.vstack([self.goal_list_, goal_pt])
 
     def get_all_other_goals(self):
         other_goals = np.zeros((0, 2))
@@ -81,7 +82,7 @@ class GoalManager:
 
     def check_for_new_goal(self, timer=None):
         if not self.in_progress_:
-            selected_goal = self.choose_goal(blob_centers)
+            selected_goal = self.choose_goal()
             if selected_goal is not None:
                 rospy.loginfo("Found goal, executing plan")
                 #self.planner_node_.pub_plan(goal_plan)
@@ -99,7 +100,7 @@ class GoalManager:
             else:
                 rospy.logwarn("Cannot find any path to ROIs")
 
-    def choose_goal(self, goals):
+    def choose_goal(self):
         last_pose = self.planner_node_.last_pose_
         if last_pose is None:
             rospy.logwarn("No Odometry Received Yet")
@@ -108,7 +109,7 @@ class GoalManager:
         best_cost = np.inf
         best_goal = None
         all_claimed_goals = np.vstack([self.get_all_other_goals(), self.claimed_goals_])
-        for goal in goals:
+        for goal in self.goal_list_:
             if all_claimed_goals.shape[0] > 0:
                 dists_from_existing_goals = np.linalg.norm(all_claimed_goals - goal, axis=1)
                 if np.min(dists_from_existing_goals) < self.region_size_ / self.scale_:
