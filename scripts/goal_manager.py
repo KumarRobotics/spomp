@@ -3,7 +3,7 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import Image
 from std_msgs.msg import Bool
-from geometry_msgs.msg import PoseArray, Pose
+from geometry_msgs.msg import PoseArray, Pose, PoseStamped
 from nav_msgs.msg import Path
 from functools import partial
 
@@ -15,11 +15,15 @@ class GoalManager:
         self.last_stamp_other_ = {}
         self.in_progress_ = False
         self.current_goal_ = None
+        self.current_loc_ = None
+
+        self.min_goal_dist_m_ = rospy.get_param("~min_goal_dist_m", default=10)
 
         self.target_goals_sub_ = rospy.Subscriber("~target_goals", PoseArray, 
                 self.target_goals_cb)
         self.navigate_status_sub_ = rospy.Subscriber("~navigate_status", Bool, 
                 self.navigate_status_cb)
+        self.pose_sub_ = rospy.Subscriber("~pose", PoseStamped, self.pose_cb)
 
         # Subscribers for goals of other robots
         robots = rospy.get_param("~robot_list").split(',')
@@ -53,9 +57,13 @@ class GoalManager:
             goal_pt = np.array([pose.position.x, pose.position.y])
             self.other_claimed_goals_[robot] = np.vstack([self.other_claimed_goals_[robot], goal_pt])
             if self.in_progress_ and self.current_goal_ is not None:
-               dist = np.linalg.norm(self.current_goal_ - goal_pt)
-               if dist < 2 * self.region_size_ / self.scale_ and not take_pri:
-                   preempted = True
+                dist = np.linalg.norm(self.current_goal_ - goal_pt)
+                rospy.loginfo(dist)
+                if dist < self.min_goal_dist_m_ and not take_pri:
+                    rospy.loginfo("Preempted")
+                    preempted = True
+                else:
+                    rospy.loginfo("Not preempted")
         rospy.loginfo(self.other_claimed_goals_)
 
         if preempted:
@@ -70,9 +78,18 @@ class GoalManager:
             self.check_for_new_goal()
 
     def target_goals_cb(self, goal_msg):
+        if goal_msg.header.frame_id != "map":
+            rospy.logerr("Goals must be in map frame")
+            return
+
         for goal in goal_msg.poses:
-            goal_pt = np.array([pose.position.x, pose.position.y])
+            goal_pt = np.array([goal.position.x, goal.position.y])
             self.goal_list_ = np.vstack([self.goal_list_, goal_pt])
+
+    def pose_cb(self, pose_msg):
+        # TODO: Add TF to take this to map frame if not already
+        self.current_loc_ = np.array([pose_msg.pose.position.x,
+                                      pose_msg.pose.position.y])
 
     def get_all_other_goals(self):
         other_goals = np.zeros((0, 2))
@@ -98,11 +115,10 @@ class GoalManager:
                 self.target_goals_msg_.poses.append(goal_pose)
                 self.target_goals_pub_.publish(self.target_goals_msg_)
             else:
-                rospy.logwarn("Cannot find any path to ROIs")
+                rospy.logwarn("Cannot find any path to goals")
 
     def choose_goal(self):
-        last_pose = self.planner_node_.last_pose_
-        if last_pose is None:
+        if self.current_loc_ is None:
             rospy.logwarn("No Odometry Received Yet")
             return None
 
@@ -112,12 +128,12 @@ class GoalManager:
         for goal in self.goal_list_:
             if all_claimed_goals.shape[0] > 0:
                 dists_from_existing_goals = np.linalg.norm(all_claimed_goals - goal, axis=1)
-                if np.min(dists_from_existing_goals) < self.region_size_ / self.scale_:
+                if np.min(dists_from_existing_goals) < self.min_goal_dist_m_:
                     # Another goal is close, ignore
                     continue
 
             # Approximate
-            cost = np.linalg.norm(last_pose - goal)
+            cost = np.linalg.norm(self.current_loc_- goal)
             if cost < best_cost:
                 best_goal = goal
                 best_cost = cost

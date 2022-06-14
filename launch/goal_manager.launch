@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <node pkg="spomp" type="goal_manager.py" name="goal_manager" output="screen">
+    <param name="~robot_list" value="europa,callisto,io"/>
+    <param name="~this_robot" value="callisto"/>
+  </node>
+</launch>
