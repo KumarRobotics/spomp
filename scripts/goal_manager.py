@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import numpy as np
 import rospy
-from sensor_msgs.msg import Image
+from visualization_msgs.msg import Marker, MarkerArray
 from std_msgs.msg import Bool
 from geometry_msgs.msg import PoseArray, Pose, PoseStamped
 from nav_msgs.msg import Path
@@ -40,15 +40,17 @@ class GoalManager:
                 bound_cb = partial(self.other_robot_cb, take_pri=int(priority) > this_priority, robot=robot)
                 self.other_robot_subs_.append(rospy.Subscriber(robot+"/goal_manager/claimed_goals", PoseArray, bound_cb))
 
-        self.target_goals_msg_ = PoseArray()
-        self.target_goals_pub_ = rospy.Publisher("~claimed_goals", PoseArray, queue_size=1)
-        self.goal_viz_pub_ = rospy.Publisher("~goal_viz", Image, queue_size=1)
+        self.claimed_goals_msg_ = PoseArray()
+        self.claimed_goals_pub_ = rospy.Publisher("~claimed_goals", PoseArray, queue_size=1)
+        self.goal_viz_pub_ = rospy.Publisher("~goal_viz", MarkerArray, queue_size=1)
+        self.current_goal_pub_ = rospy.Publisher("~current_goal", PoseStamped, queue_size=1)
 
         self.check_for_new_goal_timer_ = rospy.Timer(rospy.Duration(5), self.check_for_new_goal)
     
     def other_robot_cb(self, goals, take_pri, robot):
         rospy.loginfo(f"{self.this_robot_} got goals from {robot}")
         if goals.header.stamp.to_nsec() <= self.last_stamp_other_[robot]:
+            rospy.loginfo("Message from other robot was old")
             return
         self.last_stamp_other_[robot] = goals.header.stamp.to_nsec()
         preempted = False
@@ -68,8 +70,8 @@ class GoalManager:
 
         if preempted:
             # report not successful, but only transmit if new goal found
-            if len(self.target_goals_msg_.poses) > 0:
-                self.target_goals_msg_.poses.pop()
+            if len(self.claimed_goals_msg_.poses) > 0:
+                self.claimed_goals_msg_.poses.pop()
 
             rospy.loginfo("Other robot with higher priority has goal")
             # preempt
@@ -102,7 +104,6 @@ class GoalManager:
             selected_goal = self.choose_goal()
             if selected_goal is not None:
                 rospy.loginfo("Found goal, executing plan")
-                #self.planner_node_.pub_plan(goal_plan)
                 self.current_goal_ = selected_goal
                 self.in_progress_ = True
 
@@ -111,9 +112,15 @@ class GoalManager:
                 goal_pose.position.x = selected_goal[0]
                 goal_pose.position.y = selected_goal[1]
                 goal_pose.orientation.w = 1
-                self.target_goals_msg_.header.stamp = rospy.Time.now()
-                self.target_goals_msg_.poses.append(goal_pose)
-                self.target_goals_pub_.publish(self.target_goals_msg_)
+                self.claimed_goals_msg_.header.stamp = rospy.Time.now()
+                self.claimed_goals_msg_.poses.append(goal_pose)
+                self.claimed_goals_pub_.publish(self.claimed_goals_msg_)
+
+                cur_goal_msg = PoseStamped()
+                cur_goal_msg.header.frame_id = "map"
+                cur_goal_msg.header.stamp = rospy.Time.now()
+                cur_goal_msg.pose = goal_pose
+                self.current_goal_pub_.publish(cur_goal_msg)
             else:
                 rospy.logwarn("Cannot find any path to goals")
 
@@ -150,10 +157,10 @@ class GoalManager:
 
             if not status_msg.data:
                 # did not get to goal successfully
-                self.target_goals_msg_.header.stamp = rospy.Time.now()
-                if len(self.target_goals_msg_.poses) > 0:
-                    self.target_goals_msg_.poses.pop()
-                self.target_goals_pub_.publish(self.target_goals_msg_)
+                self.claimed_goals_msg_.header.stamp = rospy.Time.now()
+                if len(self.claimed_goals_msg_.poses) > 0:
+                    self.claimed_goals_msg_.poses.pop()
+                self.claimed_goals_pub_.publish(self.claimed_goals_msg_)
 
         self.in_progress_ = False
         # Will now check for new goal when timer triggers
