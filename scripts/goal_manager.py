@@ -2,7 +2,7 @@
 import numpy as np
 import rospy
 import actionlib
-from visualization_msgs.msg import Marker, MarkerArray
+from visualization_msgs.msg import Marker
 from std_msgs.msg import Bool
 from geometry_msgs.msg import PoseArray, Pose, PoseStamped
 from spomp.msg import GlobalNavigateAction, GlobalNavigateGoal, GlobalNavigateResult
@@ -83,8 +83,11 @@ class GoalManager:
             rospy.loginfo("Other robot with higher priority has goal")
             # preempt
             self.in_progress_ = False
+            self.current_goal_ = None
             # manually trigger looking for new goal
             self.check_for_new_goal()
+
+        self.visualize()
 
     def target_goals_cb(self, goal_msg):
         if goal_msg.header.frame_id != "map":
@@ -94,6 +97,8 @@ class GoalManager:
         for goal in goal_msg.poses:
             goal_pt = np.array([goal.position.x, goal.position.y])
             self.goal_list_ = np.vstack([self.goal_list_, goal_pt])
+
+        self.visualize()
 
     def pose_cb(self, pose_msg):
         # TODO: Add TF to take this to map frame if not already
@@ -132,6 +137,7 @@ class GoalManager:
                 rospy.logwarn("Cannot find any path to goals")
                 # no other goals available, so let's try failed ones again
                 self.failed_goals_ = np.zeros((0, 2))
+        self.visualize()
 
     def choose_goal(self):
         if self.current_loc_ is None:
@@ -173,8 +179,12 @@ class GoalManager:
                     self.claimed_goals_msg_.poses.pop()
                 self.claimed_goals_pub_.publish(self.claimed_goals_msg_)
 
-        self.in_progress_ = False
         # Will now check for new goal when timer triggers
+        self.in_progress_ = False
+        self.visualize()
+
+    def visualize(self):
+        pass
 
 if __name__ == '__main__':
     rospy.init_node('goal_manager')
