@@ -63,6 +63,8 @@
   <depend>tf2_geometry_msgs</depend>
   <depend>image_transport</depend>
   <depend>message_filters</depend>
+  <depend>actionlib_msgs</depend>
+  <exec_depend>message_generation</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

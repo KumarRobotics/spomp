@@ -1,0 +1,10 @@
+# goal definition
+geometry_msgs/PoseStamped goal
+---
+# result definition
+uint8 SUCCESS = 1
+uint8 FAILURE = 2
+uint8 status
+---
+# feedback
+# no feedback
