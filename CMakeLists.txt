@@ -123,10 +123,9 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES spomp
-#  CATKIN_DEPENDS roscpp rospy
-#  DEPENDS system_lib
+  INCLUDE_DIRS include
+  LIBRARIES spomp_local spomp_global spomp_mapper
+  CATKIN_DEPENDS roscpp rospy actionlib_msgs
 )
 
 ###########

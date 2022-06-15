@@ -161,8 +161,9 @@ void GlobalWrapper::globalNavigateGoalCallback() {
   bool success = setGoal(goal->goal);
 
   if (!success) {
+    // Failed to find a path
     spomp::GlobalNavigateResult result;
-    result.status = spomp::GlobalNavigateResult::FAILURE;
+    result.status = spomp::GlobalNavigateResult::NO_PATH;
     global_navigate_as_.setAborted(result);
   }
 }
