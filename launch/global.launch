@@ -10,7 +10,7 @@
     <param name="WM_waypoint_thresh_m" value="2.5"/>
     <remap from="~map_sem_img" to="/titan/asoom/map_sem_img"/>
     <remap from="~map_sem_img_center" to="/titan/asoom/map_sem_img_center"/>
-    <remap from="~goal" to="/move_base_simple/goal"/>
+    <remap from="~goal_simple" to="/move_base_simple/goal"/>
     <remap from="~pose" to="/os_node/llol_odom/pose"/>
   </node>
 </launch>

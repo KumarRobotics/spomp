@@ -5,6 +5,7 @@ geometry_msgs/PoseStamped goal
 uint8 SUCCESS = 1
 uint8 TIMEOUT = 2
 uint8 NO_PATH = 3
+uint8 CANCELLED = 4
 uint8 status
 ---
 # feedback

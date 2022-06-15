@@ -16,7 +16,7 @@ GlobalWrapper::GlobalWrapper(ros::NodeHandle& nh) :
   global_(createGlobal(nh)),
   tf_buffer_(),
   tf_listener_(tf_buffer_),
-  global_navigate_as_(nh_, "goal", false)
+  global_navigate_as_(nh_, "navigate", false)
 {
   // Publishers
   // Latch goal so it is received even if local planner hasn't started yet
@@ -74,6 +74,7 @@ void GlobalWrapper::initialize() {
       std::bind(&GlobalWrapper::globalNavigateGoalCallback, this));
   global_navigate_as_.registerPreemptCallback(
       std::bind(&GlobalWrapper::globalNavigatePreemptCallback, this));
+  global_navigate_as_.start();
 
   ros::spin();
 }
@@ -171,7 +172,9 @@ void GlobalWrapper::globalNavigateGoalCallback() {
 void GlobalWrapper::globalNavigatePreemptCallback() {
   // Stop was commanded
   global_.cancel();
-  global_navigate_as_.setPreempted();
+  spomp::GlobalNavigateResult result;
+  result.status = spomp::GlobalNavigateResult::CANCELLED;
+  global_navigate_as_.setPreempted(result);
 }
 
 // Shared callback for action and simple interfaces
