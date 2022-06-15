@@ -15,7 +15,8 @@ GlobalWrapper::GlobalWrapper(ros::NodeHandle& nh) :
   nh_(nh), 
   global_(createGlobal(nh)),
   tf_buffer_(),
-  tf_listener_(tf_buffer_)
+  tf_listener_(tf_buffer_),
+  global_navigate_as_(nh_, "goal", false)
 {
   // Publishers
   // Latch goal so it is received even if local planner hasn't started yet
@@ -67,7 +68,12 @@ void GlobalWrapper::initialize() {
   map_sem_img_center_sub_ = nh_.subscribe("map_sem_img_center", 1, 
       &GlobalWrapper::mapSemImgCenterCallback, this);
   pose_sub_ = nh_.subscribe("pose", 1, &GlobalWrapper::poseCallback, this);
-  goal_sub_ = nh_.subscribe("goal", 1, &GlobalWrapper::goalCallback, this);
+  goal_sub_ = nh_.subscribe("goal_simple", 1, &GlobalWrapper::goalSimpleCallback, this);
+
+  global_navigate_as_.registerGoalCallback(
+      std::bind(&GlobalWrapper::globalNavigateGoalCallback, this));
+  global_navigate_as_.registerPreemptCallback(
+      std::bind(&GlobalWrapper::globalNavigatePreemptCallback, this));
 
   ros::spin();
 }
@@ -132,30 +138,63 @@ void GlobalWrapper::poseCallback(const geometry_msgs::PoseStamped::ConstPtr& pos
     }
   }
 
-  global_.setState(ROS2Eigen<float>(pose_map_frame));
+  bool path_complete = global_.setState(ROS2Eigen<float>(pose_map_frame));
   publishLocalGoal(pose_msg->header.stamp);
+
+  if (path_complete && using_action_server_) {
+    spomp::GlobalNavigateResult result;
+    result.status = spomp::GlobalNavigateResult::SUCCESS;
+    global_navigate_as_.setSucceeded(result);
+  }
 }
 
-void GlobalWrapper::goalCallback(
+void GlobalWrapper::goalSimpleCallback(
     const geometry_msgs::PoseStamped::ConstPtr& goal_msg) 
 {
-  auto goal_map_frame = *goal_msg;
+  using_action_server_ = false;
+  setGoal(*goal_msg);
+}
+
+void GlobalWrapper::globalNavigateGoalCallback() {
+  using_action_server_ = true;
+  auto goal = global_navigate_as_.acceptNewGoal();
+  bool success = setGoal(goal->goal);
+
+  if (!success) {
+    spomp::GlobalNavigateResult result;
+    result.status = spomp::GlobalNavigateResult::FAILURE;
+    global_navigate_as_.setAborted(result);
+  }
+}
+
+void GlobalWrapper::globalNavigatePreemptCallback() {
+  // Stop was commanded
+  global_.cancel();
+  global_navigate_as_.setPreempted();
+}
+
+// Shared callback for action and simple interfaces
+bool GlobalWrapper::setGoal(
+    const geometry_msgs::PoseStamped& goal_msg) 
+{
+  auto goal_map_frame = goal_msg;
   if (goal_map_frame.header.frame_id != map_frame_) {
     try {
       // Ask for most recent transform, treating the odom frame as fixed
       // This essentially tells tf to assume that the odom frame has not changed
       // since the last update, which is a valid assumption to make.
-      goal_map_frame = tf_buffer_.transform(*goal_msg, map_frame_, ros::Time(0), 
-          goal_msg->header.frame_id);
+      goal_map_frame = tf_buffer_.transform(goal_msg, map_frame_, ros::Time(0), 
+          goal_msg.header.frame_id);
     } catch (tf2::TransformException& ex) {
       ROS_ERROR_STREAM("Cannot transform goal to map: " << ex.what());
-      return;
+      return false;
     }
   }
 
-  global_.setGoal(ROS2Eigen<float>(goal_map_frame).translation());
-  visualizePath(goal_msg->header.stamp);
-  visualizeGraph(goal_msg->header.stamp);
+  bool success = global_.setGoal(ROS2Eigen<float>(goal_map_frame).translation());
+  visualizePath(goal_msg.header.stamp);
+  visualizeGraph(goal_msg.header.stamp);
+  return success;
 }
 
 void GlobalWrapper::publishLocalGoal(const ros::Time& stamp) {

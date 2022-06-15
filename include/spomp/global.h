@@ -19,9 +19,16 @@ class Global {
      */
     bool setGoal(const Eigen::Vector3f& goal);
 
-    //! @param state The current global pose of the robot in map frame
-    void setState(const Eigen::Isometry3f& state) {
-      waypoint_manager_.setState(state.translation().head<2>());
+    /*! 
+     * @param state The current global pose of the robot in map frame
+     * @return true if path was just completed
+     */
+    bool setState(const Eigen::Isometry3f& state) {
+      return waypoint_manager_.setState(state.translation().head<2>());
+    }
+
+    void cancel() {
+      waypoint_manager_.cancel();
     }
 
     //! @return The next global target waypoint, if available

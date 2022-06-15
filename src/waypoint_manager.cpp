@@ -12,11 +12,11 @@ void WaypointManager::setPath(const std::list<TravGraph::Node*>& path) {
   cur_edge_ = nullptr;
 }
 
-void WaypointManager::setState(const Eigen::Vector2f& pos) {
+bool WaypointManager::setState(const Eigen::Vector2f& pos) {
   robot_pos_ = pos;
   if (path_.size() < 1) {
     // Inactive path
-    return;
+    return false;
   }
 
   if ((*robot_pos_ - (*next_node_)->pos).norm() < params_.waypoint_thresh_m) {
@@ -27,8 +27,10 @@ void WaypointManager::setState(const Eigen::Vector2f& pos) {
     } else {
       // We have reached the end
       path_.clear();
+      return true;
     }
   }
+  return false;
 }
 
 std::optional<Eigen::Vector2f> WaypointManager::getNextWaypoint() const {

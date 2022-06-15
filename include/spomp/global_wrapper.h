@@ -2,6 +2,8 @@
 
 #include <ros/ros.h>
 #include <tf2_ros/transform_listener.h>
+#include <actionlib/server/simple_action_server.h>
+#include <spomp/GlobalNavigateAction.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PointStamped.h>
 #include <sensor_msgs/Image.h>
@@ -24,7 +26,10 @@ class GlobalWrapper {
     void mapSemImgCallback(const sensor_msgs::Image::ConstPtr& img_msg);
     void mapSemImgCenterCallback(const geometry_msgs::PointStamped::ConstPtr& pt_msg);
     void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg);
-    void goalCallback(const geometry_msgs::PoseStamped::ConstPtr& goal_msg);
+    void goalSimpleCallback(const geometry_msgs::PoseStamped::ConstPtr& goal_msg);
+    bool setGoal(const geometry_msgs::PoseStamped& goal_msg);
+    void globalNavigateGoalCallback();
+    void globalNavigatePreemptCallback();
 
     void processMapBuffers();
     void publishLocalGoal(const ros::Time& stamp);
@@ -50,6 +55,9 @@ class GlobalWrapper {
     ros::Subscriber map_sem_img_center_sub_;
     ros::Subscriber pose_sub_;
     ros::Subscriber goal_sub_;
+    
+    // Action server
+    actionlib::SimpleActionServer<spomp::GlobalNavigateAction> global_navigate_as_;
 
     // Objects
     Global global_;
@@ -59,6 +67,7 @@ class GlobalWrapper {
     std::map<uint64_t, const geometry_msgs::PointStamped::ConstPtr> map_loc_buf_{};
 
     Eigen::Vector2f last_goal_{0, 0};
+    bool using_action_server_{false};
 
     // Config related
     // Static because read in static functions

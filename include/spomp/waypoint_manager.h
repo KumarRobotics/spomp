@@ -11,7 +11,7 @@ class WaypointManager {
     };
     WaypointManager(const Params& p);
 
-    void setState(const Eigen::Vector2f& pos);
+    bool setState(const Eigen::Vector2f& pos);
     void setPath(const std::list<TravGraph::Node*>& path);
 
     std::optional<Eigen::Vector2f> getPos() const {
@@ -22,6 +22,10 @@ class WaypointManager {
 
     const auto& getPath() const {
       return path_;
+    }
+
+    void cancel() {
+      path_.clear();
     }
 
   private:
