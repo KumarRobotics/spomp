@@ -3,8 +3,8 @@ import numpy as np
 import rospy
 import actionlib
 from visualization_msgs.msg import Marker
-from std_msgs.msg import Bool
-from geometry_msgs.msg import PoseArray, Pose, PoseStamped
+from std_msgs.msg import Bool, ColorRGBA
+from geometry_msgs.msg import PoseArray, Pose, PoseStamped, Point
 from spomp.msg import GlobalNavigateAction, GlobalNavigateGoal, GlobalNavigateResult
 from nav_msgs.msg import Path
 from functools import partial
@@ -45,7 +45,7 @@ class GoalManager:
 
         self.claimed_goals_msg_ = PoseArray()
         self.claimed_goals_pub_ = rospy.Publisher("~claimed_goals", PoseArray, queue_size=1)
-        self.goal_viz_pub_ = rospy.Publisher("~goal_viz", MarkerArray, queue_size=1)
+        self.goal_viz_pub_ = rospy.Publisher("~goal_viz", Marker, queue_size=1)
         self.navigate_client_ = actionlib.SimpleActionClient('/spomp_global/navigate', GlobalNavigateAction)
 
         rospy.loginfo("Waiting for spomp action server...")
@@ -184,7 +184,60 @@ class GoalManager:
         self.visualize()
 
     def visualize(self):
-        pass
+        marker_msg = Marker()
+        marker_msg.header.stamp = rospy.Time.now()
+        marker_msg.header.frame_id = "map"
+        marker_msg.ns = "robot_goals"
+        marker_msg.id = 0
+        marker_msg.type = Marker.SPHERE_LIST
+        marker_msg.action = Marker.ADD
+        marker_msg.pose.position.z = 1
+        marker_msg.pose.orientation.w = 1
+        marker_msg.scale.x = 2
+        marker_msg.scale.y = 2
+        marker_msg.scale.z = 2
+        marker_msg.color.a = 1
+
+        pt_msg = Point()
+        color_msg = ColorRGBA()
+        color_msg.a = 1
+        for goal in self.visited_goals_:
+            pt_msg.x = goal[0]
+            pt_msg.y = goal[1]
+            color_msg.r = 0
+            color_msg.g = 1
+            color_msg.b = 0
+            marker_msg.points.append(pt_msg)
+            marker_msg.colors.append(color_msg)
+
+        for goal in self.failed_goals_:
+            pt_msg.x = goal[0]
+            pt_msg.y = goal[1]
+            color_msg.r = 1
+            color_msg.g = 0
+            color_msg.b = 0
+            marker_msg.points.append(pt_msg)
+            marker_msg.colors.append(color_msg)
+
+        for goal in self.get_all_other_goals():
+            pt_msg.x = goal[0]
+            pt_msg.y = goal[1]
+            color_msg.r = 0.5
+            color_msg.g = 1
+            color_msg.b = 0.5
+            marker_msg.points.append(pt_msg)
+            marker_msg.colors.append(color_msg)
+
+        for goal in self.goal_list():
+            pt_msg.x = goal[0]
+            pt_msg.y = goal[1]
+            color_msg.r = 0.8
+            color_msg.g = 0.8
+            color_msg.b = 0.8
+            marker_msg.points.append(pt_msg)
+            marker_msg.colors.append(color_msg)
+
+        self.goal_viz_pub_.publish(marker_msg)        
 
 if __name__ == '__main__':
     rospy.init_node('goal_manager')
