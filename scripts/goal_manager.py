@@ -107,16 +107,19 @@ class GoalManager:
         self.goal_list_ = np.vstack([self.goal_list_, goal_pt])
         self.visualize()
 
-    def target_goals_cb(self, goal_msg):
-        try:
-            trans_goals = self.tf_buffer_.transform(goal_msg, "map")
-        except Exception as ex:
-            rospy.logwarn(f"Cannot transform goals: {ex}")
-            return
-
-        for goal in trans_goals.poses:
-            goal_pt = np.array([goal.position.x, goal.position.y])
-            self.goal_list_ = np.vstack([self.goal_list_, goal_pt])
+    def target_goals_cb(self, goals_msg):
+        goal_msg = PoseStamped()
+        goal_msg.header = goals_msg.header
+        for goal_pose in goals_msg.poses:
+            try:
+                # Have to transform a PoseStamped, not a PoseArray
+                goal_msg.pose = goal_pose
+                trans_goal = self.tf_buffer_.transform(goal_msg, "map")
+                goal_pt = np.array([trans_goal.pose.position.x, trans_goal.pose.position.y])
+                self.goal_list_ = np.vstack([self.goal_list_, goal_pt])
+            except Exception as ex:
+                rospy.logwarn(f"Cannot transform goal: {ex}")
+                return
 
         self.visualize()
 
