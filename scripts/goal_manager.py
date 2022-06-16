@@ -96,7 +96,7 @@ class GoalManager:
             rospy.logerr("Goals must be in map frame")
             return
 
-        goal_pt = np.array([goal_msg.point.x, goal.point.y])
+        goal_pt = np.array([goal_msg.point.x, goal_msg.point.y])
         self.goal_list_ = np.vstack([self.goal_list_, goal_pt])
         self.visualize()
 
@@ -204,22 +204,26 @@ class GoalManager:
         marker_msg.action = Marker.ADD
         marker_msg.pose.position.z = 1
         marker_msg.pose.orientation.w = 1
-        marker_msg.scale.x = 2
-        marker_msg.scale.y = 2
-        marker_msg.scale.z = 2
+        marker_msg.scale.x = 5
+        marker_msg.scale.y = 5
+        marker_msg.scale.z = 5
         marker_msg.color.a = 1
 
-        pt_msg = Point()
-        color_msg = ColorRGBA()
-        color_msg.a = 1
         visualized_goals = np.zeros((0, 2))
 
         # helper function
         def add_goal_to_viz(goal, color):
-            dists_from_vis_goals = np.linalg.norm(visualized_goals - goal, axis=1)
-            if np.min(dists_from_vis_goals) < 1:
-                return
+            nonlocal visualized_goals
+            nonlocal marker_msg
+            if visualized_goals.shape[0] > 0:
+                dists_from_vis_goals = np.linalg.norm(visualized_goals - goal, axis=1)
+                if np.min(dists_from_vis_goals) < self.min_goal_dist_m_:
+                    return
             visualized_goals = np.vstack([visualized_goals, goal])
+
+            pt_msg = Point()
+            color_msg = ColorRGBA()
+            color_msg.a = 1
             pt_msg.x = goal[0]
             pt_msg.y = goal[1]
             color_msg.r = color[0]
@@ -237,7 +241,7 @@ class GoalManager:
         for goal in self.get_all_other_goals():
             add_goal_to_viz(goal, (0.5, 1, 0.5))
 
-        for goal in self.goal_list():
+        for goal in self.goal_list_:
             add_goal_to_viz(goal, (0.8, 0.8, 0.8))
 
         self.goal_viz_pub_.publish(marker_msg)        
