@@ -3,5 +3,6 @@
   <node pkg="spomp" type="goal_manager.py" name="goal_manager" output="screen">
     <param name="~robot_list" value="europa,callisto,io"/>
     <param name="~this_robot" value="callisto"/>
+    <remap from="~add_goal_point" to="/clicked_point"/>
   </node>
 </launch>

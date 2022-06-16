@@ -4,7 +4,7 @@ import rospy
 import actionlib
 from visualization_msgs.msg import Marker
 from std_msgs.msg import Bool, ColorRGBA
-from geometry_msgs.msg import PoseArray, Pose, PoseStamped, Point
+from geometry_msgs.msg import PoseArray, Pose, PointStamped, PoseStamped, Point
 from spomp.msg import GlobalNavigateAction, GlobalNavigateGoal, GlobalNavigateResult
 from nav_msgs.msg import Path
 from functools import partial
@@ -22,6 +22,8 @@ class GoalManager:
 
         self.min_goal_dist_m_ = rospy.get_param("~min_goal_dist_m", default=10)
 
+        self.add_goal_point_sub_ = rospy.Subscriber("~add_goal_point", PointStamped, 
+                self.add_goal_point_cb)
         self.target_goals_sub_ = rospy.Subscriber("~target_goals", PoseArray, 
                 self.target_goals_cb)
         self.navigate_status_sub_ = rospy.Subscriber("~navigate_status", Bool, 
@@ -87,6 +89,15 @@ class GoalManager:
             # manually trigger looking for new goal
             self.check_for_new_goal()
 
+        self.visualize()
+
+    def add_goal_point_cb(self, goal_msg):
+        if goal_msg.header.frame_id != "map":
+            rospy.logerr("Goals must be in map frame")
+            return
+
+        goal_pt = np.array([goal_msg.point.x, goal.point.y])
+        self.goal_list_ = np.vstack([self.goal_list_, goal_pt])
         self.visualize()
 
     def target_goals_cb(self, goal_msg):
@@ -201,41 +212,33 @@ class GoalManager:
         pt_msg = Point()
         color_msg = ColorRGBA()
         color_msg.a = 1
-        for goal in self.visited_goals_:
+        visualized_goals = np.zeros((0, 2))
+
+        # helper function
+        def add_goal_to_viz(goal, color):
+            dists_from_vis_goals = np.linalg.norm(visualized_goals - goal, axis=1)
+            if np.min(dists_from_vis_goals) < 1:
+                return
+            visualized_goals = np.vstack([visualized_goals, goal])
             pt_msg.x = goal[0]
             pt_msg.y = goal[1]
-            color_msg.r = 0
-            color_msg.g = 1
-            color_msg.b = 0
+            color_msg.r = color[0]
+            color_msg.g = color[1]
+            color_msg.b = color[2]
             marker_msg.points.append(pt_msg)
             marker_msg.colors.append(color_msg)
+
+        for goal in self.visited_goals_:
+            add_goal_to_viz(goal, (0, 1, 0))
 
         for goal in self.failed_goals_:
-            pt_msg.x = goal[0]
-            pt_msg.y = goal[1]
-            color_msg.r = 1
-            color_msg.g = 0
-            color_msg.b = 0
-            marker_msg.points.append(pt_msg)
-            marker_msg.colors.append(color_msg)
+            add_goal_to_viz(goal, (1, 0, 0))
 
         for goal in self.get_all_other_goals():
-            pt_msg.x = goal[0]
-            pt_msg.y = goal[1]
-            color_msg.r = 0.5
-            color_msg.g = 1
-            color_msg.b = 0.5
-            marker_msg.points.append(pt_msg)
-            marker_msg.colors.append(color_msg)
+            add_goal_to_viz(goal, (0.5, 1, 0.5))
 
         for goal in self.goal_list():
-            pt_msg.x = goal[0]
-            pt_msg.y = goal[1]
-            color_msg.r = 0.8
-            color_msg.g = 0.8
-            color_msg.b = 0.8
-            marker_msg.points.append(pt_msg)
-            marker_msg.colors.append(color_msg)
+            add_goal_to_viz(goal, (0.8, 0.8, 0.8))
 
         self.goal_viz_pub_.publish(marker_msg)        
 
