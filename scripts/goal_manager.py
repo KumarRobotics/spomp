@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import numpy as np
 import rospy
+import tf2_ros
+import tf2_geometry_msgs
 import actionlib
 from visualization_msgs.msg import Marker
 from std_msgs.msg import Bool, ColorRGBA
@@ -19,6 +21,9 @@ class GoalManager:
         self.in_progress_ = False
         self.current_goal_ = None
         self.current_loc_ = None
+
+        self.tf_buffer_ = tf2_ros.Buffer()
+        self.tf_listener_ = tf2_ros.TransformListener(self.tf_buffer_)
 
         self.min_goal_dist_m_ = rospy.get_param("~min_goal_dist_m", default=10)
 
@@ -136,12 +141,12 @@ class GoalManager:
                 goal_pose.position.y = selected_goal[1]
                 goal_pose.orientation.w = 1
                 self.claimed_goals_msg_.header.stamp = rospy.Time.now()
+                self.claimed_goals_msg_.header.frame_id = "map"
                 self.claimed_goals_msg_.poses.append(goal_pose)
                 self.claimed_goals_pub_.publish(self.claimed_goals_msg_)
 
                 cur_goal_msg = GlobalNavigateGoal()
-                cur_goal_msg.goal.header.frame_id = "map"
-                cur_goal_msg.goal.header.stamp = rospy.Time.now()
+                cur_goal_msg.goal.header = self.claimed_goals_msg_.header
                 cur_goal_msg.goal.pose = goal_pose
                 self.navigate_client_.send_goal(cur_goal_msg, done_cb=self.navigate_status_cb)
             else:
