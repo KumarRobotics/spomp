@@ -97,29 +97,38 @@ class GoalManager:
         self.visualize()
 
     def add_goal_point_cb(self, goal_msg):
-        if goal_msg.header.frame_id != "map":
-            rospy.logerr("Goals must be in map frame")
+        try:
+            trans_goal = self.tf_buffer_.transform(goal_msg, "map")
+        except Exception as ex:
+            rospy.logwarn(f"Cannot transform goals: {ex}")
             return
 
-        goal_pt = np.array([goal_msg.point.x, goal_msg.point.y])
+        goal_pt = np.array([trans_goal.point.x, trans_goal.point.y])
         self.goal_list_ = np.vstack([self.goal_list_, goal_pt])
         self.visualize()
 
     def target_goals_cb(self, goal_msg):
-        if goal_msg.header.frame_id != "map":
-            rospy.logerr("Goals must be in map frame")
+        try:
+            trans_goals = self.tf_buffer_.transform(goal_msg, "map")
+        except Exception as ex:
+            rospy.logwarn(f"Cannot transform goals: {ex}")
             return
 
-        for goal in goal_msg.poses:
+        for goal in trans_goals.poses:
             goal_pt = np.array([goal.position.x, goal.position.y])
             self.goal_list_ = np.vstack([self.goal_list_, goal_pt])
 
         self.visualize()
 
     def pose_cb(self, pose_msg):
-        # TODO: Add TF to take this to map frame if not already
-        self.current_loc_ = np.array([pose_msg.pose.position.x,
-                                      pose_msg.pose.position.y])
+        try:
+            trans_pose = self.tf_buffer_.transform(pose_msg, "map")
+        except Exception as ex:
+            rospy.logwarn(f"Cannot transform pose: {ex}")
+            return
+
+        self.current_loc_ = np.array([trans_pose.pose.position.x,
+                                      trans_pose.pose.position.y])
 
     def get_all_other_goals(self):
         other_goals = np.zeros((0, 2))
@@ -181,19 +190,21 @@ class GoalManager:
 
     def navigate_status_cb(self, status_msg, result_msg):
         if self.current_goal_ is not None:
-            self.current_goal_ = None
             # Add to visited targets
             if result_msg.status == GlobalNavigateResult.SUCCESS:
-                self.visited_goals_ = np.vstack([self.visited_goals_, self.current_goal_])
+                self.visited_goals_ = np.vstack([self.visited_goals_, self.current_goal_[None,:]])
 
             if result_msg.status == GlobalNavigateResult.TIMEOUT or \
                result_msg.status == GlobalNavigateResult.NO_PATH:
+                rospy.logerr("Failed to get to goal")
                 # did not get to goal successfully
-                self.failed_goals_ = np.vstack([self.failed_goals_, self.current_goal_])
+                self.failed_goals_ = np.vstack([self.failed_goals_, self.current_goal_[None,:]])
                 self.claimed_goals_msg_.header.stamp = rospy.Time.now()
                 if len(self.claimed_goals_msg_.poses) > 0:
                     self.claimed_goals_msg_.poses.pop()
                 self.claimed_goals_pub_.publish(self.claimed_goals_msg_)
+
+            self.current_goal_ = None
 
         # Will now check for new goal when timer triggers
         self.in_progress_ = False

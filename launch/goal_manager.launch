@@ -4,5 +4,6 @@
     <param name="~robot_list" value="europa,callisto,io"/>
     <param name="~this_robot" value="callisto"/>
     <remap from="~add_goal_point" to="/clicked_point"/>
+    <remap from="~pose" to="/os_node/llol_odom/pose"/>
   </node>
 </launch>
