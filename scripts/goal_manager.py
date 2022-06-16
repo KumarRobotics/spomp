@@ -25,7 +25,7 @@ class GoalManager:
         self.tf_buffer_ = tf2_ros.Buffer()
         self.tf_listener_ = tf2_ros.TransformListener(self.tf_buffer_)
 
-        self.min_goal_dist_m_ = rospy.get_param("~min_goal_dist_m", default=10)
+        self.min_goal_dist_m_ = rospy.get_param("~min_goal_dist_m", default=5)
 
         self.add_goal_point_sub_ = rospy.Subscriber("~add_goal_point", PointStamped, 
                 self.add_goal_point_cb)
@@ -104,6 +104,8 @@ class GoalManager:
             return
 
         goal_pt = np.array([trans_goal.point.x, trans_goal.point.y])
+
+        # This is the simple interface, so do allow to manually add any goal
         self.goal_list_ = np.vstack([self.goal_list_, goal_pt])
         self.visualize()
 
@@ -116,6 +118,13 @@ class GoalManager:
                 goal_msg.pose = goal_pose
                 trans_goal = self.tf_buffer_.transform(goal_msg, "map")
                 goal_pt = np.array([trans_goal.pose.position.x, trans_goal.pose.position.y])
+
+                if self.goal_list_.shape[0] > 0:
+                    # Don't allow duplicate goals
+                    dists_from_existing_goals = np.linalg.norm(self.goal_list_ - goal_pt, axis=1)
+                    if np.min(dists_from_existing_goals) < self.min_goal_dist_m_:
+                        continue
+
                 self.goal_list_ = np.vstack([self.goal_list_, goal_pt])
             except Exception as ex:
                 rospy.logwarn(f"Cannot transform goal: {ex}")

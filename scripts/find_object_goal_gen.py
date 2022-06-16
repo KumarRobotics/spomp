@@ -5,7 +5,7 @@ import numpy as np
 import cv2
 from collections import OrderedDict
 from sensor_msgs.msg import Image
-from geometry_msgs.msg import PointStamped
+from geometry_msgs.msg import PointStamped, PoseArray, Pose
 
 class FindObjectGoalGen:
     def __init__(self):
@@ -22,6 +22,7 @@ class FindObjectGoalGen:
         self.map_sub_ = rospy.Subscriber("/titan/asoom/map_sem_img", Image, self.map_cb)
         self.map_center_sub_ = rospy.Subscriber("/titan/asoom/map_sem_img_center", PointStamped, self.map_center_cb)
         self.goal_viz_pub_ = rospy.Publisher("~goal_viz", Image, queue_size=1)
+        self.target_goals_pub_ = rospy.Publisher("/goal_manager/target_goals", PoseArray, queue_size=1)
 
         self.buffer_sync_timer_ = rospy.Timer(rospy.Duration(1), self.sync_buffers)
 
@@ -133,6 +134,19 @@ class FindObjectGoalGen:
         goals = self.choose_goals(blob_centers, roadmap)
         rospy.loginfo(f"Found {goals.shape[0]} goals")
         self.pub_viz(map_img, blob_centers, goals)
+        self.pub_goals(goals)
+
+    def pub_goals(self, goals):
+        goals_msg = PoseArray()
+        goals_msg.header.stamp = rospy.Time.now()
+        goals_msg.header.frame_id = "map"
+        for goal in goals:
+            goal_msg = Pose()
+            goal_msg.orientation.w = 1
+            goal_msg.position.x = goal[0]
+            goal_msg.position.y = goal[1]
+            goals_msg.poses.append(goal_msg)
+        self.target_goals_pub_.publish(goals_msg)
 
     def pub_viz(self, viz_img, blob_centers, goals):
         viz = viz_img.copy()
