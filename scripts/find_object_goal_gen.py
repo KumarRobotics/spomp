@@ -22,7 +22,7 @@ class FindObjectGoalGen:
         self.map_sub_ = rospy.Subscriber("/titan/asoom/map_sem_img", Image, self.map_cb)
         self.map_center_sub_ = rospy.Subscriber("/titan/asoom/map_sem_img_center", PointStamped, self.map_center_cb)
         self.goal_viz_pub_ = rospy.Publisher("~goal_viz", Image, queue_size=1)
-        self.target_goals_pub_ = rospy.Publisher("/goal_manager/target_goals", PoseArray, queue_size=1)
+        self.target_goals_pub_ = rospy.Publisher("/groundstation/target_goals", PoseArray, queue_size=1)
 
         self.buffer_sync_timer_ = rospy.Timer(rospy.Duration(1), self.sync_buffers)
 
