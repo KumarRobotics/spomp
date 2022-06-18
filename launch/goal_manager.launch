@@ -2,7 +2,7 @@
 <launch>
   <node pkg="spomp" type="goal_manager.py" name="goal_manager" output="screen">
     <param name="~robot_list" value="europa,callisto,io"/>
-    <param name="~this_robot" value="callisto"/>
+    <param name="~this_robot" value="$(env ROBOT_NAME)"/>
     <remap from="~add_goal_point" to="/clicked_point"/>
     <remap from="~pose" to="/os_node/llol_odom/pose"/>
     <remap from="~target_goals" to="/groundstation/target_goals"/>
