@@ -140,7 +140,7 @@ std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,
 
   path = graph_.getPath(n1, n2);
   if (path.size() > 0) {
-    if (path.back()->cost >= std::pow(100, max_terrain_)-1) {
+    if (path.back()->cost >= std::pow(1000, max_terrain_)-1) {
       // If cost is this high, we have an obstacle edge
       path = {};
     } else {
