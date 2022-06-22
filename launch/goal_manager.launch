@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
+  <arg name="find_obj" default="False"/>
+
   <node pkg="spomp" type="goal_manager.py" name="goal_manager" output="screen">
     <param name="~robot_list" value="europa,callisto,io"/>
     <param name="~this_robot" value="$(env ROBOT_NAME)"/>
@@ -7,4 +9,6 @@
     <remap from="~pose" to="/os_node/llol_odom/pose"/>
     <remap from="~target_goals" to="/groundstation/target_goals"/>
   </node>
+
+  <node pkg="spomp" type="find_object_goal_gen.py" name="find_object_goal_gen" output="screen" if="$(arg find_obj)"/>
 </launch>
