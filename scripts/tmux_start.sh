@@ -10,7 +10,7 @@ tmux send-keys -t $session:$window 'roscore' C-m
 
 window=1
 tmux new-window -t $session:$window -n 'drivers'
-tmux send-keys -t $session:$window 'roslaunch jackal_launch jackal_hw.launch ouster:=true realsense:=true' C-m
+tmux send-keys -t $session:$window 'roslaunch jackal_launch jackal_hw.launch ouster:=true realsense:=true'
 
 window=2
 tmux new-window -t $session:$window -n 'spomp'
@@ -27,6 +27,10 @@ tmux send-keys -t $session:$window 'roslaunch spomp goal_manager.launch'
 window=5
 tmux new-window -t $session:$window -n 'detector'
 tmux send-keys -t $session:$window 'roslaunch dcist_obstacle_distance target_distance_jackal.launch'
+
+window=6
+tmux new-window -t $session:$window -n 'bag'
+tmux send-keys -t $session:$window 'cd data/wp_2022_06_22' C-m
 
 window=6
 tmux new-window -t $session:$window -n 'scratch'
