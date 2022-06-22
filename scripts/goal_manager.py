@@ -20,6 +20,7 @@ class GoalManager:
         self.last_stamp_other_ = {}
         self.in_progress_ = False
         self.current_goal_ = None
+        self.start_loc_ = None
         self.current_loc_ = None
 
         self.tf_buffer_ = tf2_ros.Buffer()
@@ -154,6 +155,9 @@ class GoalManager:
             if selected_goal is not None:
                 rospy.loginfo("Found goal, executing plan")
                 self.current_goal_ = selected_goal
+                if self.start_loc_ is None:
+                    # save start position
+                    self.start_loc_ = self.current_loc_
                 self.in_progress_ = True
 
                 # going to goal
@@ -172,6 +176,18 @@ class GoalManager:
                 self.navigate_client_.send_goal(cur_goal_msg, done_cb=self.navigate_status_cb)
             else:
                 rospy.logwarn("Cannot find any path to goals")
+
+                # go home
+                if self.start_loc_ is not None:
+                    cur_goal_msg = GlobalNavigateGoal()
+                    cur_goal_msg.goal.header.stamp = rospy.Time.now()
+                    cur_goal_msg.header.frame_id = "map"
+                    cur_goal_msg.goal.pose.position.x = self.start_loc_[0]
+                    cur_goal_msg.goal.pose.position.y = self.start_loc_[1]
+                    cur_goal_msg.goal.pose.orientation.w = 1
+                    # don't send with callback, since we don't care about status
+                    self.navigate_client_.send_goal(cur_goal_msg)
+
                 # no other goals available, so let's try failed ones again
                 self.failed_goals_ = np.zeros((0, 2))
         self.visualize()
