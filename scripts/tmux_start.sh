@@ -26,7 +26,7 @@ tmux send-keys -t $session:$window 'roslaunch spomp goal_manager.launch'
 
 window=5
 tmux new-window -t $session:$window -n 'detector'
-tmux send-keys -t $session:$window 'roslaunch dcist_obstacle_distance target_distance_jackal.launch'
+tmux send-keys -t $session:$window 'roslaunch dcist_target_distance target_distance_jackal.launch'
 
 window=6
 tmux new-window -t $session:$window -n 'bag'
