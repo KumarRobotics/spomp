@@ -179,14 +179,15 @@ class GoalManager:
 
                 # go home
                 if self.start_loc_ is not None:
-                    cur_goal_msg = GlobalNavigateGoal()
-                    cur_goal_msg.goal.header.stamp = rospy.Time.now()
-                    cur_goal_msg.goal.header.frame_id = "map"
-                    cur_goal_msg.goal.pose.position.x = self.start_loc_[0]
-                    cur_goal_msg.goal.pose.position.y = self.start_loc_[1]
-                    cur_goal_msg.goal.pose.orientation.w = 1
-                    # don't send with callback, since we don't care about status
-                    self.navigate_client_.send_goal(cur_goal_msg)
+                    if np.linalg.norm(self.start_loc_ - self.current_loc_) > 10:
+                        cur_goal_msg = GlobalNavigateGoal()
+                        cur_goal_msg.goal.header.stamp = rospy.Time.now()
+                        cur_goal_msg.goal.header.frame_id = "map"
+                        cur_goal_msg.goal.pose.position.x = self.start_loc_[0]
+                        cur_goal_msg.goal.pose.position.y = self.start_loc_[1]
+                        cur_goal_msg.goal.pose.orientation.w = 1
+                        # don't send with callback, since we don't care about status
+                        self.navigate_client_.send_goal(cur_goal_msg)
 
                 # no other goals available, so let's try failed ones again
                 self.failed_goals_ = np.zeros((0, 2))
