@@ -179,7 +179,6 @@ class GoalManager:
 
                 # go home
                 if self.start_loc_ is not None:
-                    rospy.sleep(30)
                     cur_goal_msg = GlobalNavigateGoal()
                     cur_goal_msg.goal.header.stamp = rospy.Time.now()
                     cur_goal_msg.goal.header.frame_id = "map"
