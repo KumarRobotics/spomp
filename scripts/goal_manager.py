@@ -19,6 +19,7 @@ class GoalManager:
         self.other_claimed_goals_ = {}
         self.last_stamp_other_ = {}
         self.in_progress_ = False
+        self.rtls_ = False
         self.current_goal_ = None
         self.start_loc_ = None
         self.current_loc_ = None
@@ -170,6 +171,7 @@ class GoalManager:
                 self.claimed_goals_msg_.poses.append(goal_pose)
                 self.claimed_goals_pub_.publish(self.claimed_goals_msg_)
 
+                self.rtls_ = False
                 cur_goal_msg = GlobalNavigateGoal()
                 cur_goal_msg.goal.header = self.claimed_goals_msg_.header
                 cur_goal_msg.goal.pose = goal_pose
@@ -178,8 +180,9 @@ class GoalManager:
                 rospy.logwarn("Cannot find any path to goals")
 
                 # go home
-                if self.start_loc_ is not None:
+                if self.start_loc_ is not None and not self.rtls_:
                     if np.linalg.norm(self.start_loc_ - self.current_loc_) > 10:
+                        self.rtls_ = True
                         cur_goal_msg = GlobalNavigateGoal()
                         cur_goal_msg.goal.header.stamp = rospy.Time.now()
                         cur_goal_msg.goal.header.frame_id = "map"
