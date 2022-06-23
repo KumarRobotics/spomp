@@ -180,8 +180,8 @@ class GoalManager:
                 # go home
                 if self.start_loc_ is not None:
                     cur_goal_msg = GlobalNavigateGoal()
-                    cur_goal_msg.header.stamp = rospy.Time.now()
-                    cur_goal_msg.header.frame_id = "map"
+                    cur_goal_msg.goal.header.stamp = rospy.Time.now()
+                    cur_goal_msg.goal.header.frame_id = "map"
                     cur_goal_msg.goal.pose.position.x = self.start_loc_[0]
                     cur_goal_msg.goal.pose.position.y = self.start_loc_[1]
                     cur_goal_msg.goal.pose.orientation.w = 1
