@@ -237,10 +237,12 @@ class GoalManager:
 
     def navigate_status_cb(self, status_msg, result_msg):
         self.lock_.acquire()
+        if result_msg.status == GlobalNavigateResult.SUCCESS:
+            self.rtls_ = False
+
         if self.current_goal_ is not None:
             # Add to visited targets
             if result_msg.status == GlobalNavigateResult.SUCCESS:
-                self.rtls_ = False
                 self.visited_goals_ = np.vstack([self.visited_goals_, self.current_goal_[None,:]])
 
             if result_msg.status == GlobalNavigateResult.TIMEOUT or \
