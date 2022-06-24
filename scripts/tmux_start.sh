@@ -30,7 +30,7 @@ tmux send-keys -t $session:$window 'roslaunch dcist_target_distance target_dista
 
 window=6
 tmux new-window -t $session:$window -n 'bag'
-tmux send-keys -t $session:$window 'cd data/wp_2022_06_22' C-m
+tmux send-keys -t $session:$window 'cd data/wp_2022_06_24' C-m
 
 window=6
 tmux new-window -t $session:$window -n 'scratch'

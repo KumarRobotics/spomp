@@ -181,6 +181,7 @@ class GoalManager:
                 # go home
                 if self.start_loc_ is not None and not self.rtls_:
                     if np.linalg.norm(self.start_loc_ - self.current_loc_) > 10:
+                        rospy.loginfo("Returning to start")
                         self.rtls_ = True
                         cur_goal_msg = GlobalNavigateGoal()
                         cur_goal_msg.goal.header.stamp = rospy.Time.now()
