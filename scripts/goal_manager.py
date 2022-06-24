@@ -99,7 +99,9 @@ class GoalManager:
             self.in_progress_ = False
             self.current_goal_ = None
             # manually trigger looking for new goal
+            self.lock_.release()
             self.check_for_new_goal()
+            self.lock_.acquire()
 
         self.visualize()
         self.lock_.release()
