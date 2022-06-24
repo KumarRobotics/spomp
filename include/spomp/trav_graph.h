@@ -56,7 +56,7 @@ class TravGraph {
       Edge() = default;
 
       float totalCost() {
-        return length + 10*length*cost + std::pow(1000, cls)-1;
+        return length + 10*length*cost + ((std::pow(1000, cls)-1) * (length + 1));
       }
 
       Node* getOtherNode(const Node* n) const {

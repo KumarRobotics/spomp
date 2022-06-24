@@ -171,7 +171,6 @@ class GoalManager:
                 self.claimed_goals_msg_.poses.append(goal_pose)
                 self.claimed_goals_pub_.publish(self.claimed_goals_msg_)
 
-                self.rtls_ = False
                 cur_goal_msg = GlobalNavigateGoal()
                 cur_goal_msg.goal.header = self.claimed_goals_msg_.header
                 cur_goal_msg.goal.pose = goal_pose
@@ -224,6 +223,7 @@ class GoalManager:
         if self.current_goal_ is not None:
             # Add to visited targets
             if result_msg.status == GlobalNavigateResult.SUCCESS:
+                self.rtls_ = False
                 self.visited_goals_ = np.vstack([self.visited_goals_, self.current_goal_[None,:]])
 
             if result_msg.status == GlobalNavigateResult.TIMEOUT or \
