@@ -72,8 +72,11 @@ void GlobalWrapper::initialize() {
 
   global_navigate_as_.registerGoalCallback(
       std::bind(&GlobalWrapper::globalNavigateGoalCallback, this));
-  global_navigate_as_.registerPreemptCallback(
-      std::bind(&GlobalWrapper::globalNavigatePreemptCallback, this));
+  // This actually gets called by the action server as well when a new
+  // goal is sent, which we don't want to do because sometimes goals are
+  // sent just to check if we can get there
+  //global_navigate_as_.registerPreemptCallback(
+  //    std::bind(&GlobalWrapper::globalNavigatePreemptCallback, this));
   global_navigate_as_.start();
 
   ros::spin();

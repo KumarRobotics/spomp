@@ -76,12 +76,12 @@ TEST(trav_map, test_map_graph_search) {
   // test path
   auto path = m.getPath({38, -11}, {-107, 42});
   ASSERT_TRUE(path.size() > 0);
-  ASSERT_TRUE(path.back()->cost < std::pow(100, 3));
-  ASSERT_TRUE(path.back()->cost > std::pow(100, 1));
+  ASSERT_TRUE(path.back()->cost < std::pow(1000, 3));
+  ASSERT_TRUE(path.back()->cost > std::pow(1000, 1));
 
   path = m.getPath({38, -11}, {0, 0});
   ASSERT_TRUE(path.size() > 0);
-  ASSERT_TRUE(path.back()->cost < std::pow(100, 1));
+  ASSERT_TRUE(path.back()->cost < std::pow(1000, 1));
 }
 
 TEST(trav_map, test_static_map) {
