@@ -31,6 +31,7 @@ TEST(pano_planner, test) {
 
   ASSERT_TRUE(pp.getReachability().scan[0] > 2);
   ASSERT_TRUE(pp.getReachability().scan[0] < 3);
+  ASSERT_EQ(pp.getReachability().is_obs[0], 1);
 
   Eigen::Vector2f goal{5, 0};
   Eigen::Vector2f local_goal = pp.plan(goal);

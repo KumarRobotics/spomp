@@ -27,6 +27,7 @@ class PanoPlanner {
 
     struct Reachability {
       Eigen::VectorXf scan{};
+      Eigen::VectorXi is_obs{};
       AngularProj proj;
     };
     const auto& getReachability() const {

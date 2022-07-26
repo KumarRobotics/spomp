@@ -35,9 +35,9 @@ class LocalWrapper {
     void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg);
 
     void publishTransform(const ros::Time& stamp);
+    void publishReachability(const ros::Time& stamp);
     void visualizePano(const ros::Time& stamp);
     void visualizeCloud(const ros::Time& stamp);
-    void visualizeReachability(const ros::Time& stamp);
     void visualizeControl(const ros::Time& stamp, const Twistf& twist);
     void visualizeGoals(const ros::Time& stamp);
 
@@ -55,10 +55,10 @@ class LocalWrapper {
     // Pubs
     ros::Publisher obs_pano_viz_pub_;
     ros::Publisher obs_cloud_viz_pub_;
-    ros::Publisher reachability_viz_pub_;
     ros::Publisher control_viz_pub_;
     ros::Publisher local_goal_viz_pub_;
     ros::Publisher control_pub_;
+    ros::Publisher reachability_pub_;
 
     // Subs
     image_transport::CameraSubscriber pano_sub_;

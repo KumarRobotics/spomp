@@ -39,11 +39,12 @@ LocalWrapper::LocalWrapper(ros::NodeHandle& nh) :
   // Viz
   obs_pano_viz_pub_ = nh_.advertise<sensor_msgs::Image>("obs_pano_viz", 1);
   obs_cloud_viz_pub_ = nh_.advertise<sensor_msgs::PointCloud2>("obs_cloud_viz", 1);
-  reachability_viz_pub_ = nh_.advertise<sensor_msgs::LaserScan>("reachability_viz", 1);
   control_viz_pub_ = nh_.advertise<nav_msgs::Path>("control_viz", 1);
   local_goal_viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("local_goal_viz", 1);
   // Control
   control_pub_ = nh_.advertise<geometry_msgs::Twist>("control", 1);
+  // Publish reachability for higher level planner
+  reachability_pub_ = nh_.advertise<sensor_msgs::LaserScan>("reachability", 1);
 }
 
 Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
@@ -216,9 +217,9 @@ void LocalWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
   local_.updatePano(pano_eig, pano_pose, goal);
 
   publishTransform(img_msg->header.stamp);
+  publishReachability(img_msg->header.stamp);
   visualizePano(img_msg->header.stamp);
   visualizeCloud(img_msg->header.stamp);
-  visualizeReachability(img_msg->header.stamp);
   visualizeGoals(img_msg->header.stamp);
   printTimings();
 }
@@ -253,6 +254,33 @@ void LocalWrapper::publishTransform(const ros::Time& stamp) {
   msg.header.frame_id = "odom";
   msg.child_frame_id = pano_frame_;
   tf_broadcaster_.sendTransform(msg); 
+}
+
+void LocalWrapper::publishReachability(const ros::Time& stamp) {
+  const auto& reachability = local_.getPlanner().getReachability();
+
+  sensor_msgs::LaserScan scan_msg;
+  scan_msg.header.frame_id = pano_frame_;
+  scan_msg.header.stamp = stamp;
+
+  // Order is flipped, so delta_angle is negative, but this is fine
+  scan_msg.angle_min = reachability.proj.start_angle;
+  scan_msg.angle_increment = reachability.proj.delta_angle;
+  scan_msg.angle_max = scan_msg.angle_min + 
+    (reachability.scan.size() * scan_msg.angle_increment);
+  scan_msg.range_max = 100; // Something large
+
+  scan_msg.ranges.resize(reachability.scan.size());
+  Eigen::Map<Eigen::VectorXf> scan_ranges(reinterpret_cast<float*>(
+      scan_msg.ranges.data()), reachability.scan.size());
+  scan_ranges = reachability.scan;
+
+  scan_msg.intensities.resize(reachability.is_obs.size());
+  Eigen::Map<Eigen::VectorXf> scan_intensities(reinterpret_cast<float*>(
+      scan_msg.intensities.data()), reachability.is_obs.size());
+  scan_intensities = reachability.is_obs.cast<float>();
+
+  reachability_pub_.publish(scan_msg);
 }
 
 void LocalWrapper::visualizePano(const ros::Time& stamp) {
@@ -338,28 +366,6 @@ void LocalWrapper::visualizeCloud(const ros::Time& stamp) {
   obs_cloud_viz_pub_.publish(cloud_msg);
 
   viz_cloud_t_->end();
-}
-
-void LocalWrapper::visualizeReachability(const ros::Time& stamp) {
-  const auto& reachability = local_.getPlanner().getReachability();
-
-  sensor_msgs::LaserScan scan_msg;
-  scan_msg.header.frame_id = pano_frame_;
-  scan_msg.header.stamp = stamp;
-
-  // Order is flipped, so delta_angle is negative, but this is fine
-  scan_msg.angle_min = reachability.proj.start_angle;
-  scan_msg.angle_increment = reachability.proj.delta_angle;
-  scan_msg.angle_max = scan_msg.angle_min + 
-    (reachability.scan.size() * scan_msg.angle_increment);
-  scan_msg.range_max = 100; // Something large
-
-  scan_msg.ranges.resize(reachability.scan.size());
-  Eigen::Map<Eigen::VectorXf> scan_ranges(reinterpret_cast<float*>(scan_msg.ranges.data()),
-      reachability.scan.size());
-  scan_ranges = reachability.scan;
-
-  reachability_viz_pub_.publish(scan_msg);
 }
 
 void LocalWrapper::visualizeControl(const ros::Time& stamp, const Twistf& twist) {

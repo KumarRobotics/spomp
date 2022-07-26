@@ -13,6 +13,7 @@ void PanoPlanner::updatePano(const TerrainPano& pano) {
   pano_update_t_->start();
 
   reachability_.scan = Eigen::VectorXf::Zero(pano.cols());
+  reachability_.is_obs = Eigen::VectorXi::Zero(pano.cols());
   reachability_.proj = pano.getAzProj();
 
   int gsize = params_.tbb <= 0 ? pano.cols() : params_.tbb;
@@ -21,21 +22,25 @@ void PanoPlanner::updatePano(const TerrainPano& pano) {
       for (int col_i=range.begin(); col_i<range.end(); ++col_i) {
         // Move through column from bottom to top
         float last_r = 0;
+        bool is_obs = false;
         for (int row_i=pano.rows()-1; row_i>=0; --row_i) {
           float r = pano.rangeAt(row_i, col_i);
           if (r > 0) {
+            if (!pano.traversableAt(row_i, col_i)) {
+              // We have hit an obstacle
+              is_obs = true;
+              break;
+            }
             // If last_r is 0, not worth comparing
-            if ((r - last_r > params_.max_spacing_m && last_r > 0) || 
-                !pano.traversableAt(row_i, col_i)) 
-            {
-              // We have run into an obstacle or a large spacing, which
-              // could be a negative obstacle
+            if (r - last_r > params_.max_spacing_m && last_r > 0) {
+              // We have hit a negative obstacle or large spacing
               break;
             }
             last_r = r;
           }
         }
         reachability_.scan[col_i] = std::max<float>(last_r, 0.5);
+        reachability_.is_obs[col_i] = is_obs;
       }
     });
   
