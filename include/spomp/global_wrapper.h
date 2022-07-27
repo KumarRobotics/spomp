@@ -7,6 +7,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PointStamped.h>
 #include <sensor_msgs/Image.h>
+#include <sensor_msgs/LaserScan.h>
 #include "spomp/global.h"
 
 namespace spomp {
@@ -27,6 +28,7 @@ class GlobalWrapper {
     void mapSemImgCenterCallback(const geometry_msgs::PointStamped::ConstPtr& pt_msg);
     void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg);
     void goalSimpleCallback(const geometry_msgs::PoseStamped::ConstPtr& goal_msg);
+    void reachabilityCallback(const sensor_msgs::LaserScan::ConstPtr& reachability_msg);
     bool setGoal(const geometry_msgs::PoseStamped& goal_msg);
     void globalNavigateGoalCallback();
     void globalNavigatePreemptCallback();
@@ -55,6 +57,7 @@ class GlobalWrapper {
     ros::Subscriber map_sem_img_center_sub_;
     ros::Subscriber pose_sub_;
     ros::Subscriber goal_sub_;
+    ros::Subscriber reachability_sub_;
     
     // Action server
     actionlib::SimpleActionServer<spomp::GlobalNavigateAction> global_navigate_as_;

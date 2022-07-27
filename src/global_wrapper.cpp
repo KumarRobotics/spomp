@@ -69,6 +69,8 @@ void GlobalWrapper::initialize() {
       &GlobalWrapper::mapSemImgCenterCallback, this);
   pose_sub_ = nh_.subscribe("pose", 1, &GlobalWrapper::poseCallback, this);
   goal_sub_ = nh_.subscribe("goal_simple", 1, &GlobalWrapper::goalSimpleCallback, this);
+  reachability_sub_ = nh_.subscribe("reachability", 1, 
+      &GlobalWrapper::reachabilityCallback, this);
 
   global_navigate_as_.registerGoalCallback(
       std::bind(&GlobalWrapper::globalNavigateGoalCallback, this));
@@ -157,6 +159,11 @@ void GlobalWrapper::goalSimpleCallback(
 {
   using_action_server_ = false;
   setGoal(*goal_msg);
+}
+
+void GlobalWrapper::reachabilityCallback(
+    const sensor_msgs::LaserScan::ConstPtr& reachability_msg) 
+{
 }
 
 void GlobalWrapper::globalNavigateGoalCallback() {

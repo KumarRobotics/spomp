@@ -12,5 +12,6 @@
     <remap from="~map_sem_img_center" to="/titan/asoom/map_sem_img_center"/>
     <remap from="~goal_simple" to="/move_base_simple/goal"/>
     <remap from="~pose" to="/os_node/llol_odom/pose"/>
+    <remap from="~reachability" to="/spomp_local/reachability"/>
   </node>
 </launch>
