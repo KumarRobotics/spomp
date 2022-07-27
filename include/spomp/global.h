@@ -31,6 +31,9 @@ class Global {
       waypoint_manager_.cancel();
     }
 
+    void updateLocalReachability() {
+    }
+
     //! @return The next global target waypoint, if available
     std::optional<Eigen::Vector2f> getNextWaypoint() {
       return waypoint_manager_.getNextWaypoint();

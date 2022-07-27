@@ -164,6 +164,23 @@ void GlobalWrapper::goalSimpleCallback(
 void GlobalWrapper::reachabilityCallback(
     const sensor_msgs::LaserScan::ConstPtr& reachability_msg) 
 {
+  Reachability reachability{};
+  reachability.proj = AngularProj(AngularProj::StartFinish{
+      reachability_msg->angle_min, reachability_msg->angle_max}, 
+      reachability_msg->ranges.size());
+
+  Eigen::Map<const Eigen::VectorXf> scan_ranges(reinterpret_cast<const float*>(
+      reachability_msg->ranges.data()), reachability_msg->ranges.size());
+  reachability.scan = scan_ranges;
+
+  if (reachability_msg->intensities.size() == reachability_msg->ranges.size()) {
+    Eigen::Map<const Eigen::VectorXf> scan_intensities(reinterpret_cast<const float*>(
+        reachability_msg->intensities.data()), reachability_msg->intensities.size());
+    reachability.is_obs = scan_intensities.cast<int>();
+  } else {
+    // Assume no obstacles if not specified
+    reachability.is_obs = Eigen::VectorXi::Zero(reachability.scan.size());
+  }
 }
 
 void GlobalWrapper::globalNavigateGoalCallback() {
