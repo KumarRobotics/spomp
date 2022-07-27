@@ -121,6 +121,25 @@ void TravMap::updateLocalReachability(const Reachability& reachability,
   for (const auto& node_ptr : near_nodes) {
     for (const auto& edge : node_ptr->edges) {
       TravGraph::Node* dest_node_ptr = edge->getOtherNode(node_ptr);
+      Eigen::Vector2f local_dest_pose = reach_pose.inverse() * dest_node_ptr->pos;
+
+      float range = local_dest_pose.norm();
+      float bearing = atan2(local_dest_pose[1], local_dest_pose[0]);
+
+      bool is_reachable = false;
+      for (float b=bearing-0.1; b<=bearing+0.1; b+=reachability.proj.delta_angle) {
+        int ind = reachability.proj.indAt(b);
+        if (range > reachability.scan[ind] || !reachability.is_obs[ind]) {
+          // We have a non-obstacle path
+          is_reachable = true;
+          break;
+        }
+      }
+
+      if (!is_reachable) {
+        // Unreachable cost
+        edge->cost = std::pow(1000, max_terrain_);
+      }
     }
   }
 }
