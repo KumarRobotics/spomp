@@ -117,6 +117,12 @@ void TravMap::updateLocalReachability(const Reachability& reachability,
 {
   auto near_nodes = graph_.getNodesNear(reach_pose.translation(), 
       params_.reach_node_max_dist);
+
+  for (const auto& node_ptr : near_nodes) {
+    for (const auto& edge : node_ptr->edges) {
+      TravGraph::Node* dest_node_ptr = edge->getOtherNode(node_ptr);
+    }
+  }
 }
 
 std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,
