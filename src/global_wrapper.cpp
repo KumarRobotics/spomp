@@ -181,6 +181,15 @@ void GlobalWrapper::reachabilityCallback(
     // Assume no obstacles if not specified
     reachability.is_obs = Eigen::VectorXi::Zero(reachability.scan.size());
   }
+
+  // Get pano pose at time of scan
+  try {
+    geometry_msgs::TransformStamped reach_pose_msg = tf_buffer_.lookupTransform(
+        reachability_msg->header.frame_id, "map", reachability_msg->header.stamp);
+    global_.updateLocalReachability(reachability, ROS2Eigen<float>(reach_pose_msg));
+  } catch (tf2::TransformException& ex) {
+    ROS_ERROR_STREAM("Cannot get reachability pano pose: " << ex.what());
+  }
 }
 
 void GlobalWrapper::globalNavigateGoalCallback() {

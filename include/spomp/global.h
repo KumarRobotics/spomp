@@ -2,6 +2,7 @@
 
 #include "spomp/trav_map.h"
 #include "spomp/waypoint_manager.h"
+#include "spomp/utils.h"
 
 namespace spomp {
 
@@ -31,7 +32,10 @@ class Global {
       waypoint_manager_.cancel();
     }
 
-    void updateLocalReachability() {
+    void updateLocalReachability(const Reachability& reachability, 
+        const Eigen::Isometry3f& reach_pose) 
+    {
+      map_.updateLocalReachability(reachability, reach_pose);
     }
 
     //! @return The next global target waypoint, if available

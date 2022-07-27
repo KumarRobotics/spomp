@@ -5,6 +5,7 @@
 #include "spomp/trav_graph.h"
 #include "spomp/timer.h"
 #include "spomp/semantic_color_lut.h"
+#include "spomp/utils.h"
 
 namespace spomp {
 
@@ -24,6 +25,10 @@ class TravMap {
     TravMap(const Params& p);
 
     void updateMap(const cv::Mat& map, const Eigen::Vector2f& center);
+    void updateLocalReachability(const Reachability& reachability, 
+        const Eigen::Isometry3f& reach_pose) 
+    {
+    }
     std::list<TravGraph::Node*> getPath(const Eigen::Vector2f& start_p,
         const Eigen::Vector2f& end_p);
 

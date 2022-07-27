@@ -30,20 +30,29 @@ inline Eigen::Vector2f polar2cart(const Eigen::Vector2f& pol) {
   return {pol[0] * cos(pol[1]), pol[0] * sin(pol[1])};
 }
 
-inline Eigen::Isometry3d pose22pose3(const Eigen::Isometry2d& pose_2) {
-  Eigen::Isometry3d pose_3 = Eigen::Isometry3d::Identity();
-  pose_3.translation().head<2>() = pose_2.translation();
-  pose_3.rotate(Eigen::AngleAxisd(
-        Eigen::Rotation2Dd(pose_2.rotation()).angle(), 
-                           Eigen::Vector3d::UnitZ()));
+template <typename T>
+inline auto pose22pose3(const Eigen::Transform<T, 2, Eigen::Isometry>& pose_2) {
+  using Isometry3T = Eigen::Transform<T, 3, Eigen::Isometry>;
+  using Vector3T = Eigen::Matrix<T, 3, 1>;
+
+  Isometry3T pose_3 = Isometry3T::Identity();
+  pose_3.translation().head(2) = pose_2.translation();
+  pose_3.rotate(Eigen::AngleAxis<T>(
+        Eigen::Rotation2D<T>(pose_2.rotation()).angle(), 
+                             Vector3T::UnitZ()));
   return pose_3;
 }
 
-inline Eigen::Isometry2d pose32pose2(const Eigen::Isometry3d& pose_3) {
-  Eigen::Isometry2d pose_2 = Eigen::Isometry2d::Identity();
-  pose_2.translation() = pose_3.translation().head<2>();
-  Eigen::Vector3d rot_x = pose_3.rotation() * Eigen::Vector3d::UnitX();
-  pose_2.rotate(Eigen::Rotation2D(atan2(rot_x[1], rot_x[0])));
+template <typename T>
+inline auto pose32pose2(const Eigen::Transform<T, 3, Eigen::Isometry>& pose_3) {
+  using Isometry2T = Eigen::Transform<T, 2, Eigen::Isometry>;
+  using Vector3T = Eigen::Matrix<T, 3, 1>;
+
+  Isometry2T pose_2 = Isometry2T::Identity();
+  // For some reason the templated version of head causes problems
+  pose_2.translation() = pose_3.translation().head(2);
+  Vector3T rot_x = pose_3.rotation() * Vector3T::UnitX();
+  pose_2.rotate(Eigen::Rotation2D<T>(atan2(rot_x[1], rot_x[0])));
   return pose_2;
 }
 

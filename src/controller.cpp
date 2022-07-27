@@ -16,13 +16,7 @@ Twistf Controller::getControlInput(const Twistf& cur_vel, const Eigen::Isometry3
 
   // Transform into the control space
   Eigen::Isometry3f state_3 = state_p * params_.control_trans;
-  Eigen::Isometry2f state = Eigen::Isometry2f::Identity();
-
-  // Project into 2D
-  state.translate(state_3.translation().head<2>());
-  Eigen::Vector3f rot_x = state_3.rotation() * Eigen::Vector3f::UnitX();
-  float theta = atan2(rot_x[1], rot_x[0]);
-  state.rotate(Eigen::Rotation2Df(theta));
+  Eigen::Isometry2f state = pose32pose2(state_3);
   
   // Compute delta bounds
   Twistf max_delta(params_.max_lin_accel / params_.freq, 
