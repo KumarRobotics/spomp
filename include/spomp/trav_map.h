@@ -21,14 +21,13 @@ class TravMap {
       float unvis_start_thresh = 0.1;
       float unvis_stop_thresh = 0.01;
       bool prune = true;
+      float reach_node_max_dist = 1;
     };
     TravMap(const Params& p);
 
     void updateMap(const cv::Mat& map, const Eigen::Vector2f& center);
     void updateLocalReachability(const Reachability& reachability, 
-        const Eigen::Isometry3f& reach_pose) 
-    {
-    }
+        const Eigen::Isometry2f& reach_pose);
     std::list<TravGraph::Node*> getPath(const Eigen::Vector2f& start_p,
         const Eigen::Vector2f& end_p);
 

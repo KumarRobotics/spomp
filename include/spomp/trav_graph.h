@@ -82,6 +82,8 @@ class TravGraph {
       return nodes_;
     }
 
+    const std::vector<Node*> getNodesNear(const Eigen::Vector2f& pos, float delta=1);
+
     const auto& getEdges() const {
       return edges_;
     }

@@ -35,7 +35,7 @@ class Global {
     void updateLocalReachability(const Reachability& reachability, 
         const Eigen::Isometry3f& reach_pose) 
     {
-      map_.updateLocalReachability(reachability, reach_pose);
+      map_.updateLocalReachability(reachability, pose32pose2(reach_pose));
     }
 
     //! @return The next global target waypoint, if available

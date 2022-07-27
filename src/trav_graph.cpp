@@ -63,6 +63,18 @@ std::list<TravGraph::Node*> TravGraph::getPath(
   return path;
 }
 
+const std::vector<TravGraph::Node*> TravGraph::getNodesNear(
+    const Eigen::Vector2f& pos, float delta) 
+{
+  std::vector<TravGraph::Node*> near_nodes{};
+  for (auto& [node_id, node] : nodes_) {
+    if ((node.pos - pos).norm() <= delta) {
+      near_nodes.push_back(&node);
+    }
+  }
+  return near_nodes;
+}
+
 TravGraph::Node* TravGraph::addNode(const Node& node) {
   int id = nodes_.size();
   auto [it, success] = nodes_.emplace(id, node);
