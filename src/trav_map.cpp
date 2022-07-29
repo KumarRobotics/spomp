@@ -126,19 +126,28 @@ void TravMap::updateLocalReachability(const Reachability& reachability,
       float range = local_dest_pose.norm();
       float bearing = atan2(local_dest_pose[1], local_dest_pose[0]);
 
-      bool is_reachable = false;
+      bool not_reachable = true;
+      bool reachable = true;
       for (float b=bearing-0.1; b<=bearing+0.1; b+=reachability.proj.delta_angle) {
         int ind = reachability.proj.indAt(b);
-        if (range > reachability.scan[ind] || !reachability.is_obs[ind]) {
+        if (range <= reachability.scan[ind] || !reachability.is_obs[ind]) {
           // We have a non-obstacle path
-          is_reachable = true;
-          break;
+          not_reachable = false;
+        }
+        if (range > reachability.scan[ind] && reachability.is_obs[ind]) {
+          // We have an obstacle path
+          reachable = false;
         }
       }
 
-      if (!is_reachable) {
+      if (not_reachable) {
         // Unreachable cost
-        edge->cost = std::pow(1000, max_terrain_);
+        edge->cls = max_terrain_ + 1;
+        edge->is_experienced = true;
+      }
+      if (reachable) {
+        edge->cls = 0;
+        edge->is_experienced = true;
       }
     }
   }
@@ -289,9 +298,12 @@ void TravMap::reweightGraph() {
   reweight_graph_t_->start();
 
   for (auto& edge : graph_.getEdges()) {
-    auto [edge_cls, edge_cost] = traceEdge(edge.node1->pos, edge.node2->pos);
-    edge.cls = edge_cls;
-    edge.cost = edge_cost;
+    // Only reweight if we don't already have first-hand experience
+    if (!edge.is_experienced) {
+      auto [edge_cls, edge_cost] = traceEdge(edge.node1->pos, edge.node2->pos);
+      edge.cls = edge_cls;
+      edge.cost = edge_cost;
+    }
   }
 
   for (auto& [node_id, node] : graph_.getNodes()) {

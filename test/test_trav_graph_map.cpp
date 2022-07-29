@@ -4,6 +4,7 @@
 
 #include "spomp/trav_graph.h"
 #include "spomp/trav_map.h"
+#include "spomp/utils.h"
 
 namespace spomp {
 
@@ -95,6 +96,24 @@ TEST(trav_map, test_static_map) {
   // save
   cv::imwrite("spomp_trav_static_map.png", m.viz());
   cv::imwrite("spomp_viz_static_map.png", m.viz_visibility());
+}
+
+TEST(trav_map, update_map) {
+  TravMap::Params m_p;
+  m_p.reach_node_max_dist = 3;
+  m_p.terrain_types_path = ros::package::getPath("spomp") + "/config/terrain_types.yaml";
+  TravMap m(m_p);
+  cv::Mat map_img = cv::imread(ros::package::getPath("spomp") + 
+                               "/test/map.png");
+  m.updateMap(map_img, {-24.1119060516, 62.8522758484});
+
+  Reachability reach{};
+  reach.proj = AngularProj(AngularProj::StartFinish{0, 2*pi}, 10);
+  reach.scan = Eigen::VectorXf::Zero(10);
+  reach.is_obs = Eigen::VectorXi::Ones(10);
+  m.updateLocalReachability(reach, Eigen::Isometry2f::Identity());
+
+  cv::imwrite("spomp_trav_updated_map.png", m.viz());
 }
 
 } // namespace spomp

@@ -47,6 +47,7 @@ class TravGraph {
       float length{0};
       float cost{0};
       int cls{0};
+      bool is_experienced{false};
 
       Edge(Node* const n1, Node* const n2, float c = 0, int cls = 0) :
         node1(n1), node2(n2), cost(c), cls(cls)
