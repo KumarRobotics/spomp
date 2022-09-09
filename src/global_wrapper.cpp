@@ -187,8 +187,10 @@ void GlobalWrapper::reachabilityCallback(
   // Get pano pose at time of scan
   try {
     geometry_msgs::TransformStamped reach_pose_msg = tf_buffer_.lookupTransform(
-        reachability_msg->header.frame_id, "map", reachability_msg->header.stamp);
+        reachability_msg->header.frame_id, "map", reachability_msg->header.stamp, 
+        ros::Duration(0.01));
     global_.updateLocalReachability(reachability, ROS2Eigen<float>(reach_pose_msg));
+    visualizeGraph(reachability_msg->header.stamp);
   } catch (tf2::TransformException& ex) {
     ROS_ERROR_STREAM("Cannot get reachability pano pose: " << ex.what());
   }
@@ -285,7 +287,12 @@ void GlobalWrapper::visualizeGraph(const ros::Time& stamp) {
     color.a = 1;
     float color_mag = std::min<float>(1./edge.cost, 1);
     if (edge.cls == 0) {
-      color.g = color_mag;
+      if (edge.is_experienced) {
+        color.g = color_mag;
+      } else {
+        color.g = color_mag;
+        color.r = color_mag;
+      }
     } else if (edge.cls == 1) {
       color.g = color_mag;
       color.b = color_mag;

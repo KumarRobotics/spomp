@@ -128,7 +128,7 @@ void TravMap::updateLocalReachability(const Reachability& reachability,
 
       bool not_reachable = true;
       bool reachable = true;
-      for (float b=bearing-0.1; b<=bearing+0.1; b+=reachability.proj.delta_angle) {
+      for (float b=bearing-0.1; b<=bearing+0.1; b+=std::abs(reachability.proj.delta_angle)) {
         int ind = reachability.proj.indAt(b);
         if (range <= reachability.scan[ind] || !reachability.is_obs[ind]) {
           // We have a non-obstacle path
