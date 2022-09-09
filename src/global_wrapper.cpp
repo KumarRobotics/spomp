@@ -300,6 +300,12 @@ void GlobalWrapper::visualizeGraph(const ros::Time& stamp) {
       color.b = color_mag;
     } else if (edge.cls == 3) {
       color.r = color_mag;
+      color.b = color_mag;
+    }
+
+    if (edge.is_experienced && edge.cls > 0) {
+      // Known bad
+      color.r = color_mag;
     }
     // Otherwise leave black
 
