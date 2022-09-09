@@ -187,7 +187,7 @@ void GlobalWrapper::reachabilityCallback(
   // Get pano pose at time of scan
   try {
     geometry_msgs::TransformStamped reach_pose_msg = tf_buffer_.lookupTransform(
-        reachability_msg->header.frame_id, "map", reachability_msg->header.stamp, 
+        "map", reachability_msg->header.frame_id, reachability_msg->header.stamp, 
         ros::Duration(0.01));
     global_.updateLocalReachability(reachability, ROS2Eigen<float>(reach_pose_msg));
     visualizeGraph(reachability_msg->header.stamp);
