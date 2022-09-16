@@ -39,7 +39,9 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   nh.getParam("TM_unvis_start_thresh", tm_params.unvis_start_thresh);
   nh.getParam("TM_unvis_stop_thresh", tm_params.unvis_stop_thresh);
   nh.getParam("TM_prune", tm_params.prune);
-  nh.getParam("TM_reach_node_max_dist", tm_params.reach_node_max_dist);
+  nh.getParam("TM_reach_node_max_dist_m", tm_params.reach_node_max_dist_m);
+  nh.getParam("TM_reach_max_dist_to_be_obs_m", tm_params.reach_max_dist_to_be_obs_m);
+  nh.getParam("TM_trav_window_rad", tm_params.trav_window_rad);
 
   nh.getParam("WM_waypoint_thresh_m", wm_params.waypoint_thresh_m);
 
@@ -56,7 +58,9 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
     setw(width) << "[ROS] TM_unvis_start_thresh: " << tm_params.unvis_start_thresh << endl <<
     setw(width) << "[ROS] TM_unvis_stop_thresh: " << tm_params.unvis_stop_thresh << endl <<
     setw(width) << "[ROS] TM_prune: " << tm_params.prune << endl <<
-    setw(width) << "[ROS] TM_reach_node_max_dist: " << tm_params.reach_node_max_dist << endl <<
+    setw(width) << "[ROS] TM_reach_node_max_dist_m: " << tm_params.reach_node_max_dist_m << endl <<
+    setw(width) << "[ROS] TM_reach_max_dist_to_be_obs_m: " << tm_params.reach_max_dist_to_be_obs_m << endl <<
+    setw(width) << "[ROS] TM_trav_window_rad: " << tm_params.trav_window_rad << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] WM_waypoint_thresh_m: " << wm_params.waypoint_thresh_m << endl <<
     "[ROS] ====== End Configuration ======" << "\033[0m");
