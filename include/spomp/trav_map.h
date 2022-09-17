@@ -21,7 +21,9 @@ class TravMap {
       float unvis_start_thresh = 0.1;
       float unvis_stop_thresh = 0.01;
       bool prune = true;
-      float reach_node_max_dist = 5;
+      float reach_node_max_dist_m = 4;
+      float reach_max_dist_to_be_obs_m = 5;
+      float trav_window_rad = 0.1;
     };
     TravMap(const Params& p);
 

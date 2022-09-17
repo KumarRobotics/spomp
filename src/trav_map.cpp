@@ -116,7 +116,7 @@ void TravMap::updateLocalReachability(const Reachability& reachability,
     const Eigen::Isometry2f& reach_pose)
 {
   auto near_nodes = graph_.getNodesNear(reach_pose.translation(), 
-      params_.reach_node_max_dist);
+      params_.reach_node_max_dist_m);
 
   for (const auto& node_ptr : near_nodes) {
     for (const auto& edge : node_ptr->edges) {
@@ -128,7 +128,9 @@ void TravMap::updateLocalReachability(const Reachability& reachability,
 
       bool not_reachable = true;
       bool reachable = true;
-      for (float b=bearing-0.1; b<=bearing+0.1; b+=std::abs(reachability.proj.delta_angle)) {
+      for (float b=bearing-params_.trav_window_rad; b<=bearing+params_.trav_window_rad; 
+           b+=std::abs(reachability.proj.delta_angle)) 
+      {
         int ind = reachability.proj.indAt(b);
         if (range <= reachability.scan[ind] || !reachability.is_obs[ind]) {
           // We have a non-obstacle path
@@ -137,6 +139,10 @@ void TravMap::updateLocalReachability(const Reachability& reachability,
         if (range > reachability.scan[ind] && reachability.is_obs[ind]) {
           // We have an obstacle path
           reachable = false;
+          if (reachability.scan[ind] > params_.reach_max_dist_to_be_obs_m) {
+            // We can't get there, but it is far away.  Unclear.
+            not_reachable = false;
+          }
         }
       }
 
@@ -144,8 +150,7 @@ void TravMap::updateLocalReachability(const Reachability& reachability,
         // Unreachable cost
         edge->cls = max_terrain_ + 1;
         edge->is_experienced = true;
-      }
-      if (reachable) {
+      } else if (reachable) {
         edge->cls = 0;
         edge->is_experienced = true;
       }
