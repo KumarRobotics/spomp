@@ -4,7 +4,7 @@
 #include <set>
 #include "spomp/trav_graph.h"
 #include "spomp/timer.h"
-#include "spomp/semantic_color_lut.h"
+#include "semantics_manager/semantic_color_lut.h"
 #include "spomp/utils.h"
 
 namespace spomp {

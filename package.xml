@@ -64,6 +64,7 @@
   <depend>image_transport</depend>
   <depend>message_filters</depend>
   <depend>actionlib_msgs</depend>
+  <depend>semantics_manager</depend>
   <exec_depend>message_generation</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
