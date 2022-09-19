@@ -51,7 +51,7 @@ TEST(trav_graph, test_graph_search) {
 
 TEST(trav_map, test_transforms) {
   TravMap::Params m_p;
-  m_p.terrain_types_path = ros::package::getPath("spomp") + "/config/terrain_types.yaml";
+  m_p.config_path = ros::package::getPath("semantics_manager") + "/config/test_config_dynamic.yaml";
   TravMap m(m_p);
   cv::Mat map_img = cv::imread(ros::package::getPath("spomp") + 
                                "/test/map.png");
@@ -64,7 +64,7 @@ TEST(trav_map, test_transforms) {
 
 TEST(trav_map, test_map_graph_search) {
   TravMap::Params m_p;
-  m_p.terrain_types_path = ros::package::getPath("spomp") + "/config/terrain_types.yaml";
+  m_p.config_path = ros::package::getPath("semantics_manager") + "/config/test_config_dynamic.yaml";
   TravMap m(m_p);
   cv::Mat map_img = cv::imread(ros::package::getPath("spomp") + 
                                "/test/map.png");
@@ -87,10 +87,7 @@ TEST(trav_map, test_map_graph_search) {
 
 TEST(trav_map, test_static_map) {
   TravMap::Params m_p;
-  m_p.terrain_types_path = ros::package::getPath("spomp") + "/config/terrain_types.yaml";
-  m_p.semantic_lut_path = ros::package::getPath("spomp") + "/config/semantic_lut.yaml";
-  m_p.static_map_path = ros::package::getPath("spomp") + "/test/static_map.png";
-  m_p.map_res = 5.07/5;
+  m_p.config_path = ros::package::getPath("semantics_manager") + "/config/test_config.yaml";
   TravMap m(m_p);
 
   // save
@@ -100,8 +97,8 @@ TEST(trav_map, test_static_map) {
 
 TEST(trav_map, update_map) {
   TravMap::Params m_p;
-  m_p.reach_node_max_dist = 3;
-  m_p.terrain_types_path = ros::package::getPath("spomp") + "/config/terrain_types.yaml";
+  m_p.reach_node_max_dist_m = 3;
+  m_p.config_path = ros::package::getPath("semantics_manager") + "/config/test_config.yaml";
   TravMap m(m_p);
   cv::Mat map_img = cv::imread(ros::package::getPath("spomp") + 
                                "/test/map.png");

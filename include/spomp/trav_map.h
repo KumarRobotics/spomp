@@ -46,7 +46,8 @@ class TravMap {
      * LOCAL FUNCTIONS
      *********************************************************/
     void loadClasses(const std::filesystem::path& class_path = std::filesystem::path());
-    void loadStaticMap(const std::filesystem::path& map_path = std::filesystem::path());
+    void loadStaticMap(const std::filesystem::path& map_path = std::filesystem::path(),
+        const std::filesystem::path& class_path = std::filesystem::path());
     void computeDistMaps();
     void rebuildVisibility();
     void reweightGraph();

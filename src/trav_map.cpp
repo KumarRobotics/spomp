@@ -19,22 +19,28 @@ TravMap::TravMap(const Params& p) : params_(p) {
     const YAML::Node config_root = YAML::LoadFile(params_.config_path);
     path root_path = path(params_.config_path).parent_path();
 
-    loadClasses(root_path / path(config_root["classes"].as<std::string>()));
-    loadStaticMap(root_path / path(config_root["map"].as<std::string>()));
-    loadStaticMap();
+    auto class_path = root_path / path(config_root["classes"].as<std::string>());
+    auto map_path = root_path / path(config_root["map"].as<std::string>());
+    loadClasses(class_path);
+    loadStaticMap(map_path, class_path);
   }
 }
 
 void TravMap::loadClasses(const std::filesystem::path& class_path) {
   terrain_lut_ = cv::Mat::ones(256, 1, CV_8UC1) * 255;
   if (!class_path.empty()) {
-    const YAML::Node terrain_types = YAML::LoadFile(class_path.c_str());
+    const YAML::Node terrain_types = YAML::LoadFile(class_path.string());
     int terrain_ind = 0;
     for (const auto& terrain_type : terrain_types) {
-      int type = terrain_type.as<int>();
-      terrain_lut_.at<uint8_t>(terrain_ind) = type;
-      if (type > max_terrain_) {
-        max_terrain_ = type;
+      if (terrain_type["traversability_diff"]) {
+        int type = terrain_type["traversability_diff"].as<int>();
+        terrain_lut_.at<uint8_t>(terrain_ind) = type;
+        if (type > max_terrain_) {
+          max_terrain_ = type;
+        }
+      } else {
+        std::cout << "\033[31m" << "[ERROR] Class " << terrain_type["name"] << "missing trav difficulty." 
+          << "\033[0m" << std::endl;
       }
       ++terrain_ind;
     }
@@ -52,14 +58,24 @@ void TravMap::loadClasses(const std::filesystem::path& class_path) {
   }
 }
 
-void TravMap::loadStaticMap(const std::filesystem::path& map_path) {
-  if (params_.static_map_path == "") {
+void TravMap::loadStaticMap(const std::filesystem::path& map_path,
+                            const std::filesystem::path& class_path) 
+{
+  if (map_path.empty()) {
+    return;
+  }
+
+  const YAML::Node map_config = YAML::LoadFile(map_path.string());
+  map_res_ = map_config["resolution"].as<float>();
+
+  if (map_config["sem_map"].as<std::string>() == "dynamic") {
+    std::cout << "\033[34m" << "[SPOMP-Global] Using dynamic map" << "\033[0m" << std::endl;
     return;
   }
 
   SemanticColorLut semantic_color_lut;
   try {
-    semantic_color_lut = SemanticColorLut(params_.semantic_lut_path);
+    semantic_color_lut = SemanticColorLut(class_path.string());
   } catch (const std::exception& ex) {
     // This usually happens when there is a yaml reading error
     std::cout << "\033[31m" << "[ERROR] Cannot create semantic LUT: " << ex.what() 
@@ -67,8 +83,12 @@ void TravMap::loadStaticMap(const std::filesystem::path& map_path) {
     return;
   }
 
+  // Read map config file
+  std::filesystem::path full_map_path = map_path.parent_path() / 
+    std::filesystem::path(map_config["sem_map"].as<std::string>());
+
   cv::Mat color_sem, class_sem;
-  color_sem = cv::imread(params_.static_map_path);
+  color_sem = cv::imread(full_map_path.string());
   if (color_sem.data == NULL) {
     std::cout << "\033[31m" << "[ERROR] Static Map path specified but not read correctly" 
       << "\033[0m" << std::endl;
@@ -76,7 +96,7 @@ void TravMap::loadStaticMap(const std::filesystem::path& map_path) {
   }
 
   semantic_color_lut.color2Ind(color_sem, class_sem);
-  map_center_ = Eigen::Vector2f(class_sem.cols, class_sem.rows)/2 / params_.map_res;
+  map_center_ = Eigen::Vector2f(class_sem.cols, class_sem.rows)/2 / map_res_;
 
   // Set map now so that world2img works properly
   cv::rotate(class_sem, class_sem, cv::ROTATE_90_COUNTERCLOCKWISE);
@@ -89,14 +109,14 @@ void TravMap::loadStaticMap(const std::filesystem::path& map_path) {
 Eigen::Vector2f TravMap::world2img(const Eigen::Vector2f& world_c) const {
   Eigen::Vector2f world_pt = world_c - map_center_;
   Eigen::Vector2f img_pt = {-world_pt[1], -world_pt[0]};
-  img_pt *= params_.map_res;
+  img_pt *= map_res_;
   img_pt += Eigen::Vector2f(map_.cols, map_.rows)/2;
   return img_pt;
 }
 
 Eigen::Vector2f TravMap::img2world(const Eigen::Vector2f& img_c) const {
   Eigen::Vector2f img_pt = img_c - Eigen::Vector2f(map_.cols, map_.rows)/2;
-  img_pt /= params_.map_res;
+  img_pt /= map_res_;
   Eigen::Vector2f world_pt = {-img_pt[1], -img_pt[0]};
   world_pt += map_center_;
   return world_pt;
@@ -279,8 +299,8 @@ void TravMap::computeDistMaps() {
 
   int t_cls = 0;
   auto kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(
-        params_.max_hole_fill_size_m * params_.map_res,
-        params_.max_hole_fill_size_m * params_.map_res));
+        params_.max_hole_fill_size_m * map_res_,
+        params_.max_hole_fill_size_m * map_res_));
 
   for (auto& dist_map : dist_maps_) {
     cv::Mat trav_map;
@@ -400,7 +420,7 @@ std::pair<int, float> TravMap::traceEdge(const Eigen::Vector2f& n1,
     // Ignore unknwon
   } 
 
-  return {worst_cls, 1/(worst_dist/params_.map_res + 0.01)};
+  return {worst_cls, 1/(worst_dist/map_res_ + 0.01)};
 }
 
 TravGraph::Node* TravMap::addNode(const Eigen::Vector2f& pos, int t_cls) {
@@ -446,11 +466,11 @@ std::map<int, Eigen::Vector2f> TravMap::addNodeToVisibility(const TravGraph::Nod
   std::map<int, Eigen::Vector2f> overlapping_nodes;
 
   // Choose delta such that ends of rays are within 0.5 cells
-  float delta_t = 0.5 / (params_.vis_dist_m * params_.map_res);
+  float delta_t = 0.5 / (params_.vis_dist_m * map_res_);
   for (float theta=0; theta<2*pi; theta+=delta_t) {
     Eigen::Vector2f dir = {cos(theta), sin(theta)};
 
-    for (float r=0; r<params_.map_res*params_.vis_dist_m; r+=0.5) {
+    for (float r=0; r<map_res_*params_.vis_dist_m; r+=0.5) {
       Eigen::Vector2f img_cell = img_loc + dir*r;
       if ((img_cell.array() < 0).any() || 
           (img_cell.array() >= Eigen::Vector2f(map_.cols, map_.rows).array()).any()) {
