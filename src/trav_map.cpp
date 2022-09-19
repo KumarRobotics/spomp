@@ -14,14 +14,21 @@ TravMap::TravMap(const Params& p) : params_(p) {
   rebuild_visibility_t_ = tm.get("TM_rebuild_visibility");
   build_graph_t_ = tm.get("TM_build_graph");
 
-  loadTerrainLUT();
-  loadStaticMap();
+  if (params_.config_path != "") {
+    using namespace std::filesystem;
+    const YAML::Node config_root = YAML::LoadFile(params_.config_path);
+    path root_path = path(params_.config_path).parent_path();
+
+    loadClasses(root_path / path(config_root["classes"].as<std::string>()));
+    loadStaticMap(root_path / path(config_root["map"].as<std::string>()));
+    loadStaticMap();
+  }
 }
 
-void TravMap::loadTerrainLUT() {
+void TravMap::loadClasses(const std::filesystem::path& class_path) {
   terrain_lut_ = cv::Mat::ones(256, 1, CV_8UC1) * 255;
-  if (params_.terrain_types_path != "") {
-    const YAML::Node terrain_types = YAML::LoadFile(params_.terrain_types_path);
+  if (!class_path.empty()) {
+    const YAML::Node terrain_types = YAML::LoadFile(class_path.c_str());
     int terrain_ind = 0;
     for (const auto& terrain_type : terrain_types) {
       int type = terrain_type.as<int>();
@@ -45,7 +52,7 @@ void TravMap::loadTerrainLUT() {
   }
 }
 
-void TravMap::loadStaticMap() {
+void TravMap::loadStaticMap(const std::filesystem::path& map_path) {
   if (params_.static_map_path == "") {
     return;
   }

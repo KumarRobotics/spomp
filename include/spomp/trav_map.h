@@ -1,7 +1,8 @@
 #pragma once
 
-#include <opencv2/core.hpp>
 #include <set>
+#include <filesystem>
+#include <opencv2/core.hpp>
 #include "spomp/trav_graph.h"
 #include "spomp/timer.h"
 #include "semantics_manager/semantic_color_lut.h"
@@ -12,10 +13,7 @@ namespace spomp {
 class TravMap {
   public:
     struct Params {
-      std::string terrain_types_path = "";
-      std::string static_map_path = "";
-      std::string semantic_lut_path = "";
-      float map_res = 2;
+      std::string config_path = "";
       float max_hole_fill_size_m = 2;
       float vis_dist_m = 10;
       float unvis_start_thresh = 0.1;
@@ -47,8 +45,8 @@ class TravMap {
     /*********************************************************
      * LOCAL FUNCTIONS
      *********************************************************/
-    void loadTerrainLUT();
-    void loadStaticMap();
+    void loadClasses(const std::filesystem::path& class_path = std::filesystem::path());
+    void loadStaticMap(const std::filesystem::path& map_path = std::filesystem::path());
     void computeDistMaps();
     void rebuildVisibility();
     void reweightGraph();
@@ -71,6 +69,7 @@ class TravMap {
     Params params_;
     cv::Mat terrain_lut_{};
     int max_terrain_{1};
+    float map_res_{1};
 
     /*********************************************************
      * LOCAL VARIABLES

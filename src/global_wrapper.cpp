@@ -30,10 +30,8 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   TravMap::Params tm_params{};
   WaypointManager::Params wm_params{};
 
-  nh.getParam("TM_terrain_types_path", tm_params.terrain_types_path);
-  nh.getParam("TM_static_map_path", tm_params.static_map_path);
-  nh.getParam("TM_semantic_lut_path", tm_params.semantic_lut_path);
-  nh.getParam("TM_map_res", tm_params.map_res);
+  nh.getParam("config_path", tm_params.config_path);
+
   nh.getParam("TM_max_hole_fill_size_m", tm_params.max_hole_fill_size_m);
   nh.getParam("TM_vis_dist_m", tm_params.vis_dist_m);
   nh.getParam("TM_unvis_start_thresh", tm_params.unvis_start_thresh);
@@ -49,10 +47,8 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   using namespace std;
   ROS_INFO_STREAM("\033[32m" << "[SPOMP-Global]" << endl << "[ROS] ======== Configuration ========" << 
     endl << left << 
-    setw(width) << "[ROS] TM_terrain_types_path: " << tm_params.terrain_types_path << endl <<
-    setw(width) << "[ROS] TM_static_map_path: " << tm_params.static_map_path << endl <<
-    setw(width) << "[ROS] TM_semantic_lut_path: " << tm_params.semantic_lut_path << endl <<
-    setw(width) << "[ROS] TM_map_res: " << tm_params.map_res << endl <<
+    setw(width) << "[ROS] config_path: " << tm_params.config_path << endl <<
+    "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] TM_max_hole_fill_size_m: " << tm_params.max_hole_fill_size_m << endl <<
     setw(width) << "[ROS] TM_vis_dist_m: " << tm_params.vis_dist_m << endl <<
     setw(width) << "[ROS] TM_unvis_start_thresh: " << tm_params.unvis_start_thresh << endl <<
