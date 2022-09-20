@@ -2,12 +2,6 @@
 <launch>
   <node pkg="spomp" type="node_global" name="spomp_global" output="screen">
     <param name="config_path" value="$(find semantics_manager)/config/config.yaml"/>
-    <!--param name="TM_terrain_types_path" value="$(find spomp)/config/terrain_types.yaml"/>
-    <param name="TM_static_map_path" value="$(find spomp)/maps/pennovation2.png"/>
-    <param name="TM_semantic_lut_path" value="$(find spomp)/config/semantic_lut.yaml"/-->
-    <!--param name="TM_map_res" value="2.946"/--> <!-- west_point -->
-    <!--param name="TM_map_res" value="5.07"/--> <!-- pennovation2 -->
-    <!--param name="TM_map_res" value="2"/-->
     <param name="TM_prune" value="True"/>
     <param name="WM_waypoint_thresh_m" value="2.5"/>
     <remap from="~map_sem_img" to="/titan/asoom/map_sem_img"/>
