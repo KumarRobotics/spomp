@@ -14,41 +14,20 @@ TravMap::TravMap(const Params& p) : params_(p) {
   rebuild_visibility_t_ = tm.get("TM_rebuild_visibility");
   build_graph_t_ = tm.get("TM_build_graph");
 
-  if (params_.config_path != "") {
-    using namespace std::filesystem;
-    const YAML::Node config_root = YAML::LoadFile(params_.config_path);
-    path root_path = path(params_.config_path).parent_path();
-
-    auto class_path = root_path / path(config_root["classes"].as<std::string>());
-    auto map_path = root_path / path(config_root["map"].as<std::string>());
-    loadClasses(class_path);
-    loadStaticMap(map_path, class_path);
-  }
-}
-
-void TravMap::loadClasses(const std::filesystem::path& class_path) {
   terrain_lut_ = cv::Mat::ones(256, 1, CV_8UC1) * 255;
-  if (!class_path.empty()) {
-    const YAML::Node terrain_types = YAML::LoadFile(class_path.string());
-    int terrain_ind = 0;
-    for (const auto& terrain_type : terrain_types) {
-      if (terrain_type["traversability_diff"]) {
-        int type = terrain_type["traversability_diff"].as<int>();
-        terrain_lut_.at<uint8_t>(terrain_ind) = type;
-        if (type > max_terrain_) {
-          max_terrain_ = type;
-        }
-      } else {
-        std::cout << "\033[31m" << "[ERROR] Class " << terrain_type["name"] << "missing trav difficulty." 
-          << "\033[0m" << std::endl;
-      }
-      ++terrain_ind;
-    }
+  if (params_.config_path != "") {
+    semantics_manager::ClassConfig class_config(
+        semantics_manager::getClassesPath(params_.config_path));
+    semantics_manager::MapConfig map_config(
+        semantics_manager::getMapPath(params_.config_path));
+    loadClasses(class_config);
+    loadStaticMap(map_config, class_config);
   } else {
-    // Default: assume first class is traversable, not second
-    // Rest unknown
+    std::cout << "\033[31m" << "[ERROR] Using TravMap defaults.  Really a test-only case." 
+      << "\033[0m" << std::endl;
     terrain_lut_.at<uint8_t>(0) = 0;
     terrain_lut_.at<uint8_t>(1) = 1;
+    map_res_ = 1;
   }
 
   // Initialize dist_maps_
@@ -58,44 +37,36 @@ void TravMap::loadClasses(const std::filesystem::path& class_path) {
   }
 }
 
-void TravMap::loadStaticMap(const std::filesystem::path& map_path,
-                            const std::filesystem::path& class_path) 
+void TravMap::loadClasses(const semantics_manager::ClassConfig& class_config) {
+  int terrain_ind = 0;
+  for (const auto& terrain_type : class_config.traversabililty_diff) {
+    terrain_lut_.at<uint8_t>(terrain_ind) = terrain_type;
+    if (terrain_type > max_terrain_) {
+      max_terrain_ = terrain_type;
+    }
+    ++terrain_ind;
+  }
+}
+
+void TravMap::loadStaticMap(const semantics_manager::MapConfig& map_config, 
+    const semantics_manager::ClassConfig& class_config) 
 {
-  if (map_path.empty()) {
+  map_res_ = map_config.resolution;
+
+  if (map_config.dynamic) {
+    std::cout << "\033[36m" << "[SPOMP-Global] Using dynamic map" << "\033[0m" << std::endl;
     return;
   }
-
-  const YAML::Node map_config = YAML::LoadFile(map_path.string());
-  map_res_ = map_config["resolution"].as<float>();
-
-  if (map_config["sem_map"].as<std::string>() == "dynamic") {
-    std::cout << "\033[34m" << "[SPOMP-Global] Using dynamic map" << "\033[0m" << std::endl;
-    return;
-  }
-
-  SemanticColorLut semantic_color_lut;
-  try {
-    semantic_color_lut = SemanticColorLut(class_path.string());
-  } catch (const std::exception& ex) {
-    // This usually happens when there is a yaml reading error
-    std::cout << "\033[31m" << "[ERROR] Cannot create semantic LUT: " << ex.what() 
-      << "\033[0m" << std::endl;
-    return;
-  }
-
-  // Read map config file
-  std::filesystem::path full_map_path = map_path.parent_path() / 
-    std::filesystem::path(map_config["sem_map"].as<std::string>());
 
   cv::Mat color_sem, class_sem;
-  color_sem = cv::imread(full_map_path.string());
+  color_sem = cv::imread(map_config.raster_path);
   if (color_sem.data == NULL) {
     std::cout << "\033[31m" << "[ERROR] Static Map path specified but not read correctly" 
       << "\033[0m" << std::endl;
     return;
   }
 
-  semantic_color_lut.color2Ind(color_sem, class_sem);
+  class_config.color_lut.color2Ind(color_sem, class_sem);
   map_center_ = Eigen::Vector2f(class_sem.cols, class_sem.rows)/2 / map_res_;
 
   // Set map now so that world2img works properly
@@ -103,7 +74,7 @@ void TravMap::loadStaticMap(const std::filesystem::path& map_path,
 
   // We have set map_center_ already, but want to postproc
   updateMap(class_sem, map_center_);
-  std::cout << "\033[34m" << "[SPOMP-Global] Static Map loaded" << "\033[0m" << std::endl;
+  std::cout << "\033[36m" << "[SPOMP-Global] Static Map loaded" << "\033[0m" << std::endl;
 }
 
 Eigen::Vector2f TravMap::world2img(const Eigen::Vector2f& world_c) const {

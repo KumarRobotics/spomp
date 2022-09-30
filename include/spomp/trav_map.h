@@ -5,7 +5,7 @@
 #include <opencv2/core.hpp>
 #include "spomp/trav_graph.h"
 #include "spomp/timer.h"
-#include "semantics_manager/semantic_color_lut.h"
+#include "semantics_manager/semantics_manager.h"
 #include "spomp/utils.h"
 
 namespace spomp {
@@ -45,9 +45,9 @@ class TravMap {
     /*********************************************************
      * LOCAL FUNCTIONS
      *********************************************************/
-    void loadClasses(const std::filesystem::path& class_path = std::filesystem::path());
-    void loadStaticMap(const std::filesystem::path& map_path = std::filesystem::path(),
-        const std::filesystem::path& class_path = std::filesystem::path());
+    void loadClasses(const semantics_manager::ClassConfig& class_config);
+    void loadStaticMap(const semantics_manager::MapConfig& map_config,
+        const semantics_manager::ClassConfig& class_config);
     void computeDistMaps();
     void rebuildVisibility();
     void reweightGraph();
