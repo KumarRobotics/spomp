@@ -4,7 +4,7 @@
   <arg name="xview" default="True"/>
   <include file="$(find llol)/launch/llol.launch" if="$(arg llol)"/>
   <include file="$(find top_down_render)/launch/top_down_render.launch" if="$(arg xview)">
-    <arg name="output" value="log"/>
+    <arg name="output" value="screen"/>
   </include>
 
   <include file="$(find spomp)/launch/mapper.launch"/>
