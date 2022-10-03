@@ -30,7 +30,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   TravMap::Params tm_params{};
   WaypointManager::Params wm_params{};
 
-  nh.getParam("config_path", tm_params.config_path);
+  nh.getParam("world_config_path", tm_params.config_path);
 
   nh.getParam("TM_max_hole_fill_size_m", tm_params.max_hole_fill_size_m);
   nh.getParam("TM_vis_dist_m", tm_params.vis_dist_m);
