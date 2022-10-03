@@ -47,6 +47,12 @@ void TravMap::loadStaticMap(const semantics_manager::MapConfig& map_config,
 {
   map_res_ = map_config.resolution;
 
+  // Initialize dist_maps_
+  dist_maps_.reserve(max_terrain_);
+  for (int terrain_ind=0; terrain_ind<max_terrain_; ++terrain_ind) {
+    dist_maps_.emplace_back();
+  }
+
   if (map_config.dynamic) {
     std::cout << "\033[36m" << "[SPOMP-Global] Using dynamic map" << "\033[0m" << std::endl;
     return;
@@ -65,12 +71,6 @@ void TravMap::loadStaticMap(const semantics_manager::MapConfig& map_config,
 
   // Set map now so that world2img works properly
   cv::rotate(class_sem, class_sem, cv::ROTATE_90_COUNTERCLOCKWISE);
-
-  // Initialize dist_maps_
-  dist_maps_.reserve(max_terrain_);
-  for (int terrain_ind=0; terrain_ind<max_terrain_; ++terrain_ind) {
-    dist_maps_.emplace_back();
-  }
 
   // We have set map_center_ already, but want to postproc
   updateMap(class_sem, map_center_);
