@@ -113,6 +113,10 @@ void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center) {
 void TravMap::updateLocalReachability(const Reachability& reachability, 
     const Eigen::Isometry2f& reach_pose)
 {
+  if (map_.empty()) {
+    return;
+  }
+
   auto near_nodes = graph_.getNodesNear(reach_pose.translation(), 
       params_.reach_node_max_dist_m);
 
@@ -160,6 +164,10 @@ std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,
     const Eigen::Vector2f& end_p)
 {
   std::list<TravGraph::Node*> path;
+
+  if (map_.empty()) {
+    return path;
+  }
 
   auto n1_img_pos = world2img(start_p);
   auto n2_img_pos = world2img(end_p);
@@ -468,10 +476,15 @@ std::map<int, Eigen::Vector2f> TravMap::addNodeToVisibility(const TravGraph::Nod
 }
 
 cv::Mat TravMap::viz() const {
+  cv::Mat viz;
+  if (map_.empty()) {
+    return viz;
+  }
+
   cv::Mat scaled_map = map_.clone();
   // Rescale for increasing order of trav difficulty 0->255
   scaled_map *= 255. / max_terrain_;
-  cv::Mat viz, cmapped_map;
+  cv::Mat cmapped_map;
   cv::applyColorMap(scaled_map, cmapped_map, cv::COLORMAP_PARULA);
   // Mask unknown regions
   cmapped_map.copyTo(viz, map_ < 255);
