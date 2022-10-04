@@ -1,13 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
+  <arg name="world_config_path" default="$(find semantics_manager)/config/config.yaml"/>
+
+  <arg name="TM_max_hole_fill_size_m" default="2"/>
+  <arg name="TM_vis_dist_m" default="10"/>
+  <arg name="TM_unvis_start_thresh" default="0.1"/>
+  <arg name="TM_unvis_stop_thresh" default="0.01"/>
+  <arg name="TM_prune" default="True"/>
+  <arg name="TM_reach_node_max_dist_m" default="4"/>
+  <arg name="TM_reach_max_dist_to_be_obs_m" default="5"/>
+  <arg name="TM_trav_window_rad" default="0.1"/>
+
+  <arg name="WM_waypoint_thresh_m" default="2.5"/>
+
   <node pkg="spomp" type="node_global" name="spomp_global" output="screen">
-    <param name="world_config_path" value="$(find semantics_manager)/config/config.yaml"/>
-    <param name="TM_prune" value="True"/>
-    <param name="WM_waypoint_thresh_m" value="2.5"/>
+    <!-- Remappings -->
     <remap from="~map_sem_img" to="/titan/asoom/map_sem_img"/>
     <remap from="~map_sem_img_center" to="/titan/asoom/map_sem_img_center"/>
     <remap from="~goal_simple" to="/move_base_simple/goal"/>
     <remap from="~pose" to="/os_node/llol_odom/pose"/>
     <remap from="~reachability" to="/spomp_local/reachability"/>
+
+    <!-- Params -->
+    <param name="world_config_path" value="$(arg world_config_path)"/>
+
+    <param name="TM_vis_dist_m" value="$(arg TM_vis_dist_m)"/>
+    <param name="TM_unvis_start_thresh" value="$(arg TM_unvis_start_thresh)"/>
+    <param name="TM_unvis_stop_thresh" value="$(arg TM_unvis_stop_thresh)"/>
+    <param name="TM_prune" value="$(arg TM_prune)"/>
+    <param name="TM_reach_node_max_dist_m" value="$(arg TM_reach_node_max_dist_m)"/>
+    <param name="TM_reach_max_dist_to_be_obs_m" value="$(arg TM_reach_max_dist_to_be_obs_m)"/>
+    <param name="TM_trav_window_rad" value="$(arg TM_trav_window_rad)"/>
+
+    <param name="WM_waypoint_thresh_m" value="$(arg WM_waypoint_thresh_m)"/>
   </node>
 </launch>

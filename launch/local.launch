@@ -1,24 +1,70 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-  <node pkg="tf2_ros" type="static_transform_publisher" name="llol_body" args="0 0 0 3.14159 0 0 body base_link" />
+  <arg name="tbb" default="-1"/>
+
+  <arg name="SL_goal_thresh_m" default="-1"/>
+
+  <arg name="TP_max_hole_fill_size" default="0.1"/>
+  <arg name="TP_min_noise_size" default="0.3"/>
+  <arg name="TP_v_fov_rad" default="1.5708"/>
+  <arg name="TP_target_dist_xy" default="0.5"/>
+  <arg name="TP_noise_m" default="0.05"/>
+  <arg name="TP_slope_thresh" default="0.3"/>
+  <arg name="TP_inflation_m" default="0.5"/>
+  <arg name="TP_max_distance_m" default="2"/>
+
+  <arg name="PP_max_spacing_m" default="2"/>
+  <arg name="PP_sample_size" default="1000"/>
+  <arg name="PP_consistency_cost" default="0.2"/>
+
+  <arg name="CO_freq" default="10"/>
+  <arg name="CO_max_lin_accel" default="2"/>
+  <arg name="CO_max_ang_accel" default="2"/>
+  <arg name="CO_max_lin_vel" default="1.5"/>
+  <arg name="CO_max_ang_vel" default="1"/>
+  <arg name="CO_horizon_sec" default="1.5"/>
+  <arg name="CO_horizon_dt" default="0.1"/>
+  <arg name="CO_lin_disc" default="10"/>
+  <arg name="CO_ang_disc" default="4"/>
+  <arg name="CO_obs_cost_weight" default="1"/>
 
   <node pkg="spomp" type="node_local" name="spomp_local" output="screen">
-    <param name="tbb" value="-1"/>
-    <param name="TP_max_distance_m" value="2"/>
-    <param name="TP_inflation_m" value="0.5"/>
-    <param name="CO_max_lin_vel" value="1.5"/>
-    <param name="CO_max_lin_accel" value="2"/>
-    <param name="CO_max_ang_vel" value="1"/>
-    <param name="CO_max_ang_accel" value="2"/>
-    <param name="CO_ang_disc" value="4"/>
-    <param name="CO_horizon_sec" value="1.5"/>
-    <param name="CO_obs_cost_weight" value="1"/>
-    <param name="PP_sample_size" value="1000"/>
-    <param name="PP_max_spacing_m" value="2"/>
+    <!-- Remappings -->
     <remap from="~pano/img" to="/os_node/llol_odom/pano/img"/>
     <remap from="~pano/camera_info" to="/os_node/llol_odom/pano/camera_info"/>
     <remap from="~pose" to="/os_node/llol_odom/pose"/>
     <remap from="~goal" to="/spomp_global/local_goal"/>
     <remap from="~control" to="/twist_auto"/>
+
+    <!-- Params -->
+    <param name="tbb" value="$(arg tbb)"/>
+
+    <param name="SL_goal_thresh_m" value="$(arg SL_goal_thresh_m)"/>
+
+    <param name="TP_max_hole_fill_size" value="$(arg TP_max_hole_fill_size)"/>
+    <param name="TP_min_noise_size" value="$(arg TP_min_noise_size)"/>
+    <param name="TP_v_fov_rad" value="$(arg TP_v_fov_rad)"/>
+    <param name="TP_target_dist_xy" value="$(arg TP_target_dist_xy)"/>
+    <param name="TP_noise_m" value="$(arg TP_noise_m)"/>
+    <param name="TP_slope_thresh" value="$(arg TP_slope_thresh)"/>
+    <param name="TP_inflation_m" value="$(arg TP_inflation_m)"/>
+    <param name="TP_max_distance_m" value="$(arg TP_max_distance_m)"/>
+
+    <param name="PP_sample_size" value="$(arg PP_sample_size)"/>
+    <param name="PP_max_spacing_m" value="$(arg PP_max_spacing_m)"/>
+    <param name="PP_consistency_cost" value="$(arg PP_consistency_cost)"/>
+
+    <param name="CO_freq" value="$(arg CO_freq)"/>
+    <param name="CO_max_lin_accel" value="$(arg CO_max_lin_accel)"/>
+    <param name="CO_max_ang_accel" value="$(arg CO_max_ang_accel)"/>
+    <param name="CO_max_lin_vel" value="$(arg CO_max_lin_vel)"/>
+    <param name="CO_max_ang_vel" value="$(arg CO_max_ang_vel)"/>
+    <param name="CO_horizon_sec" value="$(arg CO_horizon_sec)"/>
+    <param name="CO_horizon_dt" value="$(arg CO_horizon_dt)"/>
+    <param name="CO_lin_disc" value="$(arg CO_lin_disc)"/>
+    <param name="CO_ang_disc" value="$(arg CO_ang_disc)"/>
+    <param name="CO_obs_cost_weight" value="$(arg CO_obs_cost_weight)"/>
   </node>
+
+  <node pkg="tf2_ros" type="static_transform_publisher" name="llol_body" args="0 0 0 3.14159 0 0 body base_link" />
 </launch>

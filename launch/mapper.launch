@@ -1,8 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
+  <arg name="M_pgo_thread_period_ms" default="1000"/>
+  <arg name="M_correct_odom_per_frame" default="1"/>
+
+  <arg name="PG_num_frames_opt" default="10"/>
+  <arg name="PG_allow_interpolation" default="False"/>
+  <arg name="PG_between_uncertainty_loc" default="0.1"/>
+  <arg name="PG_between_uncertainty_rot" default="0.1"/>
+  <arg name="PG_prior_uncertainty_loc" default="0.1"/>
+  <arg name="PG_prior_uncertainty_rot" default="0.1"/>
+
   <node pkg="spomp" type="node_mapper" name="spomp_mapper" output="screen">
+    <!-- Remappings -->
     <remap from="~pano/img" to="/os_node/llol_odom/pano/img"/>
     <remap from="~pano/camera_info" to="/os_node/llol_odom/pano/camera_info"/>
     <remap from="~pose" to="/os_node/llol_odom/pose"/>
+
+    <!-- Params -->
+    <param name="M_pgo_thread_period_ms" value="$(arg M_pgo_thread_period_ms)"/>
+    <param name="M_correct_odom_per_frame" value="$(arg M_correct_odom_per_frame)"/>
+
+    <param name="PG_num_frames_opt" value="$(arg PG_num_frames_opt)"/>
+    <param name="PG_allow_interpolation" value="$(arg PG_allow_interpolation)"/>
+    <param name="PG_between_uncertainty_loc" value="$(arg PG_between_uncertainty_loc)"/>
+    <param name="PG_between_uncertainty_rot" value="$(arg PG_between_uncertainty_rot)"/>
+    <param name="PG_prior_uncertainty_loc" value="$(arg PG_prior_uncertainty_loc)"/>
+    <param name="PG_prior_uncertainty_rot" value="$(arg PG_prior_uncertainty_rot)"/>
   </node>
 </launch>
