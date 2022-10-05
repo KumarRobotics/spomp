@@ -13,7 +13,7 @@
 
   <arg name="WM_waypoint_thresh_m" default="2.5"/>
 
-  <node pkg="spomp" type="node_global" name="spomp_global" output="screen" launch-prefix="gdb -ex run --args">
+  <node pkg="spomp" type="node_global" name="spomp_global" output="screen">
     <!-- Remappings -->
     <remap from="~map_sem_img" to="/titan/asoom/map_sem_img"/>
     <remap from="~map_sem_img_center" to="/titan/asoom/map_sem_img_center"/>
