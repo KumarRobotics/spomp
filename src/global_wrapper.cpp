@@ -190,6 +190,7 @@ void GlobalWrapper::reachabilityCallback(
         "map", reachability_msg->header.frame_id, reachability_msg->header.stamp, 
         ros::Duration(0.01));
     global_.updateLocalReachability(reachability, ROS2Eigen<float>(reach_pose_msg));
+    visualizePath(reachability_msg->header.stamp);
     visualizeGraph(reachability_msg->header.stamp);
   } catch (tf2::TransformException& ex) {
     ROS_ERROR_STREAM("Cannot get reachability pano pose: " << ex.what());

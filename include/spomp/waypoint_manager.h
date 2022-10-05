@@ -24,6 +24,10 @@ class WaypointManager {
       return path_;
     }
 
+    bool havePath() const {
+      return path_.size() > 0;
+    }
+
     void cancel() {
       path_.clear();
     }

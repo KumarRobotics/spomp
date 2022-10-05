@@ -33,10 +33,7 @@ class Global {
     }
 
     void updateLocalReachability(const Reachability& reachability, 
-        const Eigen::Isometry3f& reach_pose) 
-    {
-      map_.updateLocalReachability(reachability, pose32pose2(reach_pose));
-    }
+        const Eigen::Isometry3f& reach_pose);
 
     //! @return The next global target waypoint, if available
     std::optional<Eigen::Vector2f> getNextWaypoint() {
@@ -61,8 +58,6 @@ class Global {
      *********************************************************/
     TravMap map_;
     WaypointManager waypoint_manager_;
-
-    Eigen::Vector2f last_pos_{};
 };
 
 } // namespace spomp

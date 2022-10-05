@@ -115,16 +115,17 @@ void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center) {
   buildGraph();
 }
 
-void TravMap::updateLocalReachability(const Reachability& reachability, 
+bool TravMap::updateLocalReachability(const Reachability& reachability, 
     const Eigen::Isometry2f& reach_pose)
 {
   if (map_.empty()) {
-    return;
+    return false;
   }
 
   auto near_nodes = graph_.getNodesNear(reach_pose.translation(), 
       params_.reach_node_max_dist_m);
 
+  bool did_map_change = false;
   for (const auto& node_ptr : near_nodes) {
     for (const auto& edge : node_ptr->edges) {
       TravGraph::Node* dest_node_ptr = edge->getOtherNode(node_ptr);
@@ -155,14 +156,22 @@ void TravMap::updateLocalReachability(const Reachability& reachability,
 
       if (not_reachable) {
         // Unreachable cost
+        if (edge->cls != max_terrain_ + 1) {
+          did_map_change = true;
+        }
         edge->cls = max_terrain_ + 1;
         edge->is_experienced = true;
       } else if (reachable) {
+        if (edge->cls != 0) {
+          did_map_change = true;
+        }
         edge->cls = 0;
         edge->is_experienced = true;
       }
     }
   }
+
+  return did_map_change;
 }
 
 std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,

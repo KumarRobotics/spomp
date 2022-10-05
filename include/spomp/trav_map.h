@@ -26,7 +26,8 @@ class TravMap {
     TravMap(const Params& p);
 
     void updateMap(const cv::Mat& map, const Eigen::Vector2f& center);
-    void updateLocalReachability(const Reachability& reachability, 
+    //! @return True if map changed
+    bool updateLocalReachability(const Reachability& reachability, 
         const Eigen::Isometry2f& reach_pose);
     std::list<TravGraph::Node*> getPath(const Eigen::Vector2f& start_p,
         const Eigen::Vector2f& end_p);
