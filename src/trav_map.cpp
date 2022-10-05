@@ -15,11 +15,11 @@ TravMap::TravMap(const Params& p) : params_(p) {
   build_graph_t_ = tm.get("TM_build_graph");
 
   terrain_lut_ = cv::Mat::ones(256, 1, CV_8UC1) * 255;
-  if (params_.config_path != "") {
+  if (params_.world_config_path != "") {
     semantics_manager::ClassConfig class_config(
-        semantics_manager::getClassesPath(params_.config_path));
+        semantics_manager::getClassesPath(params_.world_config_path));
     semantics_manager::MapConfig map_config(
-        semantics_manager::getMapPath(params_.config_path));
+        semantics_manager::getMapPath(params_.world_config_path));
     loadClasses(class_config);
     loadStaticMap(map_config, class_config);
   } else {
@@ -54,6 +54,7 @@ void TravMap::loadStaticMap(const semantics_manager::MapConfig& map_config,
   }
 
   if (map_config.dynamic) {
+    dynamic_ = true;
     std::cout << "\033[36m" << "[SPOMP-Global] Using dynamic map" << "\033[0m" << std::endl;
     return;
   }
@@ -74,6 +75,8 @@ void TravMap::loadStaticMap(const semantics_manager::MapConfig& map_config,
 
   // We have set map_center_ already, but want to postproc
   updateMap(class_sem, map_center_);
+  // Set this to block updateMap from doing anything in the future
+  dynamic_ = false;
   std::cout << "\033[36m" << "[SPOMP-Global] Static Map loaded" << "\033[0m" << std::endl;
 }
 
@@ -94,6 +97,8 @@ Eigen::Vector2f TravMap::img2world(const Eigen::Vector2f& img_c) const {
 }
 
 void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center) {
+  if (!dynamic_) return;
+
   if (map.channels() == 1) {
     map_ = map;
   } else {

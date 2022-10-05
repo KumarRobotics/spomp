@@ -13,7 +13,7 @@ namespace spomp {
 class TravMap {
   public:
     struct Params {
-      std::string config_path = "";
+      std::string world_config_path = "";
       float max_hole_fill_size_m = 2;
       float vis_dist_m = 10;
       float unvis_start_thresh = 0.1;
@@ -71,6 +71,7 @@ class TravMap {
     cv::Mat terrain_lut_{};
     int max_terrain_{1};
     float map_res_{1};
+    bool dynamic_{true};
 
     /*********************************************************
      * LOCAL VARIABLES
