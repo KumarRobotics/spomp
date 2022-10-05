@@ -28,7 +28,9 @@ void Global::updateLocalReachability(const Reachability& reachability,
   bool did_change = map_.updateLocalReachability(reachability, pose32pose2(reach_pose));
 
   if (did_change && waypoint_manager_.havePath()) {
-    auto pos = waypoint_manager_.getNextWaypoint();
+    // We get the last waypoint because we want to replan including the current
+    // edge, in case the current edge changed traversability
+    auto pos = waypoint_manager_.getLastWaypoint();
     if (pos) {
       // Replan
       auto path = map_.getPath(*pos, waypoint_manager_.getPath().back()->pos);
@@ -37,6 +39,7 @@ void Global::updateLocalReachability(const Reachability& reachability,
         waypoint_manager_.cancel();
       } else {
         waypoint_manager_.setPath(path);
+        waypoint_manager_.advancePlan();
       }
     }
   }

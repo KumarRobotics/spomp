@@ -18,7 +18,11 @@ class WaypointManager {
       return robot_pos_;
     }
 
+    //! @return True if reached the end
+    bool advancePlan();
+
     std::optional<Eigen::Vector2f> getNextWaypoint() const;
+    std::optional<Eigen::Vector2f> getLastWaypoint() const;
 
     const auto& getPath() const {
       return path_;
