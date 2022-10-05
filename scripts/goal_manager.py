@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import threading
 import numpy as np
 import rospy
 import tf2_ros
@@ -23,6 +24,7 @@ class GoalManager:
         self.current_goal_ = None
         self.start_loc_ = None
         self.current_loc_ = None
+        self.lock_ = threading.Lock()
 
         self.tf_buffer_ = tf2_ros.Buffer()
         self.tf_listener_ = tf2_ros.TransformListener(self.tf_buffer_)
@@ -64,9 +66,12 @@ class GoalManager:
         self.check_for_new_goal_timer_ = rospy.Timer(rospy.Duration(5), self.check_for_new_goal)
     
     def other_robot_cb(self, goals, take_pri, robot):
+        self.lock_.acquire()
+
         rospy.loginfo(f"{self.this_robot_} got goals from {robot}")
         if goals.header.stamp.to_nsec() <= self.last_stamp_other_[robot]:
             rospy.loginfo("Message from other robot was old")
+            self.lock_.release()
             return
         self.last_stamp_other_[robot] = goals.header.stamp.to_nsec()
         preempted = False
@@ -94,9 +99,12 @@ class GoalManager:
             self.in_progress_ = False
             self.current_goal_ = None
             # manually trigger looking for new goal
+            self.lock_.release()
             self.check_for_new_goal()
+            self.lock_.acquire()
 
         self.visualize()
+        self.lock_.release()
 
     def add_goal_point_cb(self, goal_msg):
         try:
@@ -104,14 +112,17 @@ class GoalManager:
         except Exception as ex:
             rospy.logwarn(f"Cannot transform goals: {ex}")
             return
+        self.lock_.acquire()
 
         goal_pt = np.array([trans_goal.point.x, trans_goal.point.y])
 
         # This is the simple interface, so do allow to manually add any goal
         self.goal_list_ = np.vstack([self.goal_list_, goal_pt])
         self.visualize()
+        self.lock_.release()
 
     def target_goals_cb(self, goals_msg):
+        self.lock_.acquire()
         goal_msg = PoseStamped()
         goal_msg.header = goals_msg.header
         for goal_pose in goals_msg.poses:
@@ -130,9 +141,11 @@ class GoalManager:
                 self.goal_list_ = np.vstack([self.goal_list_, goal_pt])
             except Exception as ex:
                 rospy.logwarn(f"Cannot transform goal: {ex}")
+                self.lock_.release()
                 return
 
         self.visualize()
+        self.lock_.release()
 
     def pose_cb(self, pose_msg):
         try:
@@ -140,9 +153,11 @@ class GoalManager:
         except Exception as ex:
             rospy.logwarn(f"Cannot transform pose: {ex}")
             return
+        self.lock_.acquire()
 
         self.current_loc_ = np.array([trans_pose.pose.position.x,
                                       trans_pose.pose.position.y])
+        self.lock_.release()
 
     def get_all_other_goals(self):
         other_goals = np.zeros((0, 2))
@@ -151,6 +166,7 @@ class GoalManager:
         return other_goals
 
     def check_for_new_goal(self, timer=None):
+        self.lock_.acquire()
         if not self.in_progress_:
             selected_goal = self.choose_goal()
             if selected_goal is not None:
@@ -181,6 +197,7 @@ class GoalManager:
                 # go home
                 if self.start_loc_ is not None and not self.rtls_:
                     if np.linalg.norm(self.start_loc_ - self.current_loc_) > 10:
+                        rospy.loginfo("Returning to start")
                         self.rtls_ = True
                         cur_goal_msg = GlobalNavigateGoal()
                         cur_goal_msg.goal.header.stamp = rospy.Time.now()
@@ -194,6 +211,7 @@ class GoalManager:
                 # no other goals available, so let's try failed ones again
                 self.failed_goals_ = np.zeros((0, 2))
         self.visualize()
+        self.lock_.release()
 
     def choose_goal(self):
         if self.current_loc_ is None:
@@ -220,10 +238,13 @@ class GoalManager:
         return best_goal
 
     def navigate_status_cb(self, status_msg, result_msg):
+        self.lock_.acquire()
+        if result_msg.status == GlobalNavigateResult.SUCCESS:
+            self.rtls_ = False
+
         if self.current_goal_ is not None:
             # Add to visited targets
             if result_msg.status == GlobalNavigateResult.SUCCESS:
-                self.rtls_ = False
                 self.visited_goals_ = np.vstack([self.visited_goals_, self.current_goal_[None,:]])
 
             if result_msg.status == GlobalNavigateResult.TIMEOUT or \
@@ -241,6 +262,7 @@ class GoalManager:
         # Will now check for new goal when timer triggers
         self.in_progress_ = False
         self.visualize()
+        self.lock_.release()
 
     def visualize(self):
         marker_msg = Marker()
