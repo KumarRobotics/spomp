@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
+  <arg name="output" default="screen"/>
+
   <arg name="tbb" default="-1"/>
 
   <arg name="SL_goal_thresh_m" default="-1"/>
@@ -28,7 +30,7 @@
   <arg name="CO_ang_disc" default="4"/>
   <arg name="CO_obs_cost_weight" default="1"/>
 
-  <node pkg="spomp" type="node_local" name="spomp_local" output="screen">
+  <node pkg="spomp" type="node_local" name="spomp_local" output="$(arg output)">
     <!-- Remappings -->
     <remap from="~pano/img" to="/os_node/llol_odom/pano/img"/>
     <remap from="~pano/camera_info" to="/os_node/llol_odom/pano/camera_info"/>

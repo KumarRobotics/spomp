@@ -242,7 +242,10 @@ std::list<TravGraph::Node*> TravMap::prunePath(
 
       const auto [edge_cls, edge_cost] = traceEdge(pruned_path.back()->pos, node->pos);
       TravGraph::Edge direct_edge(pruned_path.back(), node, edge_cost, edge_cls);
-      if (direct_edge.totalCost() > summed_cost + 0.01) {
+
+      if (direct_edge.totalCost() > summed_cost + 0.01 &&
+          pruned_path.back() != last_node) 
+      {
         // The direct cost is now the single last leg
         summed_cost = node->getEdgeToNode(last_node)->totalCost();
 

@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
+  <arg name="output" default="screen"/>
+
   <arg name="world_config_path" default="$(find semantics_manager)/config/config.yaml"/>
 
   <arg name="TM_max_hole_fill_size_m" default="2"/>
@@ -13,7 +15,7 @@
 
   <arg name="WM_waypoint_thresh_m" default="2.5"/>
 
-  <node pkg="spomp" type="node_global" name="spomp_global" output="screen">
+  <node pkg="spomp" type="node_global" name="spomp_global" output="$(arg output)">
     <!-- Remappings -->
     <remap from="~map_sem_img" to="/titan/asoom/map_sem_img"/>
     <remap from="~map_sem_img_center" to="/titan/asoom/map_sem_img_center"/>
