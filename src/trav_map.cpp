@@ -243,6 +243,9 @@ std::list<TravGraph::Node*> TravMap::prunePath(
       const auto [edge_cls, edge_cost] = traceEdge(pruned_path.back()->pos, node->pos);
       TravGraph::Edge direct_edge(pruned_path.back(), node, edge_cost, edge_cls);
 
+      // Add extra check that the two edges are not the same
+      // Costs can vary slightly because they can vary depending on which direction
+      // they are computed
       if (direct_edge.totalCost() > summed_cost + 0.01 &&
           pruned_path.back() != last_node) 
       {
