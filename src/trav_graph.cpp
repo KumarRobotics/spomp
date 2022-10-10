@@ -119,19 +119,25 @@ bool TravGraph::updateEdgeFromReachability(TravGraph::Edge& edge,
   }
 
   bool did_map_change = false;
-  if (not_reachable) {
-    // Unreachable cost
-    if (edge.cls != Edge::MAX_TERRAIN + 1) {
-      did_map_change = true;
+  if (!edge.is_experienced) {
+    if (not_reachable) {
+      // Unreachable cost
+      if (edge.cls != Edge::MAX_TERRAIN + 1) {
+        did_map_change = true;
+      } else {
+        // Requires two markings in a row to be locked in
+        edge.is_experienced = true;
+      }
+      edge.cls = Edge::MAX_TERRAIN + 1;
+    } else if (reachable) {
+      if (edge.cls != 0) {
+        did_map_change = true;
+      } else {
+        // Requires two markings in a row to be locked in
+        edge.is_experienced = true;
+      }
+      edge.cls = 0;
     }
-    edge.cls = Edge::MAX_TERRAIN + 1;
-    edge.is_experienced = true;
-  } else if (reachable) {
-    if (edge.cls != 0) {
-      did_map_change = true;
-    }
-    edge.cls = 0;
-    edge.is_experienced = true;
   }
 
   return did_map_change;
