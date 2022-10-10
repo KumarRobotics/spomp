@@ -21,6 +21,11 @@ bool WaypointManager::setState(const Eigen::Vector2f& pos) {
 
   // Check if we are within threshold of end
   if ((*robot_pos_ - (*next_node_)->pos).norm() < params_.waypoint_thresh_m) {
+    if (cur_edge_) {
+      // We have traversed edge successfully
+      cur_edge_->is_experienced = true;
+      cur_edge_->cls = 0;
+    }
     return advancePlan();
   }
   return false;
