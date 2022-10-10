@@ -6,7 +6,6 @@
 #include "spomp/trav_graph.h"
 #include "spomp/timer.h"
 #include "semantics_manager/semantics_manager.h"
-#include "spomp/utils.h"
 
 namespace spomp {
 
@@ -19,18 +18,24 @@ class TravMap {
       float unvis_start_thresh = 0.1;
       float unvis_stop_thresh = 0.01;
       bool prune = true;
-      float reach_node_max_dist_m = 4;
-      float reach_max_dist_to_be_obs_m = 5;
-      float trav_window_rad = 0.1;
     };
-    TravMap(const Params& p);
+    TravMap(const Params& tm_p, const TravGraph::Params& tg_p);
 
     void updateMap(const cv::Mat& map, const Eigen::Vector2f& center);
-    //! @return True if map changed
-    bool updateLocalReachability(const Reachability& reachability, 
-        const Eigen::Isometry2f& reach_pose);
     std::list<TravGraph::Node*> getPath(const Eigen::Vector2f& start_p,
         const Eigen::Vector2f& end_p);
+    std::list<TravGraph::Node*> getPath(TravGraph::Node& start_n,
+        TravGraph::Node& end_n);
+    //! @return True if map changed
+    bool updateLocalReachability(const Reachability& reachability, 
+        const Eigen::Isometry2f& reach_pose) {
+      return graph_.updateLocalReachability(reachability, reach_pose);
+    }
+    bool updateEdgeFromReachability(TravGraph::Edge& edge, 
+        const TravGraph::Node& start_node, const Reachability& reachability,
+        const Eigen::Isometry2f& reach_pose) {
+      return graph_.updateEdgeFromReachability(edge, start_node, reachability, reach_pose);
+    }
 
     Eigen::Vector2f world2img(const Eigen::Vector2f& world_c) const;
     Eigen::Vector2f img2world(const Eigen::Vector2f& img_c) const;
@@ -70,7 +75,6 @@ class TravMap {
      *********************************************************/
     Params params_;
     cv::Mat terrain_lut_{};
-    int max_terrain_{1};
     float map_res_{1};
     bool dynamic_{true};
 
@@ -83,7 +87,7 @@ class TravMap {
     std::vector<cv::Mat> dist_maps_{};
     cv::Mat visibility_map_{};
     
-    TravGraph graph_{};
+    TravGraph graph_;
 
     Timer* compute_dist_maps_t_;
     Timer* reweight_graph_t_;

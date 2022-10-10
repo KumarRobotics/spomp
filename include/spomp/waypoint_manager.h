@@ -21,11 +21,15 @@ class WaypointManager {
     //! @return True if reached the end
     bool advancePlan();
 
-    std::optional<Eigen::Vector2f> getNextWaypoint() const;
-    std::optional<Eigen::Vector2f> getLastWaypoint() const;
+    TravGraph::Node* getNextWaypoint() const;
+    TravGraph::Node* getLastWaypoint() const;
 
     const auto& getPath() const {
       return path_;
+    }
+
+    TravGraph::Edge* getCurEdge() {
+      return cur_edge_;
     }
 
     bool havePath() const {

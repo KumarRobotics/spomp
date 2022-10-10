@@ -39,14 +39,14 @@ bool WaypointManager::advancePlan() {
   return false;
 }
 
-std::optional<Eigen::Vector2f> WaypointManager::getNextWaypoint() const {
+TravGraph::Node* WaypointManager::getNextWaypoint() const {
   if (path_.size() > 0) {
-    return (*next_node_)->pos;
+    return *next_node_;
   }
   return {};
 }
 
-std::optional<Eigen::Vector2f> WaypointManager::getLastWaypoint() const {
+TravGraph::Node* WaypointManager::getLastWaypoint() const {
   if (path_.size() > 0) {
     if (next_node_ == path_.begin()) {
       // If the next waypoint is the beginning of the path, then there is nothing before
@@ -54,7 +54,7 @@ std::optional<Eigen::Vector2f> WaypointManager::getLastWaypoint() const {
     } else {
       auto last_node = next_node_;
       --last_node;
-      return (*last_node)->pos;
+      return *last_node;
     }
   }
   return {};

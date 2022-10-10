@@ -8,7 +8,8 @@ namespace spomp {
 
 class Global {
   public:
-    Global(const TravMap::Params& tm_p, const WaypointManager::Params& wm_p);
+    Global(const TravMap::Params& tm_p, const TravGraph::Params& tg_p, 
+        const WaypointManager::Params& wm_p);
 
     void updateMap(const cv::Mat &map, const Eigen::Vector2f& center) {
       map_.updateMap(map, center);
@@ -37,7 +38,11 @@ class Global {
 
     //! @return The next global target waypoint, if available
     std::optional<Eigen::Vector2f> getNextWaypoint() {
-      return waypoint_manager_.getNextWaypoint();
+      auto next_waypt = waypoint_manager_.getNextWaypoint();
+      if (next_waypt) {
+        return next_waypt->pos;
+      }
+      return {};
     }
 
     const auto& getEdges() const {

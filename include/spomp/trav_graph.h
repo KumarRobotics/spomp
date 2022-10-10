@@ -4,6 +4,7 @@
 #include <map>
 #include <list>
 #include <Eigen/Dense>
+#include "spomp/utils.h"
 #include "spomp/timer.h"
 
 namespace spomp {
@@ -13,7 +14,12 @@ namespace spomp {
  */
 class TravGraph {
   public:
-    TravGraph();
+    struct Params {
+      float reach_node_max_dist_m = 4;
+      float reach_max_dist_to_be_obs_m = 5;
+      float trav_window_rad = 0.1;
+    };
+    TravGraph(const Params& p);
 
     // Forward declaration
     struct Edge;
@@ -41,6 +47,8 @@ class TravGraph {
     };
 
     struct Edge {
+      static int MAX_TERRAIN;
+
       Node* node1{nullptr};
       Node* node2{nullptr};
 
@@ -69,6 +77,13 @@ class TravGraph {
 
     //! Djikstra shortest-path solver
     std::list<Node*> getPath(Node* const start_n, Node* const end_n);
+
+    //! @return True if map changed
+    bool updateLocalReachability(const Reachability& reachability, 
+        const Eigen::Isometry2f& reach_pose);
+    bool updateEdgeFromReachability(TravGraph::Edge& edge, 
+        const TravGraph::Node& start_node, const Reachability& reachability,
+        const Eigen::Isometry2f& reach_pose);
 
     //! @return pointer to inserted node
     Node* addNode(const Node& node);
@@ -106,6 +121,8 @@ class TravGraph {
     /*********************************************************
      * LOCAL VARIABLES
      *********************************************************/
+    Params params_;
+
     std::map<int, Node> nodes_;
     std::list<Edge> edges_;
 

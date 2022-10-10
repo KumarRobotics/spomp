@@ -7,7 +7,9 @@
 
 namespace spomp {
 
-TravMap::TravMap(const Params& p) : params_(p) {
+TravMap::TravMap(const Params& tm_p, const TravGraph::Params& tg_p) : 
+  params_(tm_p), graph_(tg_p) 
+{
   auto& tm = TimerManager::getGlobal();
   compute_dist_maps_t_ = tm.get("TM_compute_dist_maps");
   reweight_graph_t_ = tm.get("TM_reweight_graph");
@@ -35,8 +37,8 @@ void TravMap::loadClasses(const semantics_manager::ClassConfig& class_config) {
   int terrain_ind = 0;
   for (const auto& terrain_type : class_config.traversabililty_diff) {
     terrain_lut_.at<uint8_t>(terrain_ind) = terrain_type;
-    if (terrain_type > max_terrain_) {
-      max_terrain_ = terrain_type;
+    if (terrain_type > TravGraph::Edge::MAX_TERRAIN) {
+      TravGraph::Edge::MAX_TERRAIN = terrain_type;
     }
     ++terrain_ind;
   }
@@ -48,8 +50,8 @@ void TravMap::loadStaticMap(const semantics_manager::MapConfig& map_config,
   map_res_ = map_config.resolution;
 
   // Initialize dist_maps_
-  dist_maps_.reserve(max_terrain_);
-  for (int terrain_ind=0; terrain_ind<max_terrain_; ++terrain_ind) {
+  dist_maps_.reserve(TravGraph::Edge::MAX_TERRAIN);
+  for (int terrain_ind=0; terrain_ind<TravGraph::Edge::MAX_TERRAIN; ++terrain_ind) {
     dist_maps_.emplace_back();
   }
 
@@ -115,65 +117,6 @@ void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center) {
   buildGraph();
 }
 
-bool TravMap::updateLocalReachability(const Reachability& reachability, 
-    const Eigen::Isometry2f& reach_pose)
-{
-  if (map_.empty()) {
-    return false;
-  }
-
-  auto near_nodes = graph_.getNodesNear(reach_pose.translation(), 
-      params_.reach_node_max_dist_m);
-
-  bool did_map_change = false;
-  for (const auto& node_ptr : near_nodes) {
-    for (const auto& edge : node_ptr->edges) {
-      TravGraph::Node* dest_node_ptr = edge->getOtherNode(node_ptr);
-      Eigen::Vector2f local_dest_pose = reach_pose.inverse() * dest_node_ptr->pos;
-
-      float range = local_dest_pose.norm();
-      float bearing = atan2(local_dest_pose[1], local_dest_pose[0]);
-
-      bool not_reachable = true;
-      bool reachable = true;
-      for (float b=bearing-params_.trav_window_rad; b<=bearing+params_.trav_window_rad; 
-           b+=std::abs(reachability.proj.delta_angle)) 
-      {
-        int ind = reachability.proj.indAt(b);
-        if (range <= reachability.scan[ind] || !reachability.is_obs[ind]) {
-          // We have a non-obstacle path
-          not_reachable = false;
-        }
-        if (range > reachability.scan[ind] && reachability.is_obs[ind]) {
-          // We have an obstacle path
-          reachable = false;
-          if (reachability.scan[ind] > params_.reach_max_dist_to_be_obs_m) {
-            // We can't get there, but it is far away.  Unclear.
-            not_reachable = false;
-          }
-        }
-      }
-
-      if (not_reachable) {
-        // Unreachable cost
-        if (edge->cls != max_terrain_ + 1) {
-          did_map_change = true;
-        }
-        edge->cls = max_terrain_ + 1;
-        edge->is_experienced = true;
-      } else if (reachable) {
-        if (edge->cls != 0) {
-          did_map_change = true;
-        }
-        edge->cls = 0;
-        edge->is_experienced = true;
-      }
-    }
-  }
-
-  return did_map_change;
-}
-
 std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,
     const Eigen::Vector2f& end_p)
 {
@@ -206,7 +149,7 @@ std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,
 
   path = graph_.getPath(n1, n2);
   if (path.size() > 0) {
-    if (path.back()->cost >= std::pow(1000, max_terrain_)-1) {
+    if (path.back()->cost >= std::pow(1000, TravGraph::Edge::MAX_TERRAIN)-1) {
       // If cost is this high, we have an obstacle edge
       path = {};
     } else {
@@ -223,6 +166,25 @@ std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,
         graph_.addEdge({path.back(), new_n, worst_cost, worst_cls});
         path.push_back(new_n);
       }
+    }
+  }
+
+  auto final_path = path;
+  if (params_.prune) {
+    final_path = prunePath(path);
+  }
+  return final_path;
+}
+
+std::list<TravGraph::Node*> TravMap::getPath(TravGraph::Node& start_n, 
+    TravGraph::Node& end_n) 
+{
+  auto path = graph_.getPath(&start_n, &end_n);
+
+  if (path.size() > 0) {
+    if (path.back()->cost >= std::pow(1000, TravGraph::Edge::MAX_TERRAIN)-1) {
+      // If cost is this high, we have an obstacle edge
+      path = {};
     }
   }
 
@@ -255,7 +217,8 @@ std::list<TravGraph::Node*> TravMap::prunePath(
       // Add extra check that the two edges are not the same
       // Costs can vary slightly because they can vary depending on which direction
       // they are computed
-      if (direct_edge.totalCost() > summed_cost + 0.01 &&
+      if ((direct_edge.length > params_.vis_dist_m ||
+           direct_edge.totalCost() > summed_cost + 0.01) &&
           pruned_path.back() != last_node) 
       {
         // The direct cost is now the single last leg
@@ -340,7 +303,7 @@ void TravMap::reweightGraph() {
   for (auto& [node_id, node] : graph_.getNodes()) {
     auto img_loc = world2img(node.pos);
     int node_cls = map_.at<uint8_t>(cv::Point(img_loc[0], img_loc[1]));
-    if (node_cls == max_terrain_) {
+    if (node_cls == TravGraph::Edge::MAX_TERRAIN) {
       // Node is no longer traversable, sad
       visibility_map_.setTo(-1, visibility_map_ == node_id);
     }
@@ -355,7 +318,7 @@ void TravMap::buildGraph() {
   double min_v, max_v;
   cv::Point min_l, max_l;
 
-  for (int t_cls=0; t_cls<max_terrain_; ++t_cls) {
+  for (int t_cls=0; t_cls<TravGraph::Edge::MAX_TERRAIN; ++t_cls) {
     int num_to_cover = cv::countNonZero(map_ <= t_cls);
     cv::Mat dist_map_masked = dist_maps_[t_cls].clone();
     dist_map_masked.setTo(0, visibility_map_ >= 0);
@@ -399,7 +362,7 @@ std::pair<int, float> TravMap::traceEdge(const Eigen::Vector2f& n1,
     Eigen::Vector2f sample_pt = img_pt1 + dir*cur_dist;
     auto t_cls = map_.at<uint8_t>(cv::Point(sample_pt[0], sample_pt[1]));
     float dist = 0;
-    if (t_cls < max_terrain_) {
+    if (t_cls < TravGraph::Edge::MAX_TERRAIN) {
       dist = dist_maps_[t_cls].at<float>(cv::Point(sample_pt[0], sample_pt[1]));
       //std::cout << sample_pt.transpose() << std::endl;
       //std::cout << dist << std::endl;
@@ -410,8 +373,8 @@ std::pair<int, float> TravMap::traceEdge(const Eigen::Vector2f& n1,
       } else if (dist < worst_dist && t_cls == worst_cls) {
         worst_dist = dist;
       }
-    } else if (t_cls == max_terrain_) {
-      worst_cls = max_terrain_;
+    } else if (t_cls == TravGraph::Edge::MAX_TERRAIN) {
+      worst_cls = TravGraph::Edge::MAX_TERRAIN;
       worst_dist = 0;
       // Can't get any worse than this
       break;
@@ -503,7 +466,7 @@ cv::Mat TravMap::viz() const {
 
   cv::Mat scaled_map = map_.clone();
   // Rescale for increasing order of trav difficulty 0->255
-  scaled_map *= 255. / max_terrain_;
+  scaled_map *= 255. / TravGraph::Edge::MAX_TERRAIN;
   cv::Mat cmapped_map;
   cv::applyColorMap(scaled_map, cmapped_map, cv::COLORMAP_PARULA);
   // Mask unknown regions
@@ -520,7 +483,7 @@ cv::Mat TravMap::viz() const {
 
   // Draw edges
   for (const auto& edge : graph_.getEdges()) {
-    if (edge.cls >= max_terrain_) continue;
+    if (edge.cls >= TravGraph::Edge::MAX_TERRAIN) continue;
     auto node1_img_pos = world2img(edge.node1->pos);
     auto node2_img_pos = world2img(edge.node2->pos);
     cv::Scalar color;

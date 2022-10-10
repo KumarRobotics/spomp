@@ -29,6 +29,7 @@ GlobalWrapper::GlobalWrapper(ros::NodeHandle& nh) :
 Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   TravMap::Params tm_params{};
   WaypointManager::Params wm_params{};
+  TravGraph::Params tg_params{};
 
   nh.getParam("world_config_path", tm_params.world_config_path);
 
@@ -37,9 +38,10 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   nh.getParam("TM_unvis_start_thresh", tm_params.unvis_start_thresh);
   nh.getParam("TM_unvis_stop_thresh", tm_params.unvis_stop_thresh);
   nh.getParam("TM_prune", tm_params.prune);
-  nh.getParam("TM_reach_node_max_dist_m", tm_params.reach_node_max_dist_m);
-  nh.getParam("TM_reach_max_dist_to_be_obs_m", tm_params.reach_max_dist_to_be_obs_m);
-  nh.getParam("TM_trav_window_rad", tm_params.trav_window_rad);
+
+  nh.getParam("TG_reach_node_max_dist_m", tg_params.reach_node_max_dist_m);
+  nh.getParam("TG_reach_max_dist_to_be_obs_m", tg_params.reach_max_dist_to_be_obs_m);
+  nh.getParam("TG_trav_window_rad", tg_params.trav_window_rad);
 
   nh.getParam("WM_waypoint_thresh_m", wm_params.waypoint_thresh_m);
 
@@ -54,14 +56,15 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
     setw(width) << "[ROS] TM_unvis_start_thresh: " << tm_params.unvis_start_thresh << endl <<
     setw(width) << "[ROS] TM_unvis_stop_thresh: " << tm_params.unvis_stop_thresh << endl <<
     setw(width) << "[ROS] TM_prune: " << tm_params.prune << endl <<
-    setw(width) << "[ROS] TM_reach_node_max_dist_m: " << tm_params.reach_node_max_dist_m << endl <<
-    setw(width) << "[ROS] TM_reach_max_dist_to_be_obs_m: " << tm_params.reach_max_dist_to_be_obs_m << endl <<
-    setw(width) << "[ROS] TM_trav_window_rad: " << tm_params.trav_window_rad << endl <<
+    "[ROS] ===============================" << endl <<
+    setw(width) << "[ROS] TG_reach_node_max_dist_m: " << tg_params.reach_node_max_dist_m << endl <<
+    setw(width) << "[ROS] TG_reach_max_dist_to_be_obs_m: " << tg_params.reach_max_dist_to_be_obs_m << endl <<
+    setw(width) << "[ROS] TG_trav_window_rad: " << tg_params.trav_window_rad << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] WM_waypoint_thresh_m: " << wm_params.waypoint_thresh_m << endl <<
     "[ROS] ====== End Configuration ======" << "\033[0m");
 
-  return Global(tm_params, wm_params);
+  return Global(tm_params, tg_params, wm_params);
 }
 
 void GlobalWrapper::initialize() {
