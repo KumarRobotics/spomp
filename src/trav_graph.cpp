@@ -108,11 +108,13 @@ bool TravGraph::updateEdgeFromReachability(TravGraph::Edge& edge,
       // We have a non-obstacle path
       not_reachable = false;
     }
-    if (range > reachability.scan[ind] && reachability.is_obs[ind]) {
-      // We have an obstacle path
+    if (range > reachability.scan[ind]) {
+      // We have an obstacle or unknown path
       reachable = false;
-      if (reachability.scan[ind] > params_.reach_max_dist_to_be_obs_m) {
-        // We can't get there, but it is far away.  Unclear.
+      if (reachability.scan[ind] > params_.reach_max_dist_to_be_obs_m && 
+          reachability.is_obs[ind]) 
+      {
+        // We think we can't get there, but it is far away.  Unclear.
         not_reachable = false;
       }
     }
