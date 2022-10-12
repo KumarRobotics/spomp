@@ -56,6 +56,11 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
   nh.getParam("tbb", tp_params.tbb);
   nh.getParam("tbb", pp_params.tbb);
   
+  nh.getParam("odom_frame", odom_frame_);
+  nh.getParam("planner_pano_frame", pano_frame_);
+  nh.getParam("body_frame", body_frame_);
+  nh.getParam("control_frame", control_frame_);
+
   nh.getParam("SL_goal_thresh_m", sl_params.goal_thresh_m);
 
   nh.getParam("TP_max_hole_fill_size", tp_params.max_hole_fill_size);
@@ -89,6 +94,10 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
   ROS_INFO_STREAM("\033[32m" << "[SPOMP-Local]" << endl << "[ROS] ======== Configuration ========" << 
     endl << left << 
     setw(width) << "[ROS] tbb: " << tp_params.tbb << endl <<
+    setw(width) << "[ROS] odom_frame: " << odom_frame_ << endl <<
+    setw(width) << "[ROS] planner_pano_frame: " << pano_frame_ << endl <<
+    setw(width) << "[ROS] body_frame: " << body_frame_ << endl <<
+    setw(width) << "[ROS] control_frame: " << control_frame_ << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] SL_goal_thresh_m: " << sl_params.goal_thresh_m << endl <<
     "[ROS] ===============================" << endl <<
@@ -251,7 +260,7 @@ void LocalWrapper::poseCallback(const geometry_msgs::PoseStamped::ConstPtr& pose
 void LocalWrapper::publishTransform(const ros::Time& stamp) {
   geometry_msgs::TransformStamped msg = Eigen2ROS(local_.getPano().getPose());
   msg.header.stamp = stamp;
-  msg.header.frame_id = "odom";
+  msg.header.frame_id = odom_frame_;
   msg.child_frame_id = pano_frame_;
   tf_broadcaster_.sendTransform(msg); 
 }

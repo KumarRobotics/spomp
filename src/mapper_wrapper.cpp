@@ -4,6 +4,9 @@
 
 namespace spomp {
 
+std::string MapperWrapper::odom_frame_{"odom"};
+std::string MapperWrapper::map_frame_{"map"};
+
 MapperWrapper::MapperWrapper(ros::NodeHandle& nh) : 
   nh_(nh),
   it_(nh),
@@ -22,6 +25,9 @@ MapperWrapper::MapperWrapper(ros::NodeHandle& nh) :
 Mapper MapperWrapper::createMapper(ros::NodeHandle& nh) {
   Mapper::Params m_params{};
   PoseGraph::Params pg_params{};
+
+  nh.getParam("odom_frame", odom_frame_);
+  nh.getParam("map_frame", map_frame_);
 
   nh.getParam("M_pgo_thread_period_ms", m_params.pgo_thread_period_ms);
   nh.getParam("M_correct_odom_per_frame", m_params.correct_odom_per_frame);
@@ -44,6 +50,9 @@ Mapper MapperWrapper::createMapper(ros::NodeHandle& nh) {
   using namespace std;
   ROS_INFO_STREAM("\033[32m" << "[SPOMP-Mapper]" << endl << "[ROS] ======== Configuration ========" << 
     endl << left << 
+    setw(width) << "[ROS] odom_frame: " << odom_frame_ << endl <<
+    setw(width) << "[ROS] map_frame: " << map_frame_ << endl <<
+    "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] M_pgo_thread_period_ms: " << m_params.pgo_thread_period_ms << endl <<
     setw(width) << "[ROS] M_correct_odom_per_frame: " << m_params.correct_odom_per_frame << endl <<
     "[ROS] ===============================" << endl <<
@@ -170,8 +179,8 @@ void MapperWrapper::publishOdomCorrection(const ros::Time& stamp) {
   Eigen::Isometry3d corr = mapper_.getOdomCorrection();
   geometry_msgs::TransformStamped corr_msg = Eigen2ROS(corr);
   corr_msg.header.stamp = stamp;
-  corr_msg.header.frame_id = "map";
-  corr_msg.child_frame_id = "odom";
+  corr_msg.header.frame_id = map_frame_;
+  corr_msg.child_frame_id = odom_frame_;
   tf_static_broadcaster_.sendTransform(corr_msg);
 }
 

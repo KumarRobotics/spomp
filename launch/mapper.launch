@@ -2,6 +2,9 @@
 <launch>
   <arg name="output" default="screen"/>
 
+  <arg name="odom_frame" default="odom"/>
+  <arg name="map_frame" default="map"/>
+
   <arg name="M_pgo_thread_period_ms" default="1000"/>
   <arg name="M_correct_odom_per_frame" default="1"/>
 
@@ -14,11 +17,14 @@
 
   <node pkg="spomp" type="node_mapper" name="spomp_mapper" output="$(arg output)">
     <!-- Remappings -->
-    <remap from="~pano/img" to="/os_node/llol_odom/pano/img"/>
-    <remap from="~pano/camera_info" to="/os_node/llol_odom/pano/camera_info"/>
-    <remap from="~pose" to="/os_node/llol_odom/pose"/>
+    <remap from="~pano/img" to="os_node/llol_odom/pano/img"/>
+    <remap from="~pano/camera_info" to="os_node/llol_odom/pano/camera_info"/>
+    <remap from="~pose" to="os_node/llol_odom/pose"/>
 
     <!-- Params -->
+    <param name="odom_frame" value="$(arg odom_frame)"/>
+    <param name="map_frame" value="$(arg map_frame)"/>
+
     <param name="M_pgo_thread_period_ms" value="$(arg M_pgo_thread_period_ms)"/>
     <param name="M_correct_odom_per_frame" value="$(arg M_correct_odom_per_frame)"/>
 

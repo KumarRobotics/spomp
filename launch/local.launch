@@ -3,6 +3,10 @@
   <arg name="output" default="screen"/>
 
   <arg name="tbb" default="-1"/>
+  <arg name="odom_frame" default="odom"/>
+  <arg name="planner_pano_frame" default="planner_pano"/>
+  <arg name="body_frame" default="body"/>
+  <arg name="control_frame" default="base_link"/>
 
   <arg name="SL_goal_thresh_m" default="-1"/>
 
@@ -32,14 +36,18 @@
 
   <node pkg="spomp" type="node_local" name="spomp_local" output="$(arg output)">
     <!-- Remappings -->
-    <remap from="~pano/img" to="/os_node/llol_odom/pano/img"/>
-    <remap from="~pano/camera_info" to="/os_node/llol_odom/pano/camera_info"/>
-    <remap from="~pose" to="/os_node/llol_odom/pose"/>
-    <remap from="~goal" to="/spomp_global/local_goal"/>
-    <remap from="~control" to="/twist_auto"/>
+    <remap from="~pano/img" to="os_node/llol_odom/pano/img"/>
+    <remap from="~pano/camera_info" to="os_node/llol_odom/pano/camera_info"/>
+    <remap from="~pose" to="os_node/llol_odom/pose"/>
+    <remap from="~goal" to="spomp_global/local_goal"/>
+    <remap from="~control" to="twist_auto"/>
 
     <!-- Params -->
     <param name="tbb" value="$(arg tbb)"/>
+    <param name="odom_frame" value="$(arg odom_frame)"/>
+    <param name="planner_pano_frame" value="$(arg planner_pano_frame)"/>
+    <param name="body_frame" value="$(arg body_frame)"/>
+    <param name="control_frame" value="$(arg control_frame)"/>
 
     <param name="SL_goal_thresh_m" value="$(arg SL_goal_thresh_m)"/>
 
