@@ -31,8 +31,14 @@ void Global::updateLocalReachability(const Reachability& reachability,
   auto cur_node = waypoint_manager_.getNextWaypoint();
   auto last_node = waypoint_manager_.getLastWaypoint();
 
-  bool did_change = map_.updateLocalReachability(reachability, reach_pose2);
+  int last_cur_edge_cls = -1;
   if (cur_edge) {
+    // Cache current edge traversability
+    // Want to avoid redundantly checking the current edge twice
+    last_cur_edge_cls = cur_edge->cls;
+  }
+  bool did_change = map_.updateLocalReachability(reachability, reach_pose2);
+  if (cur_edge && cur_edge->cls == last_cur_edge_cls) {
     bool did_change_cur_edge = map_.updateEdgeFromReachability(
         *cur_edge, *last_node, reachability, reach_pose2);
     did_change = did_change_cur_edge ? true : did_change;
