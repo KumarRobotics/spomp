@@ -8,7 +8,7 @@
   <arg name="body_frame" default="body"/>
   <arg name="control_frame" default="base_link"/>
 
-  <arg name="SL_goal_thresh_m" default="-1"/>
+  <arg name="SL_goal_thresh_m" default="2"/>
 
   <arg name="TP_max_hole_fill_size" default="0.1"/>
   <arg name="TP_min_noise_size" default="0.3"/>

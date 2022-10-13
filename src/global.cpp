@@ -46,7 +46,7 @@ void Global::updateLocalReachability(const Reachability& reachability,
       auto path = map_.getPath(*last_node, *waypoint_manager_.getPath().back());
       if (path.size() < 1) {
         // No path found
-        waypoint_manager_.cancel();
+        cancel();
       } else {
         waypoint_manager_.setPath(path);
         waypoint_manager_.advancePlan();
