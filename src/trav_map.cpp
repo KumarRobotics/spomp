@@ -180,14 +180,6 @@ std::list<TravGraph::Node*> TravMap::getPath(TravGraph::Node& start_n,
     TravGraph::Node& end_n) 
 {
   auto path = graph_.getPath(&start_n, &end_n);
-
-  if (path.size() > 0) {
-    if (path.back()->cost >= std::pow(1000, TravGraph::Edge::MAX_TERRAIN)-1) {
-      // If cost is this high, we have an obstacle edge
-      path = {};
-    }
-  }
-
   auto final_path = path;
   if (params_.prune) {
     final_path = prunePath(path);
