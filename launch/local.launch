@@ -36,9 +36,9 @@
 
   <node pkg="spomp" type="node_local" name="spomp_local" output="$(arg output)">
     <!-- Remappings -->
-    <remap from="~pano/img" to="os_node/llol_odom/pano/img"/>
-    <remap from="~pano/camera_info" to="os_node/llol_odom/pano/camera_info"/>
-    <remap from="~pose" to="os_node/llol_odom/pose"/>
+    <remap from="~pano/img" to="os_node/rofl_odom/pano/img"/>
+    <remap from="~pano/camera_info" to="os_node/rofl_odom/pano/camera_info"/>
+    <remap from="~pose" to="os_node/rofl_odom/pose"/>
     <remap from="~goal" to="spomp_global/local_goal"/>
     <remap from="~control" to="twist_auto"/>
 
@@ -76,5 +76,5 @@
     <param name="CO_obs_cost_weight" value="$(arg CO_obs_cost_weight)"/>
   </node>
 
-  <node pkg="tf2_ros" type="static_transform_publisher" name="llol_body" args="0 0 0 3.14159 0 0 body base_link" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="rofl_body" args="0 0 0 3.14159 0 0 body base_link" />
 </launch>
