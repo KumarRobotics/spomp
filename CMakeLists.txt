@@ -151,6 +151,7 @@ add_library(${PROJECT_NAME}_local
   src/terrain_pano.cpp
   src/pano_planner.cpp
   src/controller.cpp
+  src/reachability.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -283,6 +284,7 @@ add_library(${PROJECT_NAME}_global
   src/trav_map.cpp
   src/waypoint_manager.cpp
   src/global.cpp
+  src/reachability.cpp
 )
 
 ## Add cmake target dependencies of the library

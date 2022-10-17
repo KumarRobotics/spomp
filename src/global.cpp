@@ -23,10 +23,7 @@ bool Global::setGoal(const Eigen::Vector3f& goal) {
   return true;
 }
 
-void Global::updateLocalReachability(const Reachability& reachability, 
-    const Eigen::Isometry3f& reach_pose)
-{
-  auto reach_pose2 = pose32pose2(reach_pose);
+void Global::updateLocalReachability(const Reachability& reachability) {
   auto cur_edge = waypoint_manager_.getCurEdge();
   auto cur_node = waypoint_manager_.getNextWaypoint();
   auto last_node = waypoint_manager_.getLastWaypoint();
@@ -37,10 +34,10 @@ void Global::updateLocalReachability(const Reachability& reachability,
     // Want to avoid redundantly checking the current edge twice
     last_cur_edge_cls = cur_edge->cls;
   }
-  bool did_change = map_.updateLocalReachability(reachability, reach_pose2);
+  bool did_change = map_.updateLocalReachability(reachability);
   if (cur_edge && cur_edge->cls == last_cur_edge_cls) {
     bool did_change_cur_edge = map_.updateEdgeFromReachability(
-        *cur_edge, *last_node, reachability, reach_pose2);
+        *cur_edge, *last_node, reachability);
     did_change = did_change_cur_edge ? true : did_change;
   }
 

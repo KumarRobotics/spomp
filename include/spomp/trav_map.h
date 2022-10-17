@@ -27,14 +27,12 @@ class TravMap {
     std::list<TravGraph::Node*> getPath(TravGraph::Node& start_n,
         TravGraph::Node& end_n);
     //! @return True if map changed
-    bool updateLocalReachability(const Reachability& reachability, 
-        const Eigen::Isometry2f& reach_pose) {
-      return graph_.updateLocalReachability(reachability, reach_pose);
+    bool updateLocalReachability(const Reachability& reachability) {
+      return graph_.updateLocalReachability(reachability);
     }
     bool updateEdgeFromReachability(TravGraph::Edge& edge, 
-        const TravGraph::Node& start_node, const Reachability& reachability,
-        const Eigen::Isometry2f& reach_pose) {
-      return graph_.updateEdgeFromReachability(edge, start_node, reachability, reach_pose);
+        const TravGraph::Node& start_node, const Reachability& reachability) {
+      return graph_.updateEdgeFromReachability(edge, start_node, reachability);
     }
 
     Eigen::Vector2f world2img(const Eigen::Vector2f& world_c) const;

@@ -12,12 +12,10 @@ PanoPlanner::PanoPlanner(const Params& params) : params_(params) {
 void PanoPlanner::updatePano(const TerrainPano& pano) {
   pano_update_t_->start();
 
-  reachability_.scan = Eigen::VectorXf::Zero(pano.cols());
-  reachability_.is_obs = Eigen::VectorXi::Zero(pano.cols());
-  reachability_.proj = pano.getAzProj();
+  reachability_ = Reachability(pano.getAzProj(), pose32pose2(pano.getPose()));
 
   int gsize = params_.tbb <= 0 ? pano.cols() : params_.tbb;
-  tbb::parallel_for(tbb::blocked_range<int>(0, pano.cols(), gsize), 
+  tbb::parallel_for(tbb::blocked_range<int>(0, reachability_.size(), gsize), 
     [&](tbb::blocked_range<int> range) {
       for (int col_i=range.begin(); col_i<range.end(); ++col_i) {
         // Move through column from bottom to top
@@ -39,8 +37,7 @@ void PanoPlanner::updatePano(const TerrainPano& pano) {
             last_r = r;
           }
         }
-        reachability_.scan[col_i] = std::max<float>(last_r, 0.5);
-        reachability_.is_obs[col_i] = is_obs;
+        reachability_.setAzTrav(col_i, std::max<float>(last_r, 0.5), is_obs);
       }
     });
   
@@ -52,10 +49,7 @@ Eigen::Vector2f PanoPlanner::plan(const Eigen::Vector2f& goal,
 {
   Eigen::Array2Xf samples(2, params_.sample_size);
 
-  float max_range = 0;
-  if (reachability_.scan.size() > 0) {
-    max_range = reachability_.scan.maxCoeff();
-  }
+  float max_range = reachability_.maxRange();
 
   if (max_range < 0.1) {
     // Basically nothing is free, just stay put
@@ -90,7 +84,7 @@ Eigen::Vector2f PanoPlanner::plan(const Eigen::Vector2f& goal,
 }
 
 bool PanoPlanner::isSafe(const Eigen::Vector2f& pt) const {
-  if (reachability_.scan.size() < 1) {
+  if (reachability_.size() < 1) {
     // No scan yet, say everything is safe so we can move
     return true;
   }

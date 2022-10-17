@@ -66,20 +66,19 @@ std::list<TravGraph::Node*> TravGraph::getPath(
   return path;
 }
 
-bool TravGraph::updateLocalReachability(const Reachability& reachability, 
-    const Eigen::Isometry2f& reach_pose)
+bool TravGraph::updateLocalReachability(const Reachability& reachability)
 {
   if (edges_.empty()) {
     return false;
   }
 
-  auto near_nodes = getNodesNear(reach_pose.translation(), 
+  auto near_nodes = getNodesNear(reachability.getPose().translation(), 
       params_.reach_node_max_dist_m);
 
   bool did_map_change = false;
   for (const auto& node_ptr : near_nodes) {
     for (const auto& edge : node_ptr->edges) {
-      if (updateEdgeFromReachability(*edge, *node_ptr, reachability, reach_pose)) {
+      if (updateEdgeFromReachability(*edge, *node_ptr, reachability)) {
         did_map_change = true;
       }
     }
@@ -89,38 +88,14 @@ bool TravGraph::updateLocalReachability(const Reachability& reachability,
 }
 
 bool TravGraph::updateEdgeFromReachability(TravGraph::Edge& edge, 
-    const TravGraph::Node& start_node, const Reachability& reachability,
-    const Eigen::Isometry2f& reach_pose)
+    const TravGraph::Node& start_node, const Reachability& reachability)
 {
   TravGraph::Node* dest_node_ptr = edge.getOtherNode(&start_node);
-  Eigen::Vector2f local_dest_pose = reach_pose.inverse() * dest_node_ptr->pos;
-
-  float range = local_dest_pose.norm();
-  float bearing = atan2(local_dest_pose[1], local_dest_pose[0]);
-
-  bool not_reachable = true;
-  bool reachable = true;
-  for (float b=bearing-params_.trav_window_rad; b<=bearing+params_.trav_window_rad; 
-       b+=std::abs(reachability.proj.delta_angle)) 
-  {
-    int ind = reachability.proj.indAt(b);
-    if (range <= reachability.scan[ind] || !reachability.is_obs[ind]) {
-      // We have a non-obstacle path
-      not_reachable = false;
-    }
-    if (range > reachability.scan[ind]) {
-      // We have an obstacle or unknown path
-      reachable = false;
-      if (reachability.scan[ind] > params_.reach_max_dist_to_be_obs_m) {
-        // We think we can't get there, but it is far away.  Unclear.
-        not_reachable = false;
-      }
-    }
-  }
+  auto edge_exp = reachability.analyzeEdge(start_node.pos, dest_node_ptr->pos);
 
   bool did_map_change = false;
   if (!edge.is_experienced) {
-    if (not_reachable) {
+    if (Reachability::NOT_TRAV) {
       did_map_change = true;
       // Unreachable cost
       if (edge.cls == Edge::MAX_TERRAIN + 1) {
@@ -128,7 +103,7 @@ bool TravGraph::updateEdgeFromReachability(TravGraph::Edge& edge,
         edge.is_experienced = true;
       }
       edge.cls = Edge::MAX_TERRAIN + 1;
-    } else if (reachable) {
+    } else if (Reachability::TRAV) {
       did_map_change = true;
       if (edge.cls == 0) {
         // Requires two markings in a row to be locked in

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "spomp/terrain_pano.h"
+#include "spomp/reachability.h"
 
 namespace spomp {
 
@@ -31,7 +32,7 @@ class PanoPlanner {
 
     //! Get the range of reachability at the given azimuth (in radians)
     float getRangeAtAz(float az) const {
-      return reachability_.scan[reachability_.proj.indAt(az)];
+      return reachability_.getRangeAtAz(az);
     }
 
     //! @return True if point is within reachable area

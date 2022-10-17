@@ -169,35 +169,35 @@ void GlobalWrapper::goalSimpleCallback(
 void GlobalWrapper::reachabilityCallback(
     const sensor_msgs::LaserScan::ConstPtr& reachability_msg) 
 {
-  Reachability reachability{};
-  reachability.proj = AngularProj(AngularProj::StartFinish{
+  // Get pano pose at time of scan
+  geometry_msgs::TransformStamped reach_pose_msg;
+  try {
+    reach_pose_msg = tf_buffer_.lookupTransform(
+        "map", reachability_msg->header.frame_id, reachability_msg->header.stamp, 
+        ros::Duration(0.01));
+  } catch (tf2::TransformException& ex) {
+    ROS_ERROR_STREAM("Cannot get reachability pano pose: " << ex.what());
+    return;
+  }
+
+  Reachability reachability{AngularProj(AngularProj::StartFinish{
       reachability_msg->angle_min, reachability_msg->angle_max}, 
-      reachability_msg->ranges.size());
+      reachability_msg->ranges.size()), 
+               pose32pose2(ROS2Eigen<float>(reach_pose_msg))};
 
   Eigen::Map<const Eigen::VectorXf> scan_ranges(reinterpret_cast<const float*>(
       reachability_msg->ranges.data()), reachability_msg->ranges.size());
-  reachability.scan = scan_ranges;
+  reachability.setScan(scan_ranges);
 
   if (reachability_msg->intensities.size() == reachability_msg->ranges.size()) {
     Eigen::Map<const Eigen::VectorXf> scan_intensities(reinterpret_cast<const float*>(
         reachability_msg->intensities.data()), reachability_msg->intensities.size());
-    reachability.is_obs = scan_intensities.cast<int>();
-  } else {
-    // Assume no obstacles if not specified
-    reachability.is_obs = Eigen::VectorXi::Zero(reachability.scan.size());
+    reachability.setObs(scan_intensities.cast<int>());
   }
 
-  // Get pano pose at time of scan
-  try {
-    geometry_msgs::TransformStamped reach_pose_msg = tf_buffer_.lookupTransform(
-        "map", reachability_msg->header.frame_id, reachability_msg->header.stamp, 
-        ros::Duration(0.01));
-    global_.updateLocalReachability(reachability, ROS2Eigen<float>(reach_pose_msg));
-    visualizePath(reachability_msg->header.stamp);
-    visualizeGraph(reachability_msg->header.stamp);
-  } catch (tf2::TransformException& ex) {
-    ROS_ERROR_STREAM("Cannot get reachability pano pose: " << ex.what());
-  }
+  global_.updateLocalReachability(reachability);
+  visualizePath(reachability_msg->header.stamp);
+  visualizeGraph(reachability_msg->header.stamp);
 }
 
 void GlobalWrapper::globalNavigateGoalCallback() {

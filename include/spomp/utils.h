@@ -171,11 +171,5 @@ struct AngularProj {
         start_angle, start_angle + (num-1)*delta_angle);
   }
 };
-
-struct Reachability {
-  Eigen::VectorXf scan{};
-  Eigen::VectorXi is_obs{};
-  AngularProj proj;
-};
   
 } // namespace spomp

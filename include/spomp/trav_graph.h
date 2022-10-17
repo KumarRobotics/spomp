@@ -5,6 +5,7 @@
 #include <list>
 #include <Eigen/Dense>
 #include "spomp/utils.h"
+#include "spomp/reachability.h"
 #include "spomp/timer.h"
 
 namespace spomp {
@@ -79,11 +80,9 @@ class TravGraph {
     std::list<Node*> getPath(Node* const start_n, Node* const end_n);
 
     //! @return True if map changed
-    bool updateLocalReachability(const Reachability& reachability, 
-        const Eigen::Isometry2f& reach_pose);
+    bool updateLocalReachability(const Reachability& reachability);
     bool updateEdgeFromReachability(TravGraph::Edge& edge, 
-        const TravGraph::Node& start_node, const Reachability& reachability,
-        const Eigen::Isometry2f& reach_pose);
+        const TravGraph::Node& start_node, const Reachability& reachability);
 
     //! @return pointer to inserted node
     Node* addNode(const Node& node);

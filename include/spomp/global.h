@@ -33,8 +33,7 @@ class Global {
       waypoint_manager_.cancel();
     }
 
-    void updateLocalReachability(const Reachability& reachability, 
-        const Eigen::Isometry3f& reach_pose);
+    void updateLocalReachability(const Reachability& reachability);
 
     //! @return The next global target waypoint, if available
     std::optional<Eigen::Vector2f> getNextWaypoint() {
