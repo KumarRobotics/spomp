@@ -165,7 +165,7 @@ void LocalWrapper::play() {
     if (!ros::ok()) {
       break;
     }
-    if (m.getTopic() == "/os_node/llol_odom/pano") {
+    if (m.getTopic() == "/os_node/rofl_odom/pano/img") {
       sensor_msgs::Image::ConstPtr pano = m.instantiate<sensor_msgs::Image>();
       if (pano != NULL) {
         if (!remote_.wait()) {
