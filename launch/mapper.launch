@@ -17,9 +17,9 @@
 
   <node pkg="spomp" type="node_mapper" name="spomp_mapper" output="$(arg output)">
     <!-- Remappings -->
-    <remap from="~pano/img" to="os_node/llol_odom/pano/img"/>
-    <remap from="~pano/camera_info" to="os_node/llol_odom/pano/camera_info"/>
-    <remap from="~pose" to="os_node/llol_odom/pose"/>
+    <remap from="~pano/img" to="os_node/rofl_odom/pano/img"/>
+    <remap from="~pano/camera_info" to="os_node/rofl_odom/pano/camera_info"/>
+    <remap from="~pose" to="os_node/rofl_odom/pose"/>
 
     <!-- Params -->
     <param name="odom_frame" value="$(arg odom_frame)"/>
