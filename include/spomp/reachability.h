@@ -13,8 +13,13 @@ class Reachability {
     Reachability(const AngularProj& proj, const Eigen::Isometry2f& pose);
     Reachability() = default;
 
-    float getRangeAtAz(float az) const {
-      return scan_[proj_.indAt(az)];
+    struct RangeObs {
+      float range;
+      bool is_obs;
+    };
+    RangeObs getObsAtAz(float az) const {
+      int ind = proj_.indAt(az);
+      return {scan_[ind], static_cast<bool>(is_obs_[ind])};
     }
 
     int size() const {
@@ -49,7 +54,7 @@ class Reachability {
     void setScan(const Eigen::VectorXf& scan) {
       scan_ = scan;
     }
-    void setObs(const Eigen::VectorXi& is_obs) {
+    void setIsObs(const Eigen::VectorXi& is_obs) {
       is_obs_ = is_obs;
     }
 

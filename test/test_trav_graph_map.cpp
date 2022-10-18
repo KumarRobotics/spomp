@@ -105,12 +105,15 @@ TEST(trav_map, update_map) {
                                "/test/map.png");
   m.updateMap(map_img, {-24.1119060516, 62.8522758484});
 
-  Reachability reach{};
-  reach.proj = AngularProj(AngularProj::StartFinish{0, 2*pi}, 360);
-  reach.scan = Eigen::VectorXf::Ones(360)*100;
-  reach.scan.tail<180>().setConstant(0);
-  reach.is_obs = Eigen::VectorXi::Ones(360);
-  m.updateLocalReachability(reach, Eigen::Isometry2f::Identity());
+  Reachability reach{AngularProj(AngularProj::StartFinish{0, 2*pi}, 360), 
+    Eigen::Isometry2f::Identity()};
+
+  Eigen::VectorXf scan = Eigen::VectorXf::Ones(360)*100;
+  scan.tail<180>().setConstant(0);
+  reach.setScan(scan);
+
+  reach.setIsObs(Eigen::VectorXi::Ones(360));
+  m.updateLocalReachability(reach);
 
   cv::imwrite("spomp_trav_updated_map.png", m.viz());
 }

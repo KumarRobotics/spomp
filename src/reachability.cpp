@@ -29,7 +29,6 @@ float Reachability::maxRange() const {
   return scan_.maxCoeff();
 }
 
-
 Reachability::EdgeExperience Reachability::analyzeEdge(const Eigen::Vector2f& start_p, 
     const Eigen::Vector2f& end_p, const EdgeAnalysisParams& params) const 
 {
@@ -43,15 +42,15 @@ Reachability::EdgeExperience Reachability::analyzeEdge(const Eigen::Vector2f& st
   for (float b=bearing-params.trav_window_rad; b<=bearing+params.trav_window_rad; 
        b+=std::abs(proj_.delta_angle)) 
   {
-    int ind = proj_.indAt(b);
-    if (range <= scan_[ind] || !is_obs_[ind]) {
+    auto obs = getObsAtAz(b);
+    if (range <= obs.range || !obs.is_obs) {
       // We have a non-obstacle path
       not_reachable = false;
     }
-    if (range > scan_[ind]) {
+    if (range > obs.range) {
       // We have an obstacle or unknown path
       reachable = false;
-      if (scan_[ind] > params.reach_max_dist_to_be_obs_m) {
+      if (obs.range > params.reach_max_dist_to_be_obs_m) {
         // We think we can't get there, but it is far away.  Unclear.
         not_reachable = false;
       }

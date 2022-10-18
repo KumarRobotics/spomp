@@ -32,7 +32,7 @@ class PanoPlanner {
 
     //! Get the range of reachability at the given azimuth (in radians)
     float getRangeAtAz(float az) const {
-      return reachability_.getRangeAtAz(az);
+      return reachability_.getObsAtAz(az).range;
     }
 
     //! @return True if point is within reachable area

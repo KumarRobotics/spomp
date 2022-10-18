@@ -192,7 +192,7 @@ void GlobalWrapper::reachabilityCallback(
   if (reachability_msg->intensities.size() == reachability_msg->ranges.size()) {
     Eigen::Map<const Eigen::VectorXf> scan_intensities(reinterpret_cast<const float*>(
         reachability_msg->intensities.data()), reachability_msg->intensities.size());
-    reachability.setObs(scan_intensities.cast<int>());
+    reachability.setIsObs(scan_intensities.cast<int>());
   }
 
   global_.updateLocalReachability(reachability);
