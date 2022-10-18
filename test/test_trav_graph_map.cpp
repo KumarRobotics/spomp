@@ -49,6 +49,22 @@ TEST(trav_graph, test_graph_search) {
   ASSERT_TRUE(!edge);
 }
 
+TEST(reachability, test_reach) {
+  // Initial setup
+  Reachability reach{AngularProj(AngularProj::StartFinish{0, 2*pi}, 360), 
+    Eigen::Isometry2f::Identity()};
+  reach.setScan(Eigen::VectorXf::Ones(360)*10);
+  Eigen::VectorXi is_obs = Eigen::VectorXi::Ones(360);
+  is_obs.head<180>().setConstant(0);
+  reach.setIsObs(is_obs);
+
+  // Inside
+  ASSERT_EQ(reach.analyzeEdge({0, 0}, {5, 0}, {0.2, 0}), Reachability::TRAV);
+  ASSERT_EQ(reach.analyzeEdge({-5, 0}, {5, 0}, {0.2, 0}), Reachability::TRAV);
+  ASSERT_EQ(reach.analyzeEdge({0, 0}, {0, -15}, {0.2, 0}), Reachability::NOT_TRAV);
+  ASSERT_EQ(reach.analyzeEdge({0, 0}, {0, 15}, {0.2, 0}), Reachability::UNKNOWN);
+}
+
 TEST(trav_map, test_transforms) {
   TravMap::Params m_p;
   m_p.world_config_path = ros::package::getPath("semantics_manager") + "/config/test_config_dynamic.yaml";

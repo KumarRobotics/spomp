@@ -1,4 +1,5 @@
 #include "spomp/reachability.h"
+#include <iostream>
 
 namespace spomp {
 
@@ -57,8 +58,8 @@ Reachability::EdgeExperience Reachability::analyzeEdge(const Eigen::Vector2f& st
   Eigen::Vector2f b;
   for (int edge_ind=0; edge_ind<size(); ++edge_ind) {
     int edge_ind2 = fast_mod(edge_ind+1, size());
-    Eigen::Vector2f pt1 = polar2cart({proj_.angAt(edge_ind), scan_[edge_ind]});
-    Eigen::Vector2f pt2 = polar2cart({proj_.angAt(edge_ind2), scan_[edge_ind2]});
+    Eigen::Vector2f pt1 = polar2cart({scan_[edge_ind], proj_.angAt(edge_ind)});
+    Eigen::Vector2f pt2 = polar2cart({scan_[edge_ind2], proj_.angAt(edge_ind2)});
     A.col(0) = pt2 - pt1;
     b = local_end_p - pt2;
 
