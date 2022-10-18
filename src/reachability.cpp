@@ -74,8 +74,12 @@ Reachability::EdgeExperience Reachability::analyzeEdge(const Eigen::Vector2f& st
   }
 
   if (crossing_az.size() == 0) {
-    // No crossings, not outside, so must be entirely inside
-    return TRAV;
+    if (start_in && end_in) {
+      // No crossings, not outside, so must be entirely inside
+      return TRAV;
+    } else {
+      return UNKNOWN;
+    }
   }
 
   for (float c_az : crossing_az) {
