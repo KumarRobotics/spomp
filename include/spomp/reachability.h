@@ -38,6 +38,8 @@ class Reachability {
     EdgeExperience analyzeEdge(const Eigen::Vector2f& start_p, 
         const Eigen::Vector2f& end_p, const EdgeAnalysisParams& params) const;
 
+    bool pointInside(const Eigen::Vector2f& pt) const;
+
     // Setters and getters
     const auto& getScan() const {
       return scan_;

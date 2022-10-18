@@ -29,40 +29,65 @@ float Reachability::maxRange() const {
   return scan_.maxCoeff();
 }
 
+bool Reachability::pointInside(const Eigen::Vector2f& pt) const {
+  Eigen::Vector2f local_pt = pose_.inverse() * pt;
+  Eigen::Vector2f local_pt_polar = cart2polar(local_pt);
+
+  auto obs = getObsAtAz(local_pt_polar[1]);
+  return local_pt_polar[0] < obs.range;
+}
+
 Reachability::EdgeExperience Reachability::analyzeEdge(const Eigen::Vector2f& start_p, 
     const Eigen::Vector2f& end_p, const EdgeAnalysisParams& params) const 
 {
-  Eigen::Vector2f local_dest_pose = pose_.inverse() * end_p;
+  bool start_in = pointInside(start_p);
+  bool end_in = pointInside(end_p);
+  if (!start_in && !end_in) {
+    // Both endpoints are outside trav region
+    return UNKNOWN;
+  }
 
-  float range = local_dest_pose.norm();
-  float bearing = atan2(local_dest_pose[1], local_dest_pose[0]);
+  Eigen::Vector2f local_start_p = pose_.inverse() * start_p;
+  Eigen::Vector2f local_end_p = pose_.inverse() * end_p;
 
-  bool not_reachable = true;
-  bool reachable = true;
-  for (float b=bearing-params.trav_window_rad; b<=bearing+params.trav_window_rad; 
-       b+=std::abs(proj_.delta_angle)) 
-  {
-    auto obs = getObsAtAz(b);
-    if (range <= obs.range || !obs.is_obs) {
-      // We have a non-obstacle path
-      not_reachable = false;
-    }
-    if (range > obs.range) {
-      // We have an obstacle or unknown path
-      reachable = false;
-      if (obs.range > params.reach_max_dist_to_be_obs_m) {
-        // We think we can't get there, but it is far away.  Unclear.
-        not_reachable = false;
+  std::vector<float> crossing_az;
+
+  Eigen::Matrix2f A;
+  A.col(1) = local_end_p - local_start_p;
+  Eigen::Vector2f b;
+  for (int edge_ind=0; edge_ind<size(); ++edge_ind) {
+    int edge_ind2 = fast_mod(edge_ind+1, size());
+    Eigen::Vector2f pt1 = polar2cart({proj_.angAt(edge_ind), scan_[edge_ind]});
+    Eigen::Vector2f pt2 = polar2cart({proj_.angAt(edge_ind2), scan_[edge_ind2]});
+    A.col(0) = pt2 - pt1;
+    b = local_end_p - pt2;
+
+    Eigen::Vector2f t = A.householderQr().solve(b);
+    if ((t.array() >= 0).all() && (t.array() <= 1).all()) {
+      if (b.isApprox(A * t)) {
+        // We have a crossing
+        Eigen::Vector2f cross_pt_polar = cart2polar(pt1 + (pt2 - pt1)*t[0]);
+        crossing_az.push_back(cross_pt_polar[1]);
       }
     }
   }
 
-  if (reachable) {
+  if (crossing_az.size() == 0) {
+    // No crossings, not outside, so must be entirely inside
     return TRAV;
-  } else if (not_reachable) {
-    return NOT_TRAV;
   }
-  return UNKNOWN;
+
+  for (float c_az : crossing_az) {
+    for (float az=c_az-params.trav_window_rad; az<=c_az+params.trav_window_rad; 
+        az+=std::abs(proj_.delta_angle)) 
+    {
+      if (!getObsAtAz(az).is_obs) {
+        return UNKNOWN;
+      }
+    }
+  }
+
+  return NOT_TRAV;
 }
 
 } // namespace spomp
