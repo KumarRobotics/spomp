@@ -91,7 +91,8 @@ bool TravGraph::updateEdgeFromReachability(TravGraph::Edge& edge,
     const TravGraph::Node& start_node, const Reachability& reachability)
 {
   TravGraph::Node* dest_node_ptr = edge.getOtherNode(&start_node);
-  auto edge_exp = reachability.analyzeEdge(start_node.pos, dest_node_ptr->pos);
+  auto edge_exp = reachability.analyzeEdge(start_node.pos, dest_node_ptr->pos,
+      {params_.trav_window_rad, params_.reach_max_dist_to_be_obs_m});
 
   bool did_map_change = false;
   if (!edge.is_experienced) {

@@ -2,7 +2,6 @@
 
 #include <Eigen/Dense>
 #include "spomp/terrain_pano.h"
-#include "spomp/trav_graph.h"
 #include "spomp/utils.h"
 
 namespace spomp {
@@ -27,10 +26,23 @@ class Reachability {
     float maxRange() const;
 
     enum EdgeExperience {TRAV, NOT_TRAV, UNKNOWN};
+    struct EdgeAnalysisParams {
+      float trav_window_rad;
+      float reach_max_dist_to_be_obs_m;
+    };
     EdgeExperience analyzeEdge(const Eigen::Vector2f& start_p, 
-        const Eigen::Vector2f& end_p) const;
+        const Eigen::Vector2f& end_p, const EdgeAnalysisParams& params) const;
 
     // Setters and getters
+    const auto& getScan() const {
+      return scan_;
+    }
+    const auto& getIsObs() const {
+      return is_obs_;
+    }
+    const auto& getProj() const {
+      return proj_;
+    }
     const auto& getPose() const {
       return pose_;
     }

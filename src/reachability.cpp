@@ -31,7 +31,7 @@ float Reachability::maxRange() const {
 
 
 Reachability::EdgeExperience Reachability::analyzeEdge(const Eigen::Vector2f& start_p, 
-    const Eigen::Vector2f& end_p) const 
+    const Eigen::Vector2f& end_p, const EdgeAnalysisParams& params) const 
 {
   Eigen::Vector2f local_dest_pose = pose_.inverse() * end_p;
 
@@ -57,6 +57,13 @@ Reachability::EdgeExperience Reachability::analyzeEdge(const Eigen::Vector2f& st
       }
     }
   }
+
+  if (reachable) {
+    return TRAV;
+  } else if (not_reachable) {
+    return NOT_TRAV;
+  }
+  return UNKNOWN;
 }
 
 } // namespace spomp

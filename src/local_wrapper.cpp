@@ -273,21 +273,21 @@ void LocalWrapper::publishReachability(const ros::Time& stamp) {
   scan_msg.header.stamp = stamp;
 
   // Order is flipped, so delta_angle is negative, but this is fine
-  scan_msg.angle_min = reachability.proj.start_angle;
-  scan_msg.angle_increment = reachability.proj.delta_angle;
+  scan_msg.angle_min = reachability.getProj().start_angle;
+  scan_msg.angle_increment = reachability.getProj().delta_angle;
   scan_msg.angle_max = scan_msg.angle_min + 
-    (reachability.scan.size() * scan_msg.angle_increment);
+    (reachability.size() * scan_msg.angle_increment);
   scan_msg.range_max = 100; // Something large
 
-  scan_msg.ranges.resize(reachability.scan.size());
+  scan_msg.ranges.resize(reachability.getScan().size());
   Eigen::Map<Eigen::VectorXf> scan_ranges(reinterpret_cast<float*>(
-      scan_msg.ranges.data()), reachability.scan.size());
-  scan_ranges = reachability.scan;
+      scan_msg.ranges.data()), reachability.getScan().size());
+  scan_ranges = reachability.getScan();
 
-  scan_msg.intensities.resize(reachability.is_obs.size());
+  scan_msg.intensities.resize(reachability.getIsObs().size());
   Eigen::Map<Eigen::VectorXf> scan_intensities(reinterpret_cast<float*>(
-      scan_msg.intensities.data()), reachability.is_obs.size());
-  scan_intensities = reachability.is_obs.cast<float>();
+      scan_msg.intensities.data()), reachability.getIsObs().size());
+  scan_intensities = reachability.getIsObs().cast<float>();
 
   reachability_pub_.publish(scan_msg);
 }
