@@ -8,6 +8,8 @@ int TravGraph::Edge::MAX_TERRAIN = 1;
 TravGraph::TravGraph(const Params& p) : params_(p) {
   auto& tm = TimerManager::getGlobal();
   get_path_t_ = tm.get("TG_get_path");
+  update_edge_t_ = tm.get("TG_update_edge");
+  get_near_nodes_t_ = tm.get("TG_get_near_nodes");
 }
 
 std::list<TravGraph::Node*> TravGraph::getPath(
@@ -90,6 +92,8 @@ bool TravGraph::updateLocalReachability(const Reachability& reachability)
 bool TravGraph::updateEdgeFromReachability(TravGraph::Edge& edge, 
     const TravGraph::Node& start_node, const Reachability& reachability)
 {
+  update_edge_t_->start();
+
   TravGraph::Node* dest_node_ptr = edge.getOtherNode(&start_node);
   auto edge_exp = reachability.analyzeEdge(start_node.pos, dest_node_ptr->pos,
       {params_.trav_window_rad, params_.reach_max_dist_to_be_obs_m});
@@ -114,18 +118,21 @@ bool TravGraph::updateEdgeFromReachability(TravGraph::Edge& edge,
     }
   }
 
+  update_edge_t_->end();
   return did_map_change;
 }
 
 const std::vector<TravGraph::Node*> TravGraph::getNodesNear(
     const Eigen::Vector2f& pos, float delta) 
 {
+  get_near_nodes_t_->start();
   std::vector<TravGraph::Node*> near_nodes{};
   for (auto& [node_id, node] : nodes_) {
     if ((node.pos - pos).norm() <= delta) {
       near_nodes.push_back(&node);
     }
   }
+  get_near_nodes_t_->end();
   return near_nodes;
 }
 

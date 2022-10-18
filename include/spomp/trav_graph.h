@@ -126,6 +126,8 @@ class TravGraph {
     std::list<Edge> edges_;
 
     Timer* get_path_t_;
+    Timer* update_edge_t_;
+    Timer* get_near_nodes_t_;
 };
 
 } // namespace spomp

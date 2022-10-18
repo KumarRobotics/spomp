@@ -118,7 +118,6 @@ void GlobalWrapper::processMapBuffers() {
     auto img_it = map_sem_buf_.find(loc_it->first);
     if (img_it != map_sem_buf_.end()) {
       ROS_DEBUG_STREAM("Got new map");
-      printTimings();
       last_map_stamp_ = loc_it->first;
 
       global_.updateMap(
@@ -198,6 +197,7 @@ void GlobalWrapper::reachabilityCallback(
   global_.updateLocalReachability(reachability);
   visualizePath(reachability_msg->header.stamp);
   visualizeGraph(reachability_msg->header.stamp);
+  printTimings();
 }
 
 void GlobalWrapper::globalNavigateGoalCallback() {
