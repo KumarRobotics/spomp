@@ -11,7 +11,6 @@
   <arg name="TM_prune" default="True"/>
 
   <arg name="TG_reach_node_max_dist_m" default="4"/>
-  <arg name="TG_reach_max_dist_to_be_obs_m" default="5"/>
   <arg name="TG_trav_window_rad" default="0.1"/>
 
   <arg name="WM_waypoint_thresh_m" default="2.5"/>
@@ -33,7 +32,6 @@
     <param name="TM_prune" value="$(arg TM_prune)"/>
 
     <param name="TG_reach_node_max_dist_m" value="$(arg TG_reach_node_max_dist_m)"/>
-    <param name="TG_reach_max_dist_to_be_obs_m" value="$(arg TG_reach_max_dist_to_be_obs_m)"/>
     <param name="TG_trav_window_rad" value="$(arg TG_trav_window_rad)"/>
 
     <param name="WM_waypoint_thresh_m" value="$(arg WM_waypoint_thresh_m)"/>

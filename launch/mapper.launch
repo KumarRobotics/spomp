@@ -4,6 +4,7 @@
 
   <arg name="odom_frame" default="odom"/>
   <arg name="map_frame" default="map"/>
+  <arg name="viz_thread_period_ms" default="1000"/>
 
   <arg name="M_pgo_thread_period_ms" default="1000"/>
   <arg name="M_correct_odom_per_frame" default="1"/>
@@ -24,6 +25,7 @@
     <!-- Params -->
     <param name="odom_frame" value="$(arg odom_frame)"/>
     <param name="map_frame" value="$(arg map_frame)"/>
+    <param name="viz_thread_period_ms" value="$(arg viz_thread_period_ms)"/>
 
     <param name="M_pgo_thread_period_ms" value="$(arg M_pgo_thread_period_ms)"/>
     <param name="M_correct_odom_per_frame" value="$(arg M_correct_odom_per_frame)"/>

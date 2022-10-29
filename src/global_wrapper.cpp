@@ -40,7 +40,6 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   nh.getParam("TM_prune", tm_params.prune);
 
   nh.getParam("TG_reach_node_max_dist_m", tg_params.reach_node_max_dist_m);
-  nh.getParam("TG_reach_max_dist_to_be_obs_m", tg_params.reach_max_dist_to_be_obs_m);
   nh.getParam("TG_trav_window_rad", tg_params.trav_window_rad);
 
   nh.getParam("WM_waypoint_thresh_m", wm_params.waypoint_thresh_m);
@@ -58,7 +57,6 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
     setw(width) << "[ROS] TM_prune: " << tm_params.prune << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] TG_reach_node_max_dist_m: " << tg_params.reach_node_max_dist_m << endl <<
-    setw(width) << "[ROS] TG_reach_max_dist_to_be_obs_m: " << tg_params.reach_max_dist_to_be_obs_m << endl <<
     setw(width) << "[ROS] TG_trav_window_rad: " << tg_params.trav_window_rad << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] WM_waypoint_thresh_m: " << wm_params.waypoint_thresh_m << endl <<

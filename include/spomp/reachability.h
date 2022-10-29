@@ -33,7 +33,6 @@ class Reachability {
     enum EdgeExperience {TRAV, NOT_TRAV, UNKNOWN};
     struct EdgeAnalysisParams {
       float trav_window_rad;
-      float reach_max_dist_to_be_obs_m;
     };
     EdgeExperience analyzeEdge(const Eigen::Vector2f& start_p, 
         const Eigen::Vector2f& end_p, const EdgeAnalysisParams& params) const;

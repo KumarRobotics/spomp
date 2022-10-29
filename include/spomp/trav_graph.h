@@ -17,7 +17,6 @@ class TravGraph {
   public:
     struct Params {
       float reach_node_max_dist_m = 4;
-      float reach_max_dist_to_be_obs_m = 5;
       float trav_window_rad = 0.3;
     };
     TravGraph(const Params& p);

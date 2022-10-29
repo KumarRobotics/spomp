@@ -6,6 +6,7 @@ namespace spomp {
 
 std::string MapperWrapper::odom_frame_{"odom"};
 std::string MapperWrapper::map_frame_{"map"};
+int MapperWrapper::viz_thread_period_ms_{1000};
 
 MapperWrapper::MapperWrapper(ros::NodeHandle& nh) : 
   nh_(nh),
@@ -28,6 +29,7 @@ Mapper MapperWrapper::createMapper(ros::NodeHandle& nh) {
 
   nh.getParam("odom_frame", odom_frame_);
   nh.getParam("map_frame", map_frame_);
+  nh.getParam("viz_thread_period_ms", viz_thread_period_ms_);
 
   nh.getParam("M_pgo_thread_period_ms", m_params.pgo_thread_period_ms);
   nh.getParam("M_correct_odom_per_frame", m_params.correct_odom_per_frame);
@@ -52,6 +54,7 @@ Mapper MapperWrapper::createMapper(ros::NodeHandle& nh) {
     endl << left << 
     setw(width) << "[ROS] odom_frame: " << odom_frame_ << endl <<
     setw(width) << "[ROS] map_frame: " << map_frame_ << endl <<
+    setw(width) << "[ROS] viz_thread_period_ms: " << viz_thread_period_ms_ << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] M_pgo_thread_period_ms: " << m_params.pgo_thread_period_ms << endl <<
     setw(width) << "[ROS] M_correct_odom_per_frame: " << m_params.correct_odom_per_frame << endl <<
@@ -78,7 +81,8 @@ void MapperWrapper::initialize() {
   global_est_odom_sync_->registerCallback(&MapperWrapper::globalEstCallback, this);
 
   // Timers
-  viz_timer_ = nh_.createTimer(ros::Duration(1), &MapperWrapper::visualize, this);
+  viz_timer_ = nh_.createTimer(ros::Duration(viz_thread_period_ms_/1000.), 
+      &MapperWrapper::visualize, this);
 
   ros::spin();
 }

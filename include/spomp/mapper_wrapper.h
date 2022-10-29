@@ -61,6 +61,7 @@ class MapperWrapper {
     // Static because read in static functions
     static std::string odom_frame_;
     static std::string map_frame_;
+    static int viz_thread_period_ms_;
 
     // Timers
     Timer* viz_t_;
