@@ -60,16 +60,16 @@ Reachability::EdgeExperience Reachability::analyzeEdge(const Eigen::Vector2f& st
     int edge_ind2 = fast_mod(edge_ind+1, size());
     Eigen::Vector2f pt1 = polar2cart({scan_[edge_ind], proj_.angAt(edge_ind)});
     Eigen::Vector2f pt2 = polar2cart({scan_[edge_ind2], proj_.angAt(edge_ind2)});
-    A.col(0) = pt2 - pt1;
-    b = local_end_p - pt2;
+    A.col(0) = pt1 - pt2;
+    b = pt1 - local_start_p;
 
     Eigen::Vector2f t = A.householderQr().solve(b);
-    if ((t.array() >= 0).all() && (t.array() <= 1).all()) {
-      if (b.isApprox(A * t)) {
-        // We have a crossing
-        Eigen::Vector2f cross_pt_polar = cart2polar(pt1 + (pt2 - pt1)*t[0]);
-        crossing_az.push_back(cross_pt_polar[1]);
-      }
+    // Householder QR will always return something, but have to check whether solution
+    // is correct as well as whether intersection point is on line segs
+    if ((t.array() >= 0).all() && (t.array() <= 1).all() && b.isApprox(A * t)) {
+      // We have a crossing
+      Eigen::Vector2f cross_pt_polar = cart2polar(pt1 + (pt2 - pt1)*t[0]);
+      crossing_az.push_back(cross_pt_polar[1]);
     }
   }
 

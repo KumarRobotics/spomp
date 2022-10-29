@@ -61,8 +61,12 @@ TEST(reachability, test_reach) {
   // Inside
   ASSERT_EQ(reach.analyzeEdge({0, 0}, {5, 0}, {0.2, 0}), Reachability::TRAV);
   ASSERT_EQ(reach.analyzeEdge({-5, 0}, {5, 0}, {0.2, 0}), Reachability::TRAV);
+  // Outside
   ASSERT_EQ(reach.analyzeEdge({0, 0}, {0, -15}, {0.2, 0}), Reachability::NOT_TRAV);
   ASSERT_EQ(reach.analyzeEdge({0, 0}, {0, 15}, {0.2, 0}), Reachability::UNKNOWN);
+  ASSERT_EQ(reach.analyzeEdge({5, 0}, {5, 15}, {0.2, 0}), Reachability::UNKNOWN);
+  // Both outside (have to be unknown)
+  ASSERT_EQ(reach.analyzeEdge({5, -15}, {5, 15}, {0.2, 0}), Reachability::UNKNOWN);
 }
 
 TEST(trav_map, test_transforms) {
