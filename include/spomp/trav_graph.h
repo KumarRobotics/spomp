@@ -18,6 +18,7 @@ class TravGraph {
     struct Params {
       float reach_node_max_dist_m = 4;
       float trav_window_rad = 0.3;
+      float max_trav_discontinuity_m = 2;
     };
     TravGraph(const Params& p);
 

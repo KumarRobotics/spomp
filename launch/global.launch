@@ -12,6 +12,7 @@
 
   <arg name="TG_reach_node_max_dist_m" default="4"/>
   <arg name="TG_trav_window_rad" default="0.1"/>
+  <arg name="TG_max_trav_discontinuity_m" default="2"/>
 
   <arg name="WM_waypoint_thresh_m" default="2.5"/>
 
@@ -33,6 +34,7 @@
 
     <param name="TG_reach_node_max_dist_m" value="$(arg TG_reach_node_max_dist_m)"/>
     <param name="TG_trav_window_rad" value="$(arg TG_trav_window_rad)"/>
+    <param name="TG_max_trav_discontinuity_m" value="$(arg TG_max_trav_discontinuity_m)"/>
 
     <param name="WM_waypoint_thresh_m" value="$(arg WM_waypoint_thresh_m)"/>
   </node>

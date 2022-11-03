@@ -51,8 +51,7 @@ Reachability::EdgeExperience Reachability::analyzeEdge(const Eigen::Vector2f& st
   Eigen::Vector2f local_start_p = pose_.inverse() * start_p;
   Eigen::Vector2f local_end_p = pose_.inverse() * end_p;
 
-  std::vector<float> crossing_az;
-
+  float crossing_az = std::numeric_limits<float>::quiet_NaN();
   Eigen::Matrix2f A;
   A.col(1) = local_end_p - local_start_p;
   Eigen::Vector2f b;
@@ -69,11 +68,20 @@ Reachability::EdgeExperience Reachability::analyzeEdge(const Eigen::Vector2f& st
     if ((t.array() >= 0).all() && (t.array() <= 1).all() && b.isApprox(A * t)) {
       // We have a crossing
       Eigen::Vector2f cross_pt_polar = cart2polar(pt1 + (pt2 - pt1)*t[0]);
-      crossing_az.push_back(cross_pt_polar[1]);
+      if (std::isnan(crossing_az)) {
+        crossing_az = cross_pt_polar[1];
+      } else {
+        // If there is more than one crossing, this suggests that the path goes 
+        // out->in->out or something along this line.
+        // This case could just be a glancing edge around a corner or something, so
+        // we adopt a "wait-and-see" approach
+        return UNKNOWN;
+      }
     }
   }
 
-  if (crossing_az.size() == 0) {
+  if (std::isnan(crossing_az)) {
+    // If no crossings, either entirely inside or outside
     if (start_in && end_in) {
       // No crossings, not outside, so must be entirely inside
       return TRAV;
@@ -82,14 +90,28 @@ Reachability::EdgeExperience Reachability::analyzeEdge(const Eigen::Vector2f& st
     }
   }
 
-  for (float c_az : crossing_az) {
-    for (float az=c_az-params.trav_window_rad; az<=c_az+params.trav_window_rad; 
-        az+=std::abs(proj_.delta_angle)) 
-    {
-      if (!getObsAtAz(az).is_obs) {
-        return UNKNOWN;
-      }
+  // Determine which endpoint of edge is outside of the trav area
+  Eigen::Vector2f outside_pt = local_end_p;
+  if (end_in) {
+    outside_pt = local_start_p;
+  }
+
+  float last_range = std::numeric_limits<float>::quiet_NaN();
+  for (float az=crossing_az-params.trav_window_rad; az<=crossing_az+params.trav_window_rad; 
+      az+=std::abs(proj_.delta_angle)) 
+  {
+    auto obs = getObsAtAz(az);
+    if (std::isnan(last_range)) {
+      last_range = obs.range;
     }
+    if (!obs.is_obs || obs.range > outside_pt.norm()) {
+      return UNKNOWN;
+    }
+    if (!std::isnan(last_range) && obs.range - last_range > params.max_trav_discontinuity_m) {
+      // Major discontinuity in range suggests a possible gap
+      return UNKNOWN;
+    }
+    last_range = obs.range;
   }
 
   return NOT_TRAV;

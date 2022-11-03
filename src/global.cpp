@@ -24,8 +24,6 @@ bool Global::setGoal(const Eigen::Vector3f& goal) {
 }
 
 void Global::updateLocalReachability(const Reachability& reachability) {
-  if (!waypoint_manager_.havePath()) return;
-
   const auto& cur_path = waypoint_manager_.getPath();
   auto cur_edge = waypoint_manager_.getCurEdge();
   auto cur_node = waypoint_manager_.getNextWaypoint();
@@ -40,28 +38,31 @@ void Global::updateLocalReachability(const Reachability& reachability) {
   float old_cost = map_.getPathCost(cur_path);
 
   map_.updateLocalReachability(reachability);
+
+  // The rest is only relevant if there is an active global path
+  if (!waypoint_manager_.havePath()) return;
+
   if (cur_edge && cur_edge->cls == last_cur_edge_cls) {
     map_.updateEdgeFromReachability(*cur_edge, *last_node, reachability);
   }
   float new_cost = map_.getPathCost(cur_path);
 
-  if (new_cost > old_cost) {
+  if (new_cost > old_cost && last_node) {
     // We get the last waypoint because we want to replan including the current
     // edge, in case the current edge changed traversability
-    if (last_node) {
-      // Replan
-      auto path = map_.getPath(*last_node, *waypoint_manager_.getPath().back());
-      if (path.size() < 1) {
-        // No path found
-        cancel();
-      } else {
-        waypoint_manager_.setPath(path);
-        waypoint_manager_.advancePlan();
-        if (waypoint_manager_.getNextWaypoint() != cur_node) {
-          // If this is a different node than before, 
-          // then we don't want to skip the beginning
-          waypoint_manager_.setPath(path);
-        }
+
+    // Replan
+    auto new_path = map_.getPath(*last_node, *waypoint_manager_.getPath().back());
+    if (new_path.size() < 1) {
+      // No path found
+      cancel();
+    } else {
+      waypoint_manager_.setPath(new_path);
+      waypoint_manager_.advancePlan();
+      if (waypoint_manager_.getNextWaypoint() != cur_node) {
+        // If this is a different node than before, 
+        // then we don't want to skip the beginning
+        waypoint_manager_.setPath(new_path);
       }
     }
   }
