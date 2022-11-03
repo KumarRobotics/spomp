@@ -24,6 +24,9 @@ bool Global::setGoal(const Eigen::Vector3f& goal) {
 }
 
 void Global::updateLocalReachability(const Reachability& reachability) {
+  if (!waypoint_manager_.havePath()) return;
+
+  const auto& cur_path = waypoint_manager_.getPath();
   auto cur_edge = waypoint_manager_.getCurEdge();
   auto cur_node = waypoint_manager_.getNextWaypoint();
   auto last_node = waypoint_manager_.getLastWaypoint();
@@ -34,14 +37,15 @@ void Global::updateLocalReachability(const Reachability& reachability) {
     // Want to avoid redundantly checking the current edge twice
     last_cur_edge_cls = cur_edge->cls;
   }
-  bool did_change = map_.updateLocalReachability(reachability);
-  if (cur_edge && cur_edge->cls == last_cur_edge_cls) {
-    bool did_change_cur_edge = map_.updateEdgeFromReachability(
-        *cur_edge, *last_node, reachability);
-    did_change = did_change_cur_edge ? true : did_change;
-  }
+  float old_cost = map_.getPathCost(cur_path);
 
-  if (did_change && waypoint_manager_.havePath()) {
+  map_.updateLocalReachability(reachability);
+  if (cur_edge && cur_edge->cls == last_cur_edge_cls) {
+    map_.updateEdgeFromReachability(*cur_edge, *last_node, reachability);
+  }
+  float new_cost = map_.getPathCost(cur_path);
+
+  if (new_cost > old_cost) {
     // We get the last waypoint because we want to replan including the current
     // edge, in case the current edge changed traversability
     if (last_node) {

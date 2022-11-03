@@ -26,6 +26,9 @@ class TravMap {
         const Eigen::Vector2f& end_p);
     std::list<TravGraph::Node*> getPath(TravGraph::Node& start_n,
         TravGraph::Node& end_n);
+    float getPathCost(const std::list<TravGraph::Node*>& path) {
+      return graph_.getPathCost(path);
+    }
     //! @return True if map changed
     bool updateLocalReachability(const Reachability& reachability) {
       return graph_.updateLocalReachability(reachability);

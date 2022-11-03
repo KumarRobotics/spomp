@@ -68,6 +68,22 @@ std::list<TravGraph::Node*> TravGraph::getPath(
   return path;
 }
 
+float TravGraph::getPathCost(const std::list<Node*>& path) {
+  float cost = 0;
+
+  const Node* last_node = nullptr;
+  for (const auto& node : path) {
+    if (!last_node) {
+      last_node = node;
+      continue;
+    }
+    cost += node->getEdgeToNode(last_node)->totalCost();
+    last_node = node;
+  }
+
+  return cost;
+}
+
 bool TravGraph::updateLocalReachability(const Reachability& reachability)
 {
   if (edges_.empty()) {
