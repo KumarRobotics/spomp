@@ -8,6 +8,7 @@
 
   <arg name="M_pgo_thread_period_ms" default="1000"/>
   <arg name="M_correct_odom_per_frame" default="1"/>
+  <arg name="M_dist_between_keyframes_m" default="5"/>
 
   <arg name="PG_num_frames_opt" default="10"/>
   <arg name="PG_allow_interpolation" default="False"/>
@@ -29,6 +30,7 @@
 
     <param name="M_pgo_thread_period_ms" value="$(arg M_pgo_thread_period_ms)"/>
     <param name="M_correct_odom_per_frame" value="$(arg M_correct_odom_per_frame)"/>
+    <param name="M_dist_between_keyframes_m" value="$(arg M_dist_between_keyframes_m)"/>
 
     <param name="PG_num_frames_opt" value="$(arg PG_num_frames_opt)"/>
     <param name="PG_allow_interpolation" value="$(arg PG_allow_interpolation)"/>

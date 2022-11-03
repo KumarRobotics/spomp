@@ -13,8 +13,12 @@ Mapper::~Mapper() {
 }
 
 void Mapper::addKeyframe(const Keyframe& k) {
-  std::scoped_lock lock(keyframe_input_.mtx);
-  keyframe_input_.frames.emplace_back(std::make_unique<Keyframe>(k));
+  if ((k.pose * last_keyframe_.pose.inverse()).translation().norm() > 
+      params_.dist_between_keyframes_m) 
+  {
+    std::scoped_lock lock(keyframe_input_.mtx);
+    keyframe_input_.frames.emplace_back(std::make_unique<Keyframe>(k));
+  }
 }
 
 void Mapper::addPrior(const StampedPrior& p) {

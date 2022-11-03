@@ -33,6 +33,7 @@ Mapper MapperWrapper::createMapper(ros::NodeHandle& nh) {
 
   nh.getParam("M_pgo_thread_period_ms", m_params.pgo_thread_period_ms);
   nh.getParam("M_correct_odom_per_frame", m_params.correct_odom_per_frame);
+  nh.getParam("M_dist_between_keyframes_m", m_params.dist_between_keyframes_m);
 
   nh.getParam("PG_num_frames_opt", pg_params.num_frames_opt);
   nh.getParam("PG_allow_interpolation", pg_params.allow_interpolation);
@@ -58,6 +59,7 @@ Mapper MapperWrapper::createMapper(ros::NodeHandle& nh) {
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] M_pgo_thread_period_ms: " << m_params.pgo_thread_period_ms << endl <<
     setw(width) << "[ROS] M_correct_odom_per_frame: " << m_params.correct_odom_per_frame << endl <<
+    setw(width) << "[ROS] M_dist_between_keyframes_m: " << m_params.dist_between_keyframes_m << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] PG_num_frames_opt: " << pg_params.num_frames_opt << endl <<
     setw(width) << "[ROS] PG_allow_interpolation: " << pg_params.allow_interpolation << endl <<

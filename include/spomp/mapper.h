@@ -12,6 +12,7 @@ class Mapper {
     struct Params {
       int pgo_thread_period_ms = 1000;
       bool correct_odom_per_frame = true;
+      float dist_between_keyframes_m = 5;
     };
     Mapper(const Params& m_p, const PoseGraph::Params& pg_p);
 
@@ -48,6 +49,7 @@ class Mapper {
      * LOCAL VARIABLES
      *********************************************************/
     StampedPrior last_prior_{};
+    Keyframe last_keyframe_{};
 
     struct Keyframes {
       // Shared mutex here since a lot of places read only
