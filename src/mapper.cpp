@@ -13,9 +13,10 @@ Mapper::~Mapper() {
 }
 
 void Mapper::addKeyframe(const Keyframe& k) {
-  if ((k.pose * last_keyframe_.pose.inverse()).translation().norm() > 
+  if ((k.pose.inverse() * last_keyframe_pose_).translation().norm() > 
       params_.dist_between_keyframes_m) 
   {
+    last_keyframe_pose_ = k.pose;
     std::scoped_lock lock(keyframe_input_.mtx);
     keyframe_input_.frames.emplace_back(std::make_unique<Keyframe>(k));
   }

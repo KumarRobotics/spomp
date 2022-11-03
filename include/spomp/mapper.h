@@ -49,7 +49,7 @@ class Mapper {
      * LOCAL VARIABLES
      *********************************************************/
     StampedPrior last_prior_{};
-    Keyframe last_keyframe_{};
+    Eigen::Isometry3d last_keyframe_pose_{Eigen::Isometry3d::Identity()};
 
     struct Keyframes {
       // Shared mutex here since a lot of places read only
