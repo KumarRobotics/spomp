@@ -43,7 +43,10 @@ void Global::updateLocalReachability(const Reachability& reachability) {
   if (!waypoint_manager_.havePath()) return;
 
   if (cur_edge && cur_edge->cls == last_cur_edge_cls) {
-    map_.updateEdgeFromReachability(*cur_edge, *last_node, reachability);
+    // Check this edge on the basis of checking traversability from current position
+    // to the end of the edge
+    map_.updateEdgeFromReachability(*cur_edge, *last_node, reachability, 
+        reachability.getPose().translation());
   }
   float new_cost = map_.getPathCost(cur_path);
 

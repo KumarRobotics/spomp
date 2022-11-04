@@ -35,7 +35,8 @@ bool Reachability::pointInside(const Eigen::Vector2f& pt) const {
   Eigen::Vector2f local_pt_polar = cart2polar(local_pt);
 
   auto obs = getObsAtAz(local_pt_polar[1]);
-  return local_pt_polar[0] < obs.range;
+  // Important to be <= since we want origin to always be considered inside
+  return local_pt_polar[0] <= obs.range;
 }
 
 Reachability::EdgeExperience Reachability::analyzeEdge(const Eigen::Vector2f& start_p, 

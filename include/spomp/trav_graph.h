@@ -84,7 +84,8 @@ class TravGraph {
     //! @return True if map changed
     bool updateLocalReachability(const Reachability& reachability);
     bool updateEdgeFromReachability(TravGraph::Edge& edge, 
-        const TravGraph::Node& start_node, const Reachability& reachability);
+        const TravGraph::Node& start_node, const Reachability& reachability,
+        std::optional<Eigen::Vector2f> start_pos = {});
 
     //! @return pointer to inserted node
     Node* addNode(const Node& node);

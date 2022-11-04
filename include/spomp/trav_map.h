@@ -34,8 +34,9 @@ class TravMap {
       return graph_.updateLocalReachability(reachability);
     }
     bool updateEdgeFromReachability(TravGraph::Edge& edge, 
-        const TravGraph::Node& start_node, const Reachability& reachability) {
-      return graph_.updateEdgeFromReachability(edge, start_node, reachability);
+        const TravGraph::Node& start_node, const Reachability& reachability,
+        std::optional<Eigen::Vector2f> start_pos = {}) {
+      return graph_.updateEdgeFromReachability(edge, start_node, reachability, start_pos);
     }
 
     Eigen::Vector2f world2img(const Eigen::Vector2f& world_c) const;

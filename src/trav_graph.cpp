@@ -106,13 +106,20 @@ bool TravGraph::updateLocalReachability(const Reachability& reachability)
 }
 
 bool TravGraph::updateEdgeFromReachability(TravGraph::Edge& edge, 
-    const TravGraph::Node& start_node, const Reachability& reachability)
+    const TravGraph::Node& start_node, const Reachability& reachability,
+    std::optional<Eigen::Vector2f> start_pos)
 {
   update_edge_t_->start();
 
   TravGraph::Node* dest_node_ptr = edge.getOtherNode(&start_node);
-  auto edge_exp = reachability.analyzeEdge(start_node.pos, dest_node_ptr->pos,
-      {params_.trav_window_rad, params_.max_trav_discontinuity_m});
+  Reachability::EdgeExperience edge_exp;
+  if (start_pos) {
+    edge_exp = reachability.analyzeEdge(*start_pos, dest_node_ptr->pos,
+        {params_.trav_window_rad, params_.max_trav_discontinuity_m});
+  } else {
+    edge_exp = reachability.analyzeEdge(start_node.pos, dest_node_ptr->pos,
+        {params_.trav_window_rad, params_.max_trav_discontinuity_m});
+  }
 
   bool did_map_change = false;
   if (!edge.is_experienced) {
