@@ -10,6 +10,7 @@ namespace Eigen {
   using Vector6d = Matrix<double, 6, 1>;
 }
 using gtsam::symbol_shorthand::P;
+using gtsam::symbol_shorthand::S;
 
 namespace spomp {
 
