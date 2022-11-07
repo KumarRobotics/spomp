@@ -16,7 +16,7 @@ PoseGraph::PoseGraph(const Params& params) : params_(params) {
   // since this is a very highly constrained value.  In fact we could get away
   // with picking the scale arbitrarily (and we do this in ASOOM)
   graph_.emplace_shared<gtsam::PriorFactor<double>>(S(0), 1.0,
-      gtsam::noiseModel::Diagonal::Sigmas(Eigen::Matrix<double, 1, 1>(2.0)));
+      gtsam::noiseModel::Diagonal::Sigmas(Eigen::Matrix<double, 1, 1>(0.02)));
 }
 
 size_t PoseGraph::addNode(long stamp, const Eigen::Isometry3d& pose) {
@@ -135,7 +135,8 @@ void PoseGraph::processGlobalBuffer() {
 void PoseGraph::addPriorFactor(const gtsam::Key& key, const Prior2D& prior) {
   // (Relatively) large number
   Eigen::Vector6d unc = Eigen::Vector6d::Constant(1);
-  unc[5] = 10; // z uncertainty
+  unc.head<2>() = Eigen::Vector2d(0.1, 0.1);
+  unc[5] = 1; // z uncertainty
 
   // Found match
   if (graph_.exists(initial_pose_factor_id_)) {
