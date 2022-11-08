@@ -142,9 +142,8 @@ bool TravGraph::updateEdgeFromReachability(TravGraph::Edge& edge,
         edge.is_experienced = true;
       }
       edge.cls = 0;
+      edge.cost = 0;
       edge.untrav_counter = 0;
-    } else {
-      edge.decUntravCounter();
     }
   }
 
