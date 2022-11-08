@@ -130,7 +130,11 @@ bool TravGraph::updateEdgeFromReachability(TravGraph::Edge& edge,
         // Requires two markings in a row to be locked in
         edge.is_experienced = true;
       }
-      edge.cls = Edge::MAX_TERRAIN + 1;
+      edge.incUntravCounter();
+      if (edge.untrav_counter >= 2) {
+        // 2 strikes and you're out
+        edge.cls = Edge::MAX_TERRAIN + 1;
+      }
     } else if (edge_exp == Reachability::TRAV) {
       did_map_change = true;
       if (edge.cls == 0) {
@@ -138,6 +142,9 @@ bool TravGraph::updateEdgeFromReachability(TravGraph::Edge& edge,
         edge.is_experienced = true;
       }
       edge.cls = 0;
+      edge.untrav_counter = 0;
+    } else {
+      edge.decUntravCounter();
     }
   }
 

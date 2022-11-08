@@ -63,7 +63,6 @@ void PoseGraph::update() {
   current_opt_ = opt.optimize();
   graph_update_t_->end();
 
-  std::cout << "scale: " << current_opt_.at<double>(S(0)) << std::endl;
   last_opt_size_ = size_;
 }
 

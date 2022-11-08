@@ -57,6 +57,7 @@ class TravGraph {
       float cost{0};
       int cls{0};
       bool is_experienced{false};
+      int untrav_counter{0};
 
       Edge(Node* const n1, Node* const n2, float c = 0, int cls = 0) :
         node1(n1), node2(n2), cost(c), cls(cls)
@@ -73,6 +74,17 @@ class TravGraph {
       Node* getOtherNode(const Node* n) const {
         if (n == node1) return node2;
         return node1;
+      }
+
+      void incUntravCounter() {
+        untrav_counter += 1;
+      }
+
+      void decUntravCounter() {
+        untrav_counter -= 1;
+        if (untrav_counter < 0) {
+          untrav_counter = 0;
+        }
       }
     };
 
