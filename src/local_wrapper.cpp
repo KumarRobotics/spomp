@@ -197,7 +197,7 @@ void LocalWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
   cv::Mat depth_pano_cv(pano_cv->image.rows, pano_cv->image.cols, CV_16UC1);
   constexpr int from_to[] = {0, 0};
   // Extract first channel (depth)
-  cv::mixChannels(&(pano_cv->image), 1, &depth_pano_cv, 1, from_to, 1);
+  cv::extractChannel(pano_cv->image, depth_pano_cv, 0);
   // Convert to Eigen
   cv::cv2eigen(depth_pano_cv, pano_eig);
 

@@ -1,6 +1,7 @@
 #include "spomp/mapper_wrapper.h"
 #include "spomp/rosutil.h"
 #include <visualization_msgs/MarkerArray.h>
+#include <cv_bridge/cv_bridge.h>
 
 namespace spomp {
 
@@ -95,8 +96,20 @@ void MapperWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
   Eigen::Isometry3d pano_pose;
   pano_pose.affine() = 
     Eigen::Map<const Eigen::Matrix<double, 3, 4, Eigen::RowMajor>>(&info_msg->P[0]);
+
+  auto pano = cv_bridge::toCvShare(
+      img_msg, sensor_msgs::image_encodings::TYPE_16UC3);
+  std::vector<cv::Mat> channels;
+  channels.resize(pano->image.channels());
+  cv::split(pano->image, channels);
+
+  float depth_scale = info_msg->R[0];
+  cv::Mat rescaled_depth;
+  channels[0].convertTo(rescaled_depth, CV_32F, 1./depth_scale);
   mapper_.addKeyframe({static_cast<long>(info_msg->header.stamp.toNSec()), 
-                       pano_pose});
+                       pano_pose,
+                       rescaled_depth,
+                       channels[1]});
 }
 
 void MapperWrapper::globalEstCallback(

@@ -4,6 +4,7 @@
 #include <shared_mutex>
 #include "spomp/pose_graph.h"
 #include "spomp/timer.h"
+#include "spomp/keyframe.h"
 
 namespace spomp {
 
@@ -16,10 +17,6 @@ class Mapper {
     };
     Mapper(const Params& m_p, const PoseGraph::Params& pg_p);
 
-    struct Keyframe {
-      long stamp = 0;
-      Eigen::Isometry3d pose = Eigen::Isometry3d::Identity();
-    };
     void addKeyframe(const Keyframe& k);
 
     struct StampedPrior {
