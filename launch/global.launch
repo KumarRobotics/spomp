@@ -36,7 +36,7 @@
     <param name="TG_reach_node_max_dist_m" value="$(arg TG_reach_node_max_dist_m)"/>
     <param name="TG_trav_window_rad" value="$(arg TG_trav_window_rad)"/>
     <param name="TG_max_trav_discontinuity_m" value="$(arg TG_max_trav_discontinuity_m)"/>
-    <param name="TG_num_untrav_before_mark" value="$(arg num_untrav_before_mark)"/>
+    <param name="TG_num_untrav_before_mark" value="$(arg TG_num_untrav_before_mark)"/>
 
     <param name="WM_waypoint_thresh_m" value="$(arg WM_waypoint_thresh_m)"/>
   </node>
