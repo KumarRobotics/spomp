@@ -131,7 +131,7 @@ bool TravGraph::updateEdgeFromReachability(TravGraph::Edge& edge,
         edge.is_experienced = true;
       }
       edge.incUntravCounter();
-      if (edge.untrav_counter >= 2) {
+      if (edge.untrav_counter >= params_.num_untrav_before_mark) {
         // 2 strikes and you're out
         edge.cls = Edge::MAX_TERRAIN + 1;
       }
