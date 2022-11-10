@@ -5,6 +5,7 @@
 #include "spomp/pose_graph.h"
 #include "spomp/timer.h"
 #include "spomp/keyframe.h"
+#include "spomp/metric_map.h"
 #include "spomp/utils.h"
 
 namespace spomp {
@@ -18,7 +19,8 @@ class Mapper {
       float dist_between_keyframes_m = 5;
       float pano_v_fov_rad = deg2rad(90);
     };
-    Mapper(const Params& m_p, const PoseGraph::Params& pg_p);
+    Mapper(const Params& m_p, const PoseGraph::Params& pg_p, 
+        const MetricMap::Params& mm_p);
 
     void addKeyframe(const Keyframe& k);
 
@@ -99,8 +101,8 @@ class Mapper {
     std::thread map_thread_;
     class MapThread {
       public:
-        MapThread(Mapper& m) : 
-          mapper_(m) {}
+        MapThread(Mapper& m, const MetricMap& m_m) : 
+          mapper_(m), map_(m_m) {}
 
         bool operator()();
 
@@ -113,6 +115,8 @@ class Mapper {
 
         // Reference back to parent
         Mapper& mapper_;
+
+        MetricMap map_;
 
         // Timers
     };

@@ -3,9 +3,11 @@
 
 namespace spomp {
 
-Mapper::Mapper(const Params& m_p, const PoseGraph::Params& pg_p) {
+Mapper::Mapper(const Params& m_p, const PoseGraph::Params& pg_p, 
+    const MetricMap::Params& mm_p) 
+{
   pose_graph_thread_ = std::thread(PoseGraphThread(*this, {pg_p}));
-  map_thread_ = std::thread(MapThread(*this));
+  map_thread_ = std::thread(MapThread(*this, {mm_p}));
 }
 
 Mapper::~Mapper() {

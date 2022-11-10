@@ -27,6 +27,7 @@ MapperWrapper::MapperWrapper(ros::NodeHandle& nh) :
 Mapper MapperWrapper::createMapper(ros::NodeHandle& nh) {
   Mapper::Params m_params{};
   PoseGraph::Params pg_params{};
+  MetricMap::Params mm_params{};
 
   nh.getParam("odom_frame", odom_frame_);
   nh.getParam("map_frame", map_frame_);
@@ -51,6 +52,8 @@ Mapper MapperWrapper::createMapper(ros::NodeHandle& nh) {
     pg_params.setPriorUncertainty(loc, rot);
   }
 
+  nh.getParam("MM_resolution", mm_params.resolution);
+
   constexpr int width = 30;
   using namespace std;
   ROS_INFO_STREAM("\033[32m" << "[SPOMP-Mapper]" << endl << "[ROS] ======== Configuration ========" << 
@@ -68,9 +71,11 @@ Mapper MapperWrapper::createMapper(ros::NodeHandle& nh) {
     setw(width) << "[ROS] PG_allow_interpolation: " << pg_params.allow_interpolation << endl <<
     setw(width) << "[ROS] PG_between_uncertainty: " << pg_params.between_uncertainty.transpose() << endl <<
     setw(width) << "[ROS] PG_prior_uncertainty: " << pg_params.prior_uncertainty.transpose() << endl <<
+    "[ROS] ===============================" << endl <<
+    setw(width) << "[ROS] MM_resolution: " << mm_params.resolution << endl <<
     "[ROS] ====== End Configuration ======" << "\033[0m");
 
-  return Mapper(m_params, pg_params);
+  return Mapper(m_params, pg_params, mm_params);
 }
 
 void MapperWrapper::initialize() {

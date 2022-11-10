@@ -8,6 +8,7 @@ namespace spomp {
 class MetricMap {
   public:
     struct Params {
+      float resolution; // In cell/m
     };
     MetricMap(const Params& p);
 

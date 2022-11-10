@@ -233,6 +233,7 @@ add_library(${PROJECT_NAME}_mapper
   src/timer.cpp
   src/pose_graph.cpp
   src/keyframe.cpp
+  src/metric_map.cpp
 )
 
 ## Add cmake target dependencies of the library
