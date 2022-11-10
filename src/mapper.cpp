@@ -13,10 +13,10 @@ Mapper::~Mapper() {
 }
 
 void Mapper::addKeyframe(const Keyframe& k) {
-  if ((k.pose.inverse() * last_keyframe_pose_).translation().norm() > 
+  if ((k.getPose().inverse() * last_keyframe_pose_).translation().norm() > 
       params_.dist_between_keyframes_m) 
   {
-    last_keyframe_pose_ = k.pose;
+    last_keyframe_pose_ = k.getPose();
     std::scoped_lock lock(keyframe_input_.mtx);
     keyframe_input_.frames.emplace_back(std::make_unique<Keyframe>(k));
   }
@@ -34,7 +34,7 @@ std::vector<Eigen::Isometry3d> Mapper::getGraph() {
   poses.reserve(keyframes_.frames.size());
 
   for (const auto& frame : keyframes_.frames) {
-    poses.emplace_back(frame.second->pose);
+    poses.emplace_back(frame.second->getPose());
   }
 
   return poses;
@@ -93,13 +93,13 @@ void Mapper::PoseGraphThread::parseBuffer() {
 
     Eigen::Isometry3d pg_pose;
     for (auto& frame : mapper_.keyframe_input_.frames) {
-      auto ind = pg_.addNode(frame->stamp, frame->pose);
+      auto ind = pg_.addNode(frame->getStamp(), frame->getPose());
       // PoseGraph updates pose on addition based on relative motion
       pg_pose = pg_.getPoseAtIndex(ind);
-      frame->pose = pg_pose;
+      frame->setPose(pg_pose);
 
       std::unique_lock key_lock(mapper_.keyframes_.mtx);
-      mapper_.keyframes_.frames.insert({frame->stamp, std::move(frame)});
+      mapper_.keyframes_.frames.insert({frame->getStamp(), std::move(frame)});
     }
 
     mapper_.keyframe_input_.frames.clear();
@@ -124,7 +124,7 @@ void Mapper::PoseGraphThread::updateKeyframes() {
   for (auto& key : mapper_.keyframes_.frames) {
     auto new_pose = pg_.getPoseAtTime(key.first);
     if (new_pose) {
-      key.second->pose = *new_pose;
+      key.second->setPose(*new_pose);
     }
   }
   mapper_.keyframes_.odom_corr = pg_.getOdomCorrection();
