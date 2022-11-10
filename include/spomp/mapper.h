@@ -5,6 +5,7 @@
 #include "spomp/pose_graph.h"
 #include "spomp/timer.h"
 #include "spomp/keyframe.h"
+#include "spomp/utils.h"
 
 namespace spomp {
 
@@ -14,6 +15,7 @@ class Mapper {
       int pgo_thread_period_ms = 1000;
       bool correct_odom_per_frame = true;
       float dist_between_keyframes_m = 5;
+      float pano_v_fov_rad = deg2rad(90);
     };
     Mapper(const Params& m_p, const PoseGraph::Params& pg_p);
 

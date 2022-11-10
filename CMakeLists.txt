@@ -392,12 +392,14 @@ if(CATKIN_ENABLE_TESTING)
     test/test_terrain_pano.cpp
     test/test_pano_planner.cpp
     test/test_controller.cpp
+    test/test_keyframe.cpp
   )
 
   find_package(benchmark REQUIRED)
 
   target_link_libraries(${PROJECT_NAME}-bench
     ${PROJECT_NAME}_local
+    ${PROJECT_NAME}_mapper
     benchmark::benchmark
     ${catkin_LIBRARIES}
   )

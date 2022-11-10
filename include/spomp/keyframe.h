@@ -26,6 +26,10 @@ class Keyframe {
       return pose_;
     }
 
+    auto getSize() const {
+      return depth_pano_.size();
+    }
+
     //! Return array of points and other point data
     PointCloudArray getPointCloud() const;
 
@@ -33,12 +37,16 @@ class Keyframe {
       pose_ = p;
     }
 
+    static void setIntrinsics(float vfov, const cv::Size& size);
+
   private:
     long stamp_{0};
     Eigen::Isometry3d pose_{Eigen::Isometry3d::Identity()};
     cv::Mat depth_pano_{};
     cv::Mat intensity_pano_{};
     Eigen::Isometry3d map_pose_{Eigen::Isometry3d::Identity()};
+
+    static Eigen::Array3Xf projection_;
 };
   
 } // namespace spomp

@@ -106,6 +106,7 @@ void MapperWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
   float depth_scale = info_msg->R[0];
   cv::Mat rescaled_depth;
   channels[0].convertTo(rescaled_depth, CV_32F, 1./depth_scale);
+
   mapper_.addKeyframe({static_cast<long>(info_msg->header.stamp.toNSec()), 
                        pano_pose,
                        rescaled_depth,

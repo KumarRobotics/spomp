@@ -16,6 +16,7 @@ void Mapper::addKeyframe(const Keyframe& k) {
   if ((k.getPose().inverse() * last_keyframe_pose_).translation().norm() > 
       params_.dist_between_keyframes_m) 
   {
+    Keyframe::setIntrinsics(params_.pano_v_fov_rad, k.getSize());
     last_keyframe_pose_ = k.getPose();
     std::scoped_lock lock(keyframe_input_.mtx);
     keyframe_input_.frames.emplace_back(k);
