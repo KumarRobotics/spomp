@@ -18,14 +18,14 @@ void Mapper::addKeyframe(const Keyframe& k) {
   {
     last_keyframe_pose_ = k.getPose();
     std::scoped_lock lock(keyframe_input_.mtx);
-    keyframe_input_.frames.emplace_back(std::make_unique<Keyframe>(k));
+    keyframe_input_.frames.emplace_back(k);
   }
 }
 
 void Mapper::addPrior(const StampedPrior& p) {
   last_prior_ = p;
   std::scoped_lock lock(prior_input_.mtx);
-  prior_input_.priors.emplace_back(std::make_unique<StampedPrior>(p));
+  prior_input_.priors.emplace_back(p);
 }
 
 std::vector<Eigen::Isometry3d> Mapper::getGraph() { 
@@ -34,7 +34,7 @@ std::vector<Eigen::Isometry3d> Mapper::getGraph() {
   poses.reserve(keyframes_.frames.size());
 
   for (const auto& frame : keyframes_.frames) {
-    poses.emplace_back(frame.second->getPose());
+    poses.emplace_back(frame.second.getPose());
   }
 
   return poses;
@@ -93,13 +93,13 @@ void Mapper::PoseGraphThread::parseBuffer() {
 
     Eigen::Isometry3d pg_pose;
     for (auto& frame : mapper_.keyframe_input_.frames) {
-      auto ind = pg_.addNode(frame->getStamp(), frame->getPose());
+      auto ind = pg_.addNode(frame.getStamp(), frame.getPose());
       // PoseGraph updates pose on addition based on relative motion
       pg_pose = pg_.getPoseAtIndex(ind);
-      frame->setPose(pg_pose);
+      frame.setPose(pg_pose);
 
       std::unique_lock key_lock(mapper_.keyframes_.mtx);
-      mapper_.keyframes_.frames.insert({frame->getStamp(), std::move(frame)});
+      mapper_.keyframes_.frames.insert({frame.getStamp(), std::move(frame)});
     }
 
     mapper_.keyframe_input_.frames.clear();
@@ -109,7 +109,7 @@ void Mapper::PoseGraphThread::parseBuffer() {
     std::scoped_lock lock(mapper_.prior_input_.mtx);
 
     for (auto& prior : mapper_.prior_input_.priors) {
-      pg_.addPrior(prior->stamp, std::move(prior->prior));
+      pg_.addPrior(prior.stamp, std::move(prior.prior));
     }
 
     mapper_.prior_input_.priors.clear();
@@ -124,7 +124,7 @@ void Mapper::PoseGraphThread::updateKeyframes() {
   for (auto& key : mapper_.keyframes_.frames) {
     auto new_pose = pg_.getPoseAtTime(key.first);
     if (new_pose) {
-      key.second->setPose(*new_pose);
+      key.second.setPose(*new_pose);
     }
   }
   mapper_.keyframes_.odom_corr = pg_.getOdomCorrection();

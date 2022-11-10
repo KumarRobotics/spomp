@@ -1,9 +1,17 @@
 #pragma once
 
+#include <memory>
 #include <Eigen/Dense>
 #include <opencv2/core/core.hpp>
 
+namespace Eigen {
+  using Array5Xf = Array<float, 5, Dynamic>;
+  using Array6Xf = Array<float, 6, Dynamic>;
+}
+
 namespace spomp {
+
+using PointCloudArray = Eigen::Array5Xf;
 
 class Keyframe {
   public:
@@ -18,6 +26,9 @@ class Keyframe {
       return pose_;
     }
 
+    //! Return array of points and other point data
+    PointCloudArray getPointCloud() const;
+
     void setPose(const Eigen::Isometry3d& p) {
       pose_ = p;
     }
@@ -25,8 +36,9 @@ class Keyframe {
   private:
     long stamp_{0};
     Eigen::Isometry3d pose_{Eigen::Isometry3d::Identity()};
-    cv::Mat depth_pano_;
-    cv::Mat intensity_pano_;
+    cv::Mat depth_pano_{};
+    cv::Mat intensity_pano_{};
+    Eigen::Isometry3d map_pose_{Eigen::Isometry3d::Identity()};
 };
   
 } // namespace spomp

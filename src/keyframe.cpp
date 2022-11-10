@@ -9,4 +9,9 @@ Keyframe::Keyframe(long stamp, const Eigen::Isometry3d& pose,
   depth_pano_(d_p),
   intensity_pano_(i_p) {}
 
+PointCloudArray Keyframe::getPointCloud() const {
+  PointCloudArray cloud(5, depth_pano_.total());
+  return cloud;
+}
+
 } // namespace spomp

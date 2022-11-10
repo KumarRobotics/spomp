@@ -51,18 +51,18 @@ class Mapper {
     struct Keyframes {
       // Shared mutex here since a lot of places read only
       std::shared_mutex mtx;
-      std::map<long, std::unique_ptr<Keyframe>> frames;
+      std::map<long, Keyframe> frames;
       Eigen::Isometry3d odom_corr = Eigen::Isometry3d::Identity();
     } keyframes_;
 
     struct KeyframeInput {
       std::mutex mtx;
-      std::list<std::unique_ptr<Keyframe>> frames;
+      std::list<Keyframe> frames;
     } keyframe_input_;
 
     struct PriorInput {
       std::mutex mtx;
-      std::list<std::unique_ptr<StampedPrior>> priors;
+      std::list<StampedPrior> priors;
     } prior_input_;
 
     /*********************************************************
