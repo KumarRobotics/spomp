@@ -5,11 +5,13 @@ namespace spomp {
 
 Mapper::Mapper(const Params& m_p, const PoseGraph::Params& pg_p) {
   pose_graph_thread_ = std::thread(PoseGraphThread(*this, {pg_p}));
+  map_thread_ = std::thread(MapThread(*this));
 }
 
 Mapper::~Mapper() {
   exit_threads_flag_ = true;
   pose_graph_thread_.join();
+  map_thread_.join();
 }
 
 void Mapper::addKeyframe(const Keyframe& k) {
@@ -131,6 +133,41 @@ void Mapper::PoseGraphThread::updateKeyframes() {
   mapper_.keyframes_.odom_corr = pg_.getOdomCorrection();
 
   update_keyframes_t_->end();
+}
+
+/*********************************************************
+ * MAP THREAD
+ *********************************************************/
+bool Mapper::MapThread::operator()() {
+  auto& tm = TimerManager::getGlobal(true);
+
+  using namespace std::chrono;
+  auto next = steady_clock::now();
+  while (!mapper_.exit_threads_flag_) {
+    auto keyframes_to_compute = getKeyframesToCompute();
+    resizeMap(keyframes_to_compute);
+    updateMap(keyframes_to_compute);
+
+    // Sleep until next loop
+    next += milliseconds(mapper_.params_.map_thread_period_ms);
+    if (next < steady_clock::now()) {
+      next = steady_clock::now();
+    } else {
+      std::this_thread::sleep_until(next);
+    }
+  }
+
+  return true;
+}
+
+std::vector<Keyframe> Mapper::MapThread::getKeyframesToCompute() {
+  return {};
+}
+
+void Mapper::MapThread::resizeMap(const std::vector<Keyframe>& frames) {
+}
+
+void Mapper::MapThread::updateMap(const std::vector<Keyframe>& frames) {
 }
 
 } // namespace spomp

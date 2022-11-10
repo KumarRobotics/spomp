@@ -13,6 +13,7 @@ class Mapper {
   public:
     struct Params {
       int pgo_thread_period_ms = 1000;
+      int map_thread_period_ms = 1000;
       bool correct_odom_per_frame = true;
       float dist_between_keyframes_m = 5;
       float pano_v_fov_rad = deg2rad(90);
@@ -93,6 +94,27 @@ class Mapper {
         // Timers
         Timer* parse_buffer_t_{};
         Timer* update_keyframes_t_{};
+    };
+
+    std::thread map_thread_;
+    class MapThread {
+      public:
+        MapThread(Mapper& m) : 
+          mapper_(m) {}
+
+        bool operator()();
+
+      private:
+        std::vector<Keyframe> getKeyframesToCompute();
+
+        void resizeMap(const std::vector<Keyframe>& frames);
+
+        void updateMap(const std::vector<Keyframe>& frames);
+
+        // Reference back to parent
+        Mapper& mapper_;
+
+        // Timers
     };
 };
 
