@@ -53,6 +53,8 @@ Mapper MapperWrapper::createMapper(ros::NodeHandle& nh) {
   }
 
   nh.getParam("MM_resolution", mm_params.resolution);
+  nh.getParam("MM_buffer_size_m", mm_params.buffer_size_m);
+  nh.getParam("MM_req_point_density", mm_params.req_point_density);
 
   constexpr int width = 30;
   using namespace std;
@@ -73,6 +75,8 @@ Mapper MapperWrapper::createMapper(ros::NodeHandle& nh) {
     setw(width) << "[ROS] PG_prior_uncertainty: " << pg_params.prior_uncertainty.transpose() << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] MM_resolution: " << mm_params.resolution << endl <<
+    setw(width) << "[ROS] MM_buffer_size_m: " << mm_params.buffer_size_m << endl <<
+    setw(width) << "[ROS] MM_req_point_density: " << mm_params.req_point_density << endl <<
     "[ROS] ====== End Configuration ======" << "\033[0m");
 
   return Mapper(m_params, pg_params, mm_params);

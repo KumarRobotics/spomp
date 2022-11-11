@@ -17,6 +17,10 @@
   <arg name="PG_prior_uncertainty_loc" default="0.1"/>
   <arg name="PG_prior_uncertainty_rot" default="0.1"/>
 
+  <arg name="MM_resolution" default="2"/>
+  <arg name="MM_buffer_size_m" default="50"/>
+  <arg name="MM_req_point_density" default="500"/>
+
   <node pkg="spomp" type="node_mapper" name="spomp_mapper" output="$(arg output)">
     <!-- Remappings -->
     <remap from="~pano/img" to="os_node/rofl_odom/pano/img"/>
