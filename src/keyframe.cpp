@@ -46,6 +46,7 @@ PointCloudArray Keyframe::getPointCloud() const {
     }
   }
 
+  cloud.conservativeResize(Eigen::NoChange_t(), sparse_ind);
   return cloud;
 }
 

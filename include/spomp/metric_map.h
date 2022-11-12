@@ -23,6 +23,11 @@ class MetricMap {
 
     auto exportROSMsg();
 
+    //! This is really just for test purposes
+    const auto& getMap() const {
+      return map_;
+    }
+
   private:
     Params params_{};
 

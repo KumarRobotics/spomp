@@ -56,7 +56,9 @@ void MetricMap::addCloud(const PointCloudArray& cloud, long stamp) {
     }
     ++num_points_layer(ind[0], ind[1]);
 
-    if (cloud(2, col) > max_elevation_layer(ind[0], ind[1])) {
+    if (std::isnan(max_elevation_layer(ind[0], ind[1])) || 
+        cloud(2, col) > max_elevation_layer(ind[0], ind[1])) 
+    {
       max_elevation_layer(ind[0], ind[1]) = cloud(2, col);
       intensity_layer(ind[0], ind[1]) = cloud(3, col);
       semantics_layer(ind[0], ind[1]) = cloud(4, col);
@@ -72,7 +74,7 @@ void MetricMap::clear() {
   map_.setConstant("intensity", NAN);
   map_.setConstant("semantics", NAN);
   map_.setConstant("semantics_viz", NAN);
-  map_.setConstant("max_elevation", -100);
+  map_.setConstant("max_elevation", NAN);
   map_.setConstant("num_points", 0);
 }
 

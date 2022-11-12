@@ -389,6 +389,8 @@ if(CATKIN_ENABLE_TESTING)
     test/test_controller.cpp
     test/test_pose_graph.cpp
     test/test_trav_graph_map.cpp
+    test/test_keyframe.cpp
+    test/test_metric_map.cpp
   )
   
   catkin_add_gtest(${PROJECT_NAME}-bench
