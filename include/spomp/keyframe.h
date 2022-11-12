@@ -26,8 +26,20 @@ class Keyframe {
       return pose_;
     }
 
+    const auto& getMapPose() const {
+      return map_pose_;
+    }
+
     auto getSize() const {
       return depth_pano_.size();
+    }
+
+    bool isOptimized() const {
+      return optimized_;
+    }
+
+    bool inMap() const {
+      return !map_pose_.matrix().isIdentity(1e-5);
     }
 
     //! Return array of points and other point data
@@ -35,6 +47,14 @@ class Keyframe {
 
     void setPose(const Eigen::Isometry3d& p) {
       pose_ = p;
+    }
+
+    void setOptimized() {
+      optimized_ = true;
+    }
+
+    void updateMapPose() {
+      map_pose_ = pose_;
     }
 
     static void setIntrinsics(float vfov, const cv::Size& size);
@@ -45,6 +65,7 @@ class Keyframe {
     cv::Mat depth_pano_{};
     cv::Mat intensity_pano_{};
     Eigen::Isometry3d map_pose_{Eigen::Isometry3d::Identity()};
+    bool optimized_{false};
 
     static Eigen::Array3Xf projection_;
 };

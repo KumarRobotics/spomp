@@ -12,6 +12,9 @@ class MetricMap {
       float resolution = 2; // In cell/m
       float buffer_size_m = 50;
       float req_point_density = 500;
+
+      float dist_for_rebuild_m = 3;
+      float ang_for_rebuild_rad = 0.1;
     };
     MetricMap(const Params& p);
 
@@ -22,6 +25,8 @@ class MetricMap {
     void resizeToBounds(const Eigen::Vector2d& min, const Eigen::Vector2d& max);
 
     auto exportROSMsg();
+
+    bool needsMapUpdate(const Keyframe& frame) const;
 
     //! This is really just for test purposes
     const auto& getMap() const {

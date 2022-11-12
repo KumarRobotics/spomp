@@ -119,6 +119,9 @@ class Mapper {
         MetricMap map_;
 
         // Timers
+        Timer* get_keyframes_to_compute_t_{};
+        Timer* resize_map_t_{};
+        Timer* update_map_t_{};
     };
 };
 

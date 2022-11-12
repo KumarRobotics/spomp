@@ -104,4 +104,10 @@ auto MetricMap::exportROSMsg() {
   return msg;
 }
 
+bool MetricMap::needsMapUpdate(const Keyframe& frame) const {
+  Eigen::Isometry3d diff = frame.getPose().inverse() * frame.getMapPose();
+  return (diff.translation().norm() > params_.dist_for_rebuild_m ||
+      Eigen::AngleAxisd(diff.rotation()).angle() > params_.ang_for_rebuild_rad);
+}
+
 } // namespace spomp

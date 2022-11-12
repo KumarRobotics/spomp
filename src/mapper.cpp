@@ -130,6 +130,7 @@ void Mapper::PoseGraphThread::updateKeyframes() {
     auto new_pose = pg_.getPoseAtTime(key.first);
     if (new_pose) {
       key.second.setPose(*new_pose);
+      key.second.setOptimized();
     }
   }
   mapper_.keyframes_.odom_corr = pg_.getOdomCorrection();
@@ -142,6 +143,9 @@ void Mapper::PoseGraphThread::updateKeyframes() {
  *********************************************************/
 bool Mapper::MapThread::operator()() {
   auto& tm = TimerManager::getGlobal(true);
+  get_keyframes_to_compute_t_ = tm.get("M_get_keyframes_to_compute");
+  resize_map_t_ = tm.get("M_resize_map");
+  update_map_t_ = tm.get("M_update_map");
 
   using namespace std::chrono;
   auto next = steady_clock::now();
@@ -163,13 +167,67 @@ bool Mapper::MapThread::operator()() {
 }
 
 std::vector<Keyframe> Mapper::MapThread::getKeyframesToCompute() {
-  return {};
+  get_keyframes_to_compute_t_->start();
+  // Shared lock because we are updating map pose in keyframe, but we only ever do
+  // that in this thread, so still safe to be "read-only"
+  std::shared_lock lock(mapper_.keyframes_.mtx);
+
+  std::vector<Keyframe> keyframes_to_compute;
+  bool rebuild_map = false;
+  for (auto& frame : mapper_.keyframes_.frames) {
+    if (map_.needsMapUpdate(frame.second) && frame.second.isOptimized()) {
+      if (frame.second.inMap()) {
+        rebuild_map = true;
+        break;
+      }
+      frame.second.updateMapPose();
+
+      // This is a copy, but not too bad since the big data stuff is
+      // in cv::Mat, which is essentially a shared_ptr
+      keyframes_to_compute.push_back(frame.second);
+    }
+  }
+
+  if (rebuild_map) {
+    keyframes_to_compute.clear();
+    map_.clear();
+    
+    // Add all frames
+    for (auto& frame : mapper_.keyframes_.frames) {
+      if (frame.second.isOptimized()) {
+        frame.second.updateMapPose();
+        keyframes_to_compute.push_back(frame.second);
+      }
+    }
+  }
+
+  get_keyframes_to_compute_t_->end();
+  return keyframes_to_compute;
 }
 
 void Mapper::MapThread::resizeMap(const std::vector<Keyframe>& frames) {
+  resize_map_t_->start();
+
+  Eigen::Vector2d min = Eigen::Vector2d::Constant(std::numeric_limits<double>::max());
+  Eigen::Vector2d max = Eigen::Vector2d::Constant(std::numeric_limits<double>::lowest());
+  for (auto& frame : frames) {
+    Eigen::Vector3d loc = frame.getPose().translation();
+    min = min.cwiseMin(loc.head<2>());
+    max = max.cwiseMax(loc.head<2>());
+  }
+  if (frames.size() > 0) {
+    map_.resizeToBounds(min, max);
+  }
+
+  resize_map_t_->end();
 }
 
 void Mapper::MapThread::updateMap(const std::vector<Keyframe>& frames) {
+  update_map_t_->start();
+  for (const auto& frame : frames) {
+    map_.addCloud(frame.getPointCloud(), frame.getStamp());
+  }
+  update_map_t_->end();
 }
 
 } // namespace spomp
