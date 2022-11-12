@@ -24,7 +24,7 @@ class MetricMap {
 
     void resizeToBounds(const Eigen::Vector2d& min, const Eigen::Vector2d& max);
 
-    auto exportROSMsg();
+    grid_map_msgs::GridMap exportROSMsg();
 
     bool needsMapUpdate(const Keyframe& frame) const;
 

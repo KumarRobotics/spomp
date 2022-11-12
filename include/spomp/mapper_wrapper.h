@@ -44,6 +44,7 @@ class MapperWrapper {
 
     // Pubs
     ros::Publisher graph_viz_pub_;
+    ros::Publisher map_pub_;
 
     // Subs
     image_transport::CameraSubscriber pano_sub_;

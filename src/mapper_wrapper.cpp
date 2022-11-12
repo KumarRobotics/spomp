@@ -19,6 +19,7 @@ MapperWrapper::MapperWrapper(ros::NodeHandle& nh) :
 
   // Publishers
   graph_viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("graph_viz", 1);
+  map_pub_ = nh_.advertise<grid_map_msgs::GridMap>("map", 1);
 
   // Publish initial ident transform
   publishOdomCorrection(ros::Time::now());
@@ -150,6 +151,7 @@ void MapperWrapper::visualize(const ros::TimerEvent& timer) {
   ros::Time stamp;
   stamp.fromNSec(mapper_.stamp());
   vizPoseGraph(stamp);
+  map_pub_.publish(mapper_.getGridMapMsg());
   viz_t_->end();
 
   ROS_INFO_STREAM("\033[34m" << "[SPOMP-Mapper]" << std::endl << 

@@ -146,6 +146,7 @@ bool Mapper::MapThread::operator()() {
   get_keyframes_to_compute_t_ = tm.get("M_get_keyframes_to_compute");
   resize_map_t_ = tm.get("M_resize_map");
   update_map_t_ = tm.get("M_update_map");
+  export_map_t_ = tm.get("M_export_map");
 
   using namespace std::chrono;
   auto next = steady_clock::now();
@@ -153,6 +154,7 @@ bool Mapper::MapThread::operator()() {
     auto keyframes_to_compute = getKeyframesToCompute();
     resizeMap(keyframes_to_compute);
     updateMap(keyframes_to_compute);
+    exportMap();
 
     // Sleep until next loop
     next += milliseconds(mapper_.params_.map_thread_period_ms);
@@ -228,6 +230,15 @@ void Mapper::MapThread::updateMap(const std::vector<Keyframe>& frames) {
     map_.addCloud(frame.getPointCloud(), frame.getStamp());
   }
   update_map_t_->end();
+}
+
+void Mapper::MapThread::exportMap() {
+  export_map_t_->start();
+  {
+    std::scoped_lock<std::mutex> lock(mapper_.map_messages_.mtx);
+    mapper_.map_messages_.grid_map = map_.exportROSMsg();
+  }
+  export_map_t_->end();
 }
 
 } // namespace spomp

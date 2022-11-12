@@ -36,6 +36,12 @@ class Mapper {
     //! @return Corrective pose to transform odom into map frame
     Eigen::Isometry3d getOdomCorrection();
 
+    grid_map_msgs::GridMap getGridMapMsg() {
+      std::scoped_lock<std::mutex> lock(map_messages_.mtx);
+      // Force making a copy for thread safety reasons
+      return grid_map_msgs::GridMap(map_messages_.grid_map);
+    }
+
     //! @return Timestamp of most recent keyframe
     long stamp();
 
@@ -69,6 +75,11 @@ class Mapper {
       std::mutex mtx;
       std::list<StampedPrior> priors;
     } prior_input_;
+
+    struct MapMessages {
+      std::mutex mtx;
+      grid_map_msgs::GridMap grid_map;
+    } map_messages_;
 
     /*********************************************************
      * THREADS
@@ -113,6 +124,8 @@ class Mapper {
 
         void updateMap(const std::vector<Keyframe>& frames);
 
+        void exportMap();
+
         // Reference back to parent
         Mapper& mapper_;
 
@@ -122,6 +135,7 @@ class Mapper {
         Timer* get_keyframes_to_compute_t_{};
         Timer* resize_map_t_{};
         Timer* update_map_t_{};
+        Timer* export_map_t_{};
     };
 };
 

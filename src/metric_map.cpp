@@ -8,7 +8,6 @@ MetricMap::MetricMap(const Params& p) : params_(p) {
       "intensity",
       "semantics",
       "semantics_viz",
-      "max_elevation",
       "num_points"});
   map_.setBasicLayers({"elevation", "intensity"});
   // Reset layers to the appropriate values
@@ -36,7 +35,6 @@ void MetricMap::addCloud(const PointCloudArray& cloud, long stamp) {
   grid_map::Matrix &intensity_layer = map_["intensity"];
   grid_map::Matrix &semantics_layer = map_["semantics"];
   grid_map::Matrix &semantics_viz_layer = map_["semantics_viz"];
-  grid_map::Matrix &max_elevation_layer = map_["max_elevation"];
   grid_map::Matrix &num_points_layer = map_["num_points"];
 
   grid_map::Index ind;
@@ -47,19 +45,12 @@ void MetricMap::addCloud(const PointCloudArray& cloud, long stamp) {
       continue;
     }
 
-    // Cumulative mean
-    if (std::isnan(elevation_layer(ind[0], ind[1]))) {
-      elevation_layer(ind[0], ind[1]) = cloud(2, col);
-    } else {
-      elevation_layer(ind[0], ind[1]) += (cloud(2, col) - elevation_layer(ind[0], ind[1])) /
-        (num_points_layer(ind[0], ind[1]) + 1);
-    }
     ++num_points_layer(ind[0], ind[1]);
 
-    if (std::isnan(max_elevation_layer(ind[0], ind[1])) || 
-        cloud(2, col) > max_elevation_layer(ind[0], ind[1])) 
+    if (std::isnan(elevation_layer(ind[0], ind[1])) || 
+        cloud(2, col) > elevation_layer(ind[0], ind[1])) 
     {
-      max_elevation_layer(ind[0], ind[1]) = cloud(2, col);
+      elevation_layer(ind[0], ind[1]) = cloud(2, col);
       intensity_layer(ind[0], ind[1]) = cloud(3, col);
       semantics_layer(ind[0], ind[1]) = cloud(4, col);
       
@@ -74,7 +65,6 @@ void MetricMap::clear() {
   map_.setConstant("intensity", NAN);
   map_.setConstant("semantics", NAN);
   map_.setConstant("semantics_viz", NAN);
-  map_.setConstant("max_elevation", NAN);
   map_.setConstant("num_points", 0);
 }
 
@@ -97,7 +87,7 @@ void MetricMap::resizeToBounds(const Eigen::Vector2d& min,
   }
 }
 
-auto MetricMap::exportROSMsg() {
+grid_map_msgs::GridMap MetricMap::exportROSMsg() {
   grid_map_msgs::GridMap msg;
   map_.setTimestamp(most_recent_stamp_);
   grid_map::GridMapRosConverter::toMessage(map_, msg);
