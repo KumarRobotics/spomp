@@ -1,5 +1,5 @@
 #include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
-#include "spomp/between_pose_scale_factor.h"
+#include <gtsam/slam/BetweenFactor.h>
 #include "spomp/pose_graph.h"
 #include "spomp/utils.h"
 
@@ -8,15 +8,6 @@ namespace spomp {
 PoseGraph::PoseGraph(const Params& params) : params_(params) {
   auto& tm = TimerManager::getGlobal(true);
   graph_update_t_ = tm.get("PG_graph_update");
-
-  // Initialize scale to 1 with slight uncertainty
-  // This allows there to be small errors in the map scale
-  current_opt_.insert(S(0), 1.0);
-  // It's actually not a big deal to have a relatively large uncertainty,
-  // since this is a very highly constrained value.  In fact we could get away
-  // with picking the scale arbitrarily (and we do this in ASOOM)
-  graph_.emplace_shared<gtsam::PriorFactor<double>>(S(0), 1.0,
-      gtsam::noiseModel::Diagonal::Sigmas(Eigen::Matrix<double, 1, 1>(0.02)));
 }
 
 size_t PoseGraph::addNode(long stamp, const Eigen::Isometry3d& pose) {
@@ -24,8 +15,8 @@ size_t PoseGraph::addNode(long stamp, const Eigen::Isometry3d& pose) {
     // Get difference from most recent pose
     const auto& most_recent_pose = pose_history_.rbegin()->second;
     Eigen::Isometry3d diff = most_recent_pose.pose.inverse() * pose;
-    graph_.emplace_shared<gtsam::BetweenPoseScaleFactor>(most_recent_pose.key,
-        P(size_), S(0), Eigen2GTSAM(diff), 
+    graph_.emplace_shared<gtsam::BetweenFactor<gtsam::Pose3>>(most_recent_pose.key,
+        P(size_), Eigen2GTSAM(diff), 
         gtsam::noiseModel::Diagonal::Sigmas(params_.between_uncertainty));
 
     // Use optimized version of most recent to transform to current frame
@@ -134,8 +125,8 @@ void PoseGraph::processGlobalBuffer() {
 void PoseGraph::addPriorFactor(const gtsam::Key& key, const Prior2D& prior) {
   // (Relatively) large number
   Eigen::Vector6d unc = Eigen::Vector6d::Constant(1);
-  unc.head<2>() = Eigen::Vector2d(0.1, 0.1);
-  unc[5] = 1; // z uncertainty
+  //unc.head<2>() = Eigen::Vector2d(0.1, 0.1);
+  unc[5] = 10; // z uncertainty
 
   // Found match
   if (graph_.exists(initial_pose_factor_id_)) {

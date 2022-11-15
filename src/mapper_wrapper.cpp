@@ -114,7 +114,7 @@ void MapperWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
     Eigen::Map<const Eigen::Matrix<double, 3, 4, Eigen::RowMajor>>(&info_msg->P[0]);
 
   auto pano = cv_bridge::toCvShare(
-      img_msg, sensor_msgs::image_encodings::TYPE_16UC3);
+      img_msg, sensor_msgs::image_encodings::TYPE_16UC4);
   std::vector<cv::Mat> channels;
   channels.resize(pano->image.channels());
   cv::split(pano->image, channels);
