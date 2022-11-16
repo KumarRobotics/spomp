@@ -117,7 +117,7 @@ void MapperWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
     Eigen::Map<const Eigen::Matrix<double, 3, 4, Eigen::RowMajor>>(&info_msg->P[0]);
 
   auto pano = cv_bridge::toCvShare(
-      img_msg, sensor_msgs::image_encodings::TYPE_16UC4);
+      img_msg, sensor_msgs::image_encodings::TYPE_16UC3);
   std::vector<cv::Mat> channels;
   channels.resize(pano->image.channels());
   cv::split(pano->image, channels);
@@ -125,13 +125,13 @@ void MapperWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
   float depth_scale = info_msg->R[0];
   cv::Mat rescaled_depth, byte_class;
   channels[0].convertTo(rescaled_depth, CV_32F, 1./depth_scale);
-  channels[3] -= 1;
+  //channels[3] -= 1;
 
   mapper_.addKeyframe({static_cast<long>(info_msg->header.stamp.toNSec()), 
                        pano_pose,
                        rescaled_depth,
                        channels[1],
-                       channels[3]});
+                       cv::Mat()});
 }
 
 void MapperWrapper::globalEstCallback(
