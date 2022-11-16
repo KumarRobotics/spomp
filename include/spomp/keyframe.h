@@ -16,7 +16,7 @@ using PointCloudArray = Eigen::Array5Xf;
 class Keyframe {
   public:
     Keyframe(long stamp, const Eigen::Isometry3d& pose, 
-        const cv::Mat& d_p, const cv::Mat& i_p);
+        const cv::Mat& d_p, const cv::Mat& i_p, const cv::Mat& s_p);
 
     auto getStamp() const {
       return stamp_;
@@ -64,6 +64,7 @@ class Keyframe {
     Eigen::Isometry3d pose_{Eigen::Isometry3d::Identity()};
     cv::Mat depth_pano_{};
     cv::Mat intensity_pano_{};
+    cv::Mat sem_pano_{};
     Eigen::Isometry3d map_pose_{Eigen::Isometry3d::Identity()};
     bool optimized_{false};
 

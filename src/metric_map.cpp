@@ -3,6 +3,10 @@
 namespace spomp {
 
 MetricMap::MetricMap(const Params& p) : params_(p) {
+  semantics_manager::ClassConfig class_config(
+      semantics_manager::getClassesPath(params_.world_config_path));
+  semantic_color_lut_ = class_config.color_lut;
+
   map_ = grid_map::GridMap({
       "elevation",
       "intensity",
@@ -52,9 +56,14 @@ void MetricMap::addCloud(const PointCloudArray& cloud, long stamp) {
     {
       elevation_layer(ind[0], ind[1]) = cloud(2, col);
       intensity_layer(ind[0], ind[1]) = cloud(3, col);
-      semantics_layer(ind[0], ind[1]) = cloud(4, col);
-      
-      // TODO: semantic_color_lut
+
+      int sem_ind = cloud(4, col);
+      // Don't overwrite with unknown
+      if (sem_ind != 255) {
+        semantics_layer(ind[0], ind[1]) = sem_ind;
+        uint32_t sem_color_packed = semantic_color_lut_.ind2Color(sem_ind);
+        semantics_viz_layer(ind[0], ind[1]) = *reinterpret_cast<float*>(&sem_color_packed);
+      }
     }
   }
 }

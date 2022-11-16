@@ -3,12 +3,15 @@
 #include <grid_map_ros/grid_map_ros.hpp>
 #include <grid_map_msgs/GridMap.h>
 #include "spomp/keyframe.h"
+#include "semantics_manager/semantics_manager.h"
 
 namespace spomp {
 
 class MetricMap {
   public:
     struct Params {
+      std::string world_config_path = "";
+
       float resolution = 2; // In cell/m
       float buffer_size_m = 50;
       float req_point_density = 500;
@@ -35,6 +38,8 @@ class MetricMap {
 
   private:
     Params params_{};
+
+    SemanticColorLut semantic_color_lut_{};
 
     grid_map::GridMap map_{};
 

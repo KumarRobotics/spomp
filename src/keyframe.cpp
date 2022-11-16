@@ -1,17 +1,20 @@
 #include "spomp/keyframe.h"
 #include "spomp/utils.h"
 
+#include <iostream>
+
 namespace spomp {
 
 // Static members
 Eigen::Array3Xf Keyframe::projection_;
 
 Keyframe::Keyframe(long stamp, const Eigen::Isometry3d& pose, 
-    const cv::Mat& d_p, const cv::Mat& i_p) :
+    const cv::Mat& d_p, const cv::Mat& i_p, const cv::Mat& s_p) :
   stamp_(stamp),
   pose_(pose),
   depth_pano_(d_p),
-  intensity_pano_(i_p) {}
+  intensity_pano_(i_p),
+  sem_pano_(s_p) {};
 
 PointCloudArray Keyframe::getPointCloud() const {
   PointCloudArray cloud(5, depth_pano_.total());
@@ -23,10 +26,14 @@ PointCloudArray Keyframe::getPointCloud() const {
   int dense_ind = 0;
   const float* range_ptr = nullptr;
   const uint16_t* intensity_ptr = nullptr;
+  const uint16_t* sem_ptr = nullptr;
   for (int y=0; y<depth_pano_.rows; ++y) {
     range_ptr = depth_pano_.ptr<float>(y);
     if (intensity_pano_.size() == depth_pano_.size()) {
       intensity_ptr = intensity_pano_.ptr<uint16_t>(y);
+    }
+    if (sem_pano_.size() == depth_pano_.size()) {
+      sem_ptr = sem_pano_.ptr<uint16_t>(y);
     }
 
     for (int x=0; x<depth_pano_.cols; ++x) {
@@ -40,6 +47,9 @@ PointCloudArray Keyframe::getPointCloud() const {
         (projection_.col(dense_ind) * range);
       if (intensity_ptr) {
         cloud.col(sparse_ind)[3] = intensity_ptr[x];
+      }
+      if (sem_ptr) {
+        cloud.col(sparse_ind)[4] = sem_ptr[x];
       }
       ++dense_ind;
       ++sparse_ind;

@@ -30,6 +30,8 @@ Mapper MapperWrapper::createMapper(ros::NodeHandle& nh) {
   PoseGraph::Params pg_params{};
   MetricMap::Params mm_params{};
 
+  nh.getParam("world_config_path", mm_params.world_config_path);
+
   nh.getParam("odom_frame", odom_frame_);
   nh.getParam("map_frame", map_frame_);
   nh.getParam("viz_thread_period_ms", viz_thread_period_ms_);
@@ -63,6 +65,7 @@ Mapper MapperWrapper::createMapper(ros::NodeHandle& nh) {
   using namespace std;
   ROS_INFO_STREAM("\033[32m" << "[SPOMP-Mapper]" << endl << "[ROS] ======== Configuration ========" << 
     endl << left << 
+    setw(width) << "[ROS] world_config_path: " << mm_params.world_config_path << endl <<
     setw(width) << "[ROS] odom_frame: " << odom_frame_ << endl <<
     setw(width) << "[ROS] map_frame: " << map_frame_ << endl <<
     setw(width) << "[ROS] viz_thread_period_ms: " << viz_thread_period_ms_ << endl <<
@@ -120,13 +123,15 @@ void MapperWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
   cv::split(pano->image, channels);
 
   float depth_scale = info_msg->R[0];
-  cv::Mat rescaled_depth;
+  cv::Mat rescaled_depth, byte_class;
   channels[0].convertTo(rescaled_depth, CV_32F, 1./depth_scale);
+  channels[3] -= 1;
 
   mapper_.addKeyframe({static_cast<long>(info_msg->header.stamp.toNSec()), 
                        pano_pose,
                        rescaled_depth,
-                       channels[1]});
+                       channels[1],
+                       channels[3]});
 }
 
 void MapperWrapper::globalEstCallback(
