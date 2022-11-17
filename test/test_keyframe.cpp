@@ -21,7 +21,7 @@ TEST(keyframe, test_get_point_cloud) {
 
   Eigen::Isometry3d pose = Eigen::Isometry3d::Identity();
   pose.translate(Eigen::Vector3d{1, 0, 0});
-  Keyframe k{0, pose, depth, intensity};
+  Keyframe k{0, pose, depth, intensity, cv::Mat()};
 
   auto cloud = k.getPointCloud();
   ASSERT_EQ(cloud.cols(), 4);
@@ -51,7 +51,7 @@ static void BM_keyframe_get_point_cloud(benchmark::State& state) {
   pano.convertTo(rescaled_depth, CV_32F, 1./512);
 
   Keyframe::setIntrinsics(deg2rad(90), rescaled_depth.size());
-  Keyframe k{0, Eigen::Isometry3d::Identity(), rescaled_depth, cv::Mat()};
+  Keyframe k{0, Eigen::Isometry3d::Identity(), rescaled_depth, cv::Mat(), cv::Mat()};
   for (auto _ : state) {
     auto cloud = k.getPointCloud();
     benchmark::DoNotOptimize(cloud);

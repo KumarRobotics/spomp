@@ -1,11 +1,18 @@
 #include <gtest/gtest.h>
+#include <ros/package.h>
 
 #include "spomp/metric_map.h"
 
 namespace spomp {
 
 TEST(metric_map, test_map) {
-  MetricMap map({10, 25, 0});
+  MetricMap::Params mm_p;
+  mm_p.world_config_path = 
+    ros::package::getPath("semantics_manager") + "/config/test_config.yaml";
+  mm_p.resolution = 10;
+  mm_p.buffer_size_m = 25;
+  mm_p.req_point_density = 0;
+  MetricMap map(mm_p);
 
   // Check initial shape of map
   grid_map::Position pos;
@@ -36,7 +43,7 @@ TEST(metric_map, test_map) {
   map.addCloud(cloud, 0);
   EXPECT_FLOAT_EQ(map.getMap().atPosition("elevation", pos1), 1);
   EXPECT_EQ(map.getMap().atPosition("num_points", pos1), 2);
-  EXPECT_FLOAT_EQ(map.getMap().atPosition("elevation", pos2), 2.5);
+  EXPECT_FLOAT_EQ(map.getMap().atPosition("elevation", pos2), 3);
   EXPECT_EQ(map.getMap().atPosition("num_points", pos2), 2);
   EXPECT_EQ(map.getMap().atPosition("intensity", pos1), 1);
   EXPECT_EQ(map.getMap().atPosition("intensity", pos2), 3);
