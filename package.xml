@@ -68,7 +68,8 @@
   <depend>grid_map_ros</depend>
   <depend>grid_map_msgs</depend>
   <depend>semantics_manager</depend>
-  <exec_depend>message_generation</exec_depend>
+  <build_depend>message_generation</build_depend>
+  <exec_depend>message_runtime</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

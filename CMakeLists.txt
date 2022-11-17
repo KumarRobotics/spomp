@@ -32,6 +32,7 @@ find_package(catkin REQUIRED COMPONENTS
   grid_map_ros
   grid_map_msgs
   semantics_manager
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -70,11 +71,12 @@ find_package(GTSAM REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  LocalTraversability.msg
+  LocalTraversabilityArray.msg
+  TraversabilityGraph.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -94,6 +96,7 @@ generate_messages(
   DEPENDENCIES
   actionlib_msgs
   geometry_msgs
+  sensor_msgs
   std_msgs
 )
 
@@ -129,7 +132,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES spomp_local spomp_global spomp_mapper
-  CATKIN_DEPENDS roscpp rospy actionlib_msgs
+  CATKIN_DEPENDS roscpp rospy actionlib_msgs message_runtime
 )
 
 ###########
