@@ -4,6 +4,7 @@
 #include <tf2_ros/transform_listener.h>
 #include <actionlib/server/simple_action_server.h>
 #include <spomp/GlobalNavigateAction.h>
+#include <spomp/LocalReachabilityArray.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PointStamped.h>
 #include <sensor_msgs/Image.h>
@@ -29,6 +30,8 @@ class GlobalWrapper {
     void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg);
     void goalSimpleCallback(const geometry_msgs::PoseStamped::ConstPtr& goal_msg);
     void reachabilityCallback(const sensor_msgs::LaserScan::ConstPtr& reachability_msg);
+    void otherReachabilityCallback(int robot, 
+        const LocalReachabilityArray::ConstPtr& reachability_msg);
     bool setGoal(const geometry_msgs::PoseStamped& goal_msg);
     void globalNavigateGoalCallback();
     void globalNavigatePreemptCallback();
@@ -60,6 +63,7 @@ class GlobalWrapper {
     ros::Subscriber pose_sub_;
     ros::Subscriber goal_sub_;
     ros::Subscriber reachability_sub_;
+    std::vector<ros::Subscriber> other_robot_reachability_subs_;
     
     // Action server
     actionlib::SimpleActionServer<spomp::GlobalNavigateAction> global_navigate_as_;
@@ -78,6 +82,8 @@ class GlobalWrapper {
     // Static because read in static functions
     static std::string odom_frame_;
     static std::string map_frame_;
+    static std::string robot_list_;
+    static std::string this_robot_;
 };
 
 } // namespace spomp

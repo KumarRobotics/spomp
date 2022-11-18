@@ -3,6 +3,8 @@
   <arg name="output" default="screen"/>
 
   <arg name="world_config_path" default="$(find semantics_manager)/config/config.yaml"/>
+  <arg name="robot_list" default="robot"/>
+  <arg name="this_robot" default="robot"/>
 
   <arg name="TM_max_hole_fill_size_m" default="2"/>
   <arg name="TM_vis_dist_m" default="10"/>
@@ -27,6 +29,8 @@
 
     <!-- Params -->
     <param name="world_config_path" value="$(arg world_config_path)"/>
+    <param name="robot_list" value="$(arg robot_list)"/>
+    <param name="this_robot" value="$(arg this_robot)"/>
 
     <param name="TM_vis_dist_m" value="$(arg TM_vis_dist_m)"/>
     <param name="TM_unvis_start_thresh" value="$(arg TM_unvis_start_thresh)"/>

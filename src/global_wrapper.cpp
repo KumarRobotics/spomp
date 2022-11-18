@@ -2,7 +2,6 @@
 #include <nav_msgs/Path.h>
 #include <cv_bridge/cv_bridge.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <spomp/LocalReachabilityArray.h>
 #include "spomp/global_wrapper.h"
 #include "spomp/timer.h"
 #include "spomp/rosutil.h"
@@ -11,6 +10,8 @@ namespace spomp {
 
 std::string GlobalWrapper::odom_frame_{"odom"};
 std::string GlobalWrapper::map_frame_{"map"};
+std::string GlobalWrapper::robot_list_{"robot"};
+std::string GlobalWrapper::this_robot_{"robot"};
 
 GlobalWrapper::GlobalWrapper(ros::NodeHandle& nh) : 
   nh_(nh), 
@@ -34,6 +35,8 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   TravGraph::Params tg_params{};
 
   nh.getParam("world_config_path", tm_params.world_config_path);
+  nh.getParam("robot_list", robot_list_);
+  nh.getParam("this_robot", this_robot_);
 
   nh.getParam("TM_max_hole_fill_size_m", tm_params.max_hole_fill_size_m);
   nh.getParam("TM_vis_dist_m", tm_params.vis_dist_m);
@@ -53,6 +56,8 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   ROS_INFO_STREAM("\033[32m" << "[SPOMP-Global]" << endl << "[ROS] ======== Configuration ========" << 
     endl << left << 
     setw(width) << "[ROS] world_config_path: " << tm_params.world_config_path << endl <<
+    setw(width) << "[ROS] robot_list: " << robot_list_ << endl <<
+    setw(width) << "[ROS] this_robot: " << this_robot_ << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] TM_max_hole_fill_size_m: " << tm_params.max_hole_fill_size_m << endl <<
     setw(width) << "[ROS] TM_vis_dist_m: " << tm_params.vis_dist_m << endl <<
@@ -80,6 +85,17 @@ void GlobalWrapper::initialize() {
   goal_sub_ = nh_.subscribe("goal_simple", 1, &GlobalWrapper::goalSimpleCallback, this);
   reachability_sub_ = nh_.subscribe("reachability", 1, 
       &GlobalWrapper::reachabilityCallback, this);
+
+  std::istringstream robots(robot_list_);
+  std::string robot;
+  int id = 0;
+  while (std::getline(robots, robot, ',')) {
+    if (robot == this_robot_) continue;
+    other_robot_reachability_subs_.push_back(nh_.subscribe<LocalReachabilityArray>(
+          "/" + robot + "/reachability", 1, 
+          std::bind(&GlobalWrapper::otherReachabilityCallback, this, id, std::placeholders::_1)));
+    ++id;
+  }
 
   global_navigate_as_.registerGoalCallback(
       std::bind(&GlobalWrapper::globalNavigateGoalCallback, this));
@@ -190,6 +206,11 @@ void GlobalWrapper::reachabilityCallback(
   visualizeGraph(reachability_msg->header.stamp);
   publishReachabilityHistory();
   printTimings();
+}
+
+void GlobalWrapper::otherReachabilityCallback(int id,
+    const LocalReachabilityArray::ConstPtr& reachability_msg) 
+{
 }
 
 void GlobalWrapper::globalNavigateGoalCallback() {
