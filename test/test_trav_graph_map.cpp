@@ -51,7 +51,7 @@ TEST(trav_graph, test_graph_search) {
 
 TEST(reachability, test_reach) {
   // Initial setup
-  Reachability reach{AngularProj(AngularProj::StartFinish{0, 2*pi}, 360), 
+  Reachability reach{0, AngularProj(AngularProj::StartFinish{0, 2*pi}, 360), 
     Eigen::Isometry2f::Identity()};
   reach.setScan(Eigen::VectorXf::Ones(360)*10);
   Eigen::VectorXi is_obs = Eigen::VectorXi::Ones(360);
@@ -125,7 +125,7 @@ TEST(trav_map, update_map) {
                                "/test/map.png");
   m.updateMap(map_img, {-24.1119060516, 62.8522758484});
 
-  Reachability reach{AngularProj(AngularProj::StartFinish{0, 2*pi}, 360), 
+  Reachability reach{0, AngularProj(AngularProj::StartFinish{0, 2*pi}, 360), 
     Eigen::Isometry2f::Identity()};
 
   Eigen::VectorXf scan = Eigen::VectorXf::Ones(360)*100;
