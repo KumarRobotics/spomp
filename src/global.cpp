@@ -24,6 +24,8 @@ bool Global::setGoal(const Eigen::Vector3f& goal) {
 }
 
 void Global::updateLocalReachability(const Reachability& reachability) {
+  reachability_history_.push_back(reachability);
+
   const auto& cur_path = waypoint_manager_.getPath();
   auto cur_edge = waypoint_manager_.getCurEdge();
   auto cur_node = waypoint_manager_.getNextWaypoint();

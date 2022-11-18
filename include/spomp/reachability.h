@@ -9,8 +9,10 @@ namespace spomp {
 class Reachability {
   public:
     Reachability(const Eigen::VectorXf& scan, const Eigen::VectorXi& is_obs,
-        const AngularProj& proj, const Eigen::Isometry2f& pose);
-    Reachability(const AngularProj& proj, const Eigen::Isometry2f& pose);
+        const AngularProj& proj, 
+        const Eigen::Isometry2f& pose = Eigen::Isometry2f::Identity());
+    Reachability(const AngularProj& proj, 
+        const Eigen::Isometry2f& pose = Eigen::Isometry2f::Identity());
     Reachability() = default;
 
     struct RangeObs {
@@ -52,6 +54,9 @@ class Reachability {
     }
     const auto& getPose() const {
       return pose_;
+    }
+    void setPose(const Eigen::Isometry2f& pose) {
+      pose_ = pose;
     }
     void setScan(const Eigen::VectorXf& scan) {
       scan_ = scan;

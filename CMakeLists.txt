@@ -73,8 +73,8 @@ find_package(GTSAM REQUIRED)
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  LocalTraversability.msg
-  LocalTraversabilityArray.msg
+  LocalReachability.msg
+  LocalReachabilityArray.msg
   TraversabilityGraph.msg
 )
 
@@ -237,6 +237,7 @@ add_library(${PROJECT_NAME}_mapper
   src/pose_graph.cpp
   src/keyframe.cpp
   src/metric_map.cpp
+  src/reachability.cpp
 )
 
 ## Add cmake target dependencies of the library

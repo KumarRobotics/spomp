@@ -56,12 +56,18 @@ class Global {
       return map_.viz();
     }
 
+    const auto& getReachabilityHistory() const {
+      return reachability_history_;
+    }
+
   private:
     /*********************************************************
      * LOCAL VARIABLES
      *********************************************************/
     TravMap map_;
     WaypointManager waypoint_manager_;
+
+    std::vector<Reachability> reachability_history_;
 };
 
 } // namespace spomp

@@ -2,6 +2,7 @@
 #include <nav_msgs/Path.h>
 #include <cv_bridge/cv_bridge.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <spomp/LocalReachabilityArray.h>
 #include "spomp/global_wrapper.h"
 #include "spomp/timer.h"
 #include "spomp/rosutil.h"
@@ -21,6 +22,7 @@ GlobalWrapper::GlobalWrapper(ros::NodeHandle& nh) :
   // Publishers
   // Latch goal so it is received even if local planner hasn't started yet
   local_goal_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("local_goal", 1, true);
+  reachability_history_pub_ = nh_.advertise<LocalReachabilityArray>("reachability_history", 1, true);
   graph_viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("graph_viz", 1, true);
   path_viz_pub_ = nh_.advertise<nav_msgs::Path>("path_viz", 1, true);
   map_img_viz_pub_ = nh_.advertise<sensor_msgs::Image>("viz_img", 1);
@@ -180,25 +182,13 @@ void GlobalWrapper::reachabilityCallback(
     ROS_ERROR_STREAM("Cannot get reachability pano pose: " << ex.what());
     return;
   }
-
-  Reachability reachability{AngularProj(AngularProj::StartFinish{
-      reachability_msg->angle_min, reachability_msg->angle_max}, 
-      reachability_msg->ranges.size()), 
-               pose32pose2(ROS2Eigen<float>(reach_pose_msg))};
-
-  Eigen::Map<const Eigen::VectorXf> scan_ranges(reinterpret_cast<const float*>(
-      reachability_msg->ranges.data()), reachability_msg->ranges.size());
-  reachability.setScan(scan_ranges);
-
-  if (reachability_msg->intensities.size() == reachability_msg->ranges.size()) {
-    Eigen::Map<const Eigen::VectorXf> scan_intensities(reinterpret_cast<const float*>(
-        reachability_msg->intensities.data()), reachability_msg->intensities.size());
-    reachability.setIsObs(scan_intensities.cast<int>());
-  }
+  Reachability reachability = ConvertFromROS(*reachability_msg);
+  reachability.setPose(pose32pose2(ROS2Eigen<float>(reach_pose_msg)));
 
   global_.updateLocalReachability(reachability);
   visualizePath(reachability_msg->header.stamp);
   visualizeGraph(reachability_msg->header.stamp);
+  publishReachabilityHistory();
   printTimings();
 }
 
@@ -263,6 +253,21 @@ void GlobalWrapper::publishLocalGoal(const ros::Time& stamp) {
 
     last_goal_ = *cur_goal;
   }
+}
+
+void GlobalWrapper::publishReachabilityHistory() {
+  const auto& reach_hist = global_.getReachabilityHistory();
+
+  LocalReachabilityArray lra_msg;
+  lra_msg.reachabilities.reserve(reach_hist.size());
+  for (const auto& reachability : reach_hist) {
+    LocalReachability lr_msg; 
+    lr_msg.reachability = Convert2ROS(reachability);
+    lr_msg.pose = Eigen2ROS2D(reachability.getPose());
+    lra_msg.reachabilities.push_back(lr_msg);
+  }
+
+  reachability_history_pub_.publish(lra_msg);
 }
 
 void GlobalWrapper::visualizeGraph(const ros::Time& stamp) {

@@ -267,27 +267,10 @@ void LocalWrapper::publishTransform(const ros::Time& stamp) {
 
 void LocalWrapper::publishReachability(const ros::Time& stamp) {
   const auto& reachability = local_.getPlanner().getReachability();
+  sensor_msgs::LaserScan scan_msg = Convert2ROS(reachability);
 
-  sensor_msgs::LaserScan scan_msg;
   scan_msg.header.frame_id = pano_frame_;
   scan_msg.header.stamp = stamp;
-
-  // Order is flipped, so delta_angle is negative, but this is fine
-  scan_msg.angle_min = reachability.getProj().start_angle;
-  scan_msg.angle_increment = reachability.getProj().delta_angle;
-  scan_msg.angle_max = scan_msg.angle_min + 
-    (reachability.size() * scan_msg.angle_increment);
-  scan_msg.range_max = 100; // Something large
-
-  scan_msg.ranges.resize(reachability.getScan().size());
-  Eigen::Map<Eigen::VectorXf> scan_ranges(reinterpret_cast<float*>(
-      scan_msg.ranges.data()), reachability.getScan().size());
-  scan_ranges = reachability.getScan();
-
-  scan_msg.intensities.resize(reachability.getIsObs().size());
-  Eigen::Map<Eigen::VectorXf> scan_intensities(reinterpret_cast<float*>(
-      scan_msg.intensities.data()), reachability.getIsObs().size());
-  scan_intensities = reachability.getIsObs().cast<float>();
 
   reachability_pub_.publish(scan_msg);
 }

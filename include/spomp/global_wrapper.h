@@ -35,6 +35,7 @@ class GlobalWrapper {
 
     void processMapBuffers();
     void publishLocalGoal(const ros::Time& stamp);
+    void publishReachabilityHistory();
     void visualizeGraph(const ros::Time& stamp);
     void visualizePath(const ros::Time& stamp);
     void printTimings();
@@ -48,6 +49,7 @@ class GlobalWrapper {
 
     // Pubs
     ros::Publisher local_goal_pub_;
+    ros::Publisher reachability_history_pub_;
     ros::Publisher graph_viz_pub_;
     ros::Publisher path_viz_pub_;
     ros::Publisher map_img_viz_pub_;

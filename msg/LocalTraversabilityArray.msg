@@ -1,1 +1,0 @@
-spomp/LocalTraversability[] traversabilities
