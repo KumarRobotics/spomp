@@ -12,7 +12,8 @@ PanoPlanner::PanoPlanner(const Params& params) : params_(params) {
 void PanoPlanner::updatePano(const TerrainPano& pano) {
   pano_update_t_->start();
 
-  reachability_ = Reachability(pano.getAzProj(), pose32pose2(pano.getPose()));
+  // Zero for timestamp here is fine
+  reachability_ = Reachability(0, pano.getAzProj(), pose32pose2(pano.getPose()));
 
   int gsize = params_.tbb <= 0 ? pano.cols() : params_.tbb;
   tbb::parallel_for(tbb::blocked_range<int>(0, reachability_.size(), gsize), 

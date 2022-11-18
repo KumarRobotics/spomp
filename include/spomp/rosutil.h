@@ -68,7 +68,8 @@ auto ROS2Eigen(const geometry_msgs::Pose2D& pose_msg) {
 }
 
 auto ConvertFromROS(const sensor_msgs::LaserScan& scan_msg) {
-  Reachability reachability{AngularProj(AngularProj::StartFinish{
+  Reachability reachability{scan_msg.header.stamp.toNSec(), 
+    AngularProj(AngularProj::StartFinish{
       scan_msg.angle_min, scan_msg.angle_max}, 
       scan_msg.ranges.size())};
 
@@ -151,6 +152,7 @@ geometry_msgs::Pose2D Eigen2ROS2D(
 
 sensor_msgs::LaserScan Convert2ROS(const Reachability& reachability) {
   sensor_msgs::LaserScan scan_msg;
+  scan_msg.header.stamp.fromNSec(reachability.getStamp());
 
   // Order is flipped, so delta_angle is negative, but this is fine
   scan_msg.angle_min = reachability.getProj().start_angle;

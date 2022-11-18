@@ -3,14 +3,17 @@
 
 namespace spomp {
 
-Reachability::Reachability(const Eigen::VectorXf& scan, const Eigen::VectorXi& is_obs, 
+Reachability::Reachability(uint64_t stamp, const Eigen::VectorXf& scan, const Eigen::VectorXi& is_obs, 
     const AngularProj& proj, const Eigen::Isometry2f& pose) :
+  stamp_(stamp),
   scan_(scan),
   is_obs_(is_obs),
   proj_(proj),
   pose_(pose) {}
 
-Reachability::Reachability(const AngularProj& proj, const Eigen::Isometry2f& pose) :
+Reachability::Reachability(uint64_t stamp, const AngularProj& proj, 
+    const Eigen::Isometry2f& pose) :
+  stamp_(stamp),
   proj_(proj),
   pose_(pose)
 {

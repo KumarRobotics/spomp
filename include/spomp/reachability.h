@@ -8,10 +8,10 @@ namespace spomp {
 
 class Reachability {
   public:
-    Reachability(const Eigen::VectorXf& scan, const Eigen::VectorXi& is_obs,
-        const AngularProj& proj, 
+    Reachability(uint64_t stamp, const Eigen::VectorXf& scan, 
+        const Eigen::VectorXi& is_obs, const AngularProj& proj,
         const Eigen::Isometry2f& pose = Eigen::Isometry2f::Identity());
-    Reachability(const AngularProj& proj, 
+    Reachability(uint64_t stamp, const AngularProj& proj,
         const Eigen::Isometry2f& pose = Eigen::Isometry2f::Identity());
     Reachability() = default;
 
@@ -55,6 +55,9 @@ class Reachability {
     const auto& getPose() const {
       return pose_;
     }
+    uint64_t getStamp() const {
+      return stamp_;
+    }
     void setPose(const Eigen::Isometry2f& pose) {
       pose_ = pose;
     }
@@ -66,6 +69,7 @@ class Reachability {
     }
 
   private:
+    uint64_t stamp_{};
     Eigen::VectorXf scan_{};
     Eigen::VectorXi is_obs_{};
     AngularProj proj_{};
