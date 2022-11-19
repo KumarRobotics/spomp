@@ -30,7 +30,7 @@ class GlobalWrapper {
     void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg);
     void goalSimpleCallback(const geometry_msgs::PoseStamped::ConstPtr& goal_msg);
     void reachabilityCallback(const sensor_msgs::LaserScan::ConstPtr& reachability_msg);
-    void otherReachabilityCallback(int robot, 
+    void otherReachabilityCallback(int robot_id, 
         const LocalReachabilityArray::ConstPtr& reachability_msg);
     bool setGoal(const geometry_msgs::PoseStamped& goal_msg);
     void globalNavigateGoalCallback();
@@ -77,6 +77,8 @@ class GlobalWrapper {
 
     Eigen::Vector2f last_goal_{0, 0};
     bool using_action_server_{false};
+
+    std::vector<std::set<uint64_t>> other_reachability_list_{};
 
     // Config related
     // Static because read in static functions

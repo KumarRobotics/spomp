@@ -34,6 +34,7 @@ class Global {
     }
 
     void updateLocalReachability(const Reachability& reachability);
+    void updateOtherLocalReachability(const Reachability& reachability);
 
     //! @return The next global target waypoint, if available
     std::optional<Eigen::Vector2f> getNextWaypoint() {
