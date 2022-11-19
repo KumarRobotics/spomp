@@ -92,7 +92,7 @@ void GlobalWrapper::initialize() {
   while (std::getline(robots, robot, ',')) {
     if (robot == this_robot_) continue;
     other_robot_reachability_subs_.push_back(nh_.subscribe<LocalReachabilityArray>(
-          "/" + robot + "/spomp_global/reachability", 1, 
+          "/" + robot + "/spomp_global/reachability_history", 1, 
           std::bind(&GlobalWrapper::otherReachabilityCallback, this, id, std::placeholders::_1)));
     ++id;
   }
@@ -212,6 +212,7 @@ void GlobalWrapper::reachabilityCallback(
 void GlobalWrapper::otherReachabilityCallback(int robot_id,
     const LocalReachabilityArray::ConstPtr& reachability_msg) 
 {
+  bool updates_occurred = false;
   for (const auto& reach : reachability_msg->reachabilities) {
     uint64_t stamp = reach.reachability.header.stamp.toNSec();
     if (other_reachability_list_[robot_id].count(stamp) == 0) {
@@ -220,7 +221,13 @@ void GlobalWrapper::otherReachabilityCallback(int robot_id,
       reachability.setPose(ROS2Eigen<float>(reach.pose));
       global_.updateOtherLocalReachability(reachability);
       other_reachability_list_[robot_id].insert(stamp);
+      updates_occurred = true;
     }
+  }
+
+  if (updates_occurred) {
+    visualizePath(ros::Time::now());
+    visualizeGraph(ros::Time::now());
   }
 }
 
