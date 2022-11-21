@@ -74,7 +74,7 @@ long Mapper::stamp() {
 bool Mapper::PoseGraphThread::operator()() {
   auto& tm = TimerManager::getGlobal(true);
   parse_buffer_t_ = tm.get("PG_parse_buffer");
-  parse_semantics_buffer_t_ = tm.get("M_parse_semantics_buffer");
+  parse_semantics_buffer_t_ = tm.get("PG_parse_semantics_buffer");
   update_keyframes_t_ = tm.get("PG_update_keyframes");
 
   using namespace std::chrono;
@@ -149,7 +149,7 @@ void Mapper::PoseGraphThread::parseSemanticsBuffer() {
       sem_it = mapper_.semantics_input_.sem_panos.erase(sem_it);
     } else if (mapper_.keyframes_.frames.size() > 0) {
       if (sem_it->stamp < mapper_.keyframes_.frames.rbegin()->second.getStamp()) {
-        // The sem pano is older than newest images in keyframe buffer
+        // The sem pano is older than newest images in keyframe list
         // We assume that semantic panos will always arrive later
         sem_it = mapper_.semantics_input_.sem_panos.erase(sem_it);
       } else {
@@ -219,7 +219,8 @@ std::vector<Keyframe> Mapper::MapThread::getKeyframesToCompute() {
   std::vector<Keyframe> keyframes_to_compute;
   bool rebuild_map = false;
   for (auto& frame : mapper_.keyframes_.frames) {
-    if (map_.needsMapUpdate(frame.second) && frame.second.isOptimized()) {
+    if (map_.needsMapUpdate(frame.second) && frame.second.isOptimized() &&
+        (frame.second.haveSem() || !mapper_.params_.require_sem)) {
       if (frame.second.inMap()) {
         rebuild_map = true;
         break;

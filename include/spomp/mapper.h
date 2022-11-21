@@ -18,6 +18,7 @@ class Mapper {
       bool correct_odom_per_frame = true;
       float dist_between_keyframes_m = 5;
       float pano_v_fov_rad = deg2rad(90);
+      bool require_sem = true;
     };
     Mapper(const Params& m_p, const PoseGraph::Params& pg_p, 
         const MetricMap::Params& mm_p);

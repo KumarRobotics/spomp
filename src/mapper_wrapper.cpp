@@ -40,6 +40,8 @@ Mapper MapperWrapper::createMapper(ros::NodeHandle& nh) {
   nh.getParam("M_map_thread_period_ms", m_params.map_thread_period_ms);
   nh.getParam("M_correct_odom_per_frame", m_params.correct_odom_per_frame);
   nh.getParam("M_dist_between_keyframes_m", m_params.dist_between_keyframes_m);
+  nh.getParam("M_pano_v_fov_rad", m_params.pano_v_fov_rad);
+  nh.getParam("M_require_sem", m_params.require_sem);
 
   nh.getParam("PG_num_frames_opt", pg_params.num_frames_opt);
   nh.getParam("PG_allow_interpolation", pg_params.allow_interpolation);
@@ -74,6 +76,8 @@ Mapper MapperWrapper::createMapper(ros::NodeHandle& nh) {
     setw(width) << "[ROS] M_map_thread_period_ms: " << m_params.map_thread_period_ms << endl <<
     setw(width) << "[ROS] M_correct_odom_per_frame: " << m_params.correct_odom_per_frame << endl <<
     setw(width) << "[ROS] M_dist_between_keyframes_m: " << m_params.dist_between_keyframes_m << endl <<
+    setw(width) << "[ROS] M_pano_v_fov_rad: " << m_params.pano_v_fov_rad << endl <<
+    setw(width) << "[ROS] M_require_sem: " << m_params.require_sem << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] PG_num_frames_opt: " << pg_params.num_frames_opt << endl <<
     setw(width) << "[ROS] PG_allow_interpolation: " << pg_params.allow_interpolation << endl <<
@@ -156,7 +160,7 @@ void MapperWrapper::globalEstCallback(
 }
 
 void MapperWrapper::semPanoCallback(const sensor_msgs::Image::ConstPtr& sem_img_msg) {
-  auto sem_pano = cv_bridge::toCvShare(
+  auto sem_pano = cv_bridge::toCvCopy(
       sem_img_msg, sensor_msgs::image_encodings::MONO8);
   mapper_.addSemantics({sem_img_msg->header.stamp.toNSec(), sem_pano->image});
 }

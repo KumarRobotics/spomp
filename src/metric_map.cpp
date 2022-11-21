@@ -73,7 +73,7 @@ void MetricMap::clear() {
   map_.setConstant("elevation", NAN);
   map_.setConstant("intensity", NAN);
   map_.setConstant("semantics", NAN);
-  map_.setConstant("semantics_viz", NAN);
+  map_.setConstant("semantics_viz", 0);
   map_.setConstant("num_points", 0);
 }
 

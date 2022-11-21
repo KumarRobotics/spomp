@@ -42,6 +42,10 @@ class Keyframe {
       return !map_pose_.matrix().isIdentity(1e-5);
     }
 
+    bool haveSem() const {
+      return !sem_pano_.empty();
+    }
+
     //! Return array of points and other point data
     PointCloudArray getPointCloud() const;
 

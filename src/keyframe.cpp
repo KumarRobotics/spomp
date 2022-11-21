@@ -17,7 +17,9 @@ Keyframe::Keyframe(uint64_t stamp, const Eigen::Isometry3d& pose,
   sem_pano_(s_p) {};
 
 PointCloudArray Keyframe::getPointCloud() const {
-  PointCloudArray cloud(5, depth_pano_.total());
+  PointCloudArray cloud = PointCloudArray::Zero(5, depth_pano_.total());
+  cloud.row(4).setConstant(255);
+
   if (projection_.size() < 1) {
     return cloud;
   }
@@ -26,14 +28,14 @@ PointCloudArray Keyframe::getPointCloud() const {
   int dense_ind = 0;
   const float* range_ptr = nullptr;
   const uint16_t* intensity_ptr = nullptr;
-  const uint16_t* sem_ptr = nullptr;
+  const uint8_t* sem_ptr = nullptr;
   for (int y=0; y<depth_pano_.rows; ++y) {
     range_ptr = depth_pano_.ptr<float>(y);
     if (intensity_pano_.size() == depth_pano_.size()) {
       intensity_ptr = intensity_pano_.ptr<uint16_t>(y);
     }
     if (sem_pano_.size() == depth_pano_.size()) {
-      sem_ptr = sem_pano_.ptr<uint16_t>(y);
+      sem_ptr = sem_pano_.ptr<uint8_t>(y);
     }
 
     for (int x=0; x<depth_pano_.cols; ++x) {
