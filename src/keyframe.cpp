@@ -8,7 +8,7 @@ namespace spomp {
 // Static members
 Eigen::Array3Xf Keyframe::projection_;
 
-Keyframe::Keyframe(long stamp, const Eigen::Isometry3d& pose, 
+Keyframe::Keyframe(uint64_t stamp, const Eigen::Isometry3d& pose, 
     const cv::Mat& d_p, const cv::Mat& i_p, const cv::Mat& s_p) :
   stamp_(stamp),
   pose_(pose),

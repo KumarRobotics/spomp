@@ -33,6 +33,11 @@ void Mapper::addPrior(const StampedPrior& p) {
   prior_input_.priors.emplace_back(p);
 }
 
+void Mapper::addSemantics(const StampedSemantics& s) {
+  std::scoped_lock lock(semantics_input_.mtx);
+  semantics_input_.sem_panos.emplace_back(s);
+}
+
 std::vector<Eigen::Isometry3d> Mapper::getGraph() { 
   std::vector<Eigen::Isometry3d> poses;
   std::shared_lock key_lock(keyframes_.mtx);
@@ -69,12 +74,14 @@ long Mapper::stamp() {
 bool Mapper::PoseGraphThread::operator()() {
   auto& tm = TimerManager::getGlobal(true);
   parse_buffer_t_ = tm.get("PG_parse_buffer");
+  parse_semantics_buffer_t_ = tm.get("M_parse_semantics_buffer");
   update_keyframes_t_ = tm.get("PG_update_keyframes");
 
   using namespace std::chrono;
   auto next = steady_clock::now();
   while (!mapper_.exit_threads_flag_) {
     parseBuffer(); 
+    parseSemanticsBuffer();
     pg_.update();
     updateKeyframes();
 
@@ -120,6 +127,41 @@ void Mapper::PoseGraphThread::parseBuffer() {
     mapper_.prior_input_.priors.clear();
   }
   parse_buffer_t_->end();
+}
+
+void Mapper::PoseGraphThread::parseSemanticsBuffer() {
+  parse_semantics_buffer_t_->start();
+
+  std::scoped_lock sem_lock(mapper_.semantics_input_.mtx);
+
+  // We don't need a lock on keyframes for reading, since this thread is the only
+  // thread that could add keyframes, and stamps are constant
+  for (auto sem_it = mapper_.semantics_input_.sem_panos.begin();
+       sem_it != mapper_.semantics_input_.sem_panos.end();) {
+    auto key_it = mapper_.keyframes_.frames.find(sem_it->stamp);
+    if (key_it != mapper_.keyframes_.frames.end()) {
+      // We have a matching keyframe
+      {
+        std::unique_lock key_lock(mapper_.keyframes_.mtx);
+        key_it->second.setSem(sem_it->pano);
+      }
+      // Advance by removing from buffer
+      sem_it = mapper_.semantics_input_.sem_panos.erase(sem_it);
+    } else if (mapper_.keyframes_.frames.size() > 0) {
+      if (sem_it->stamp < mapper_.keyframes_.frames.rbegin()->second.getStamp()) {
+        // The sem pano is older than newest images in keyframe buffer
+        // We assume that semantic panos will always arrive later
+        sem_it = mapper_.semantics_input_.sem_panos.erase(sem_it);
+      } else {
+        ++sem_it;
+      }
+    } else {
+      // No keyframes yet, so no point trying to match
+      break;
+    }
+  }
+
+  parse_semantics_buffer_t_->end();
 }
 
 void Mapper::PoseGraphThread::updateKeyframes() {

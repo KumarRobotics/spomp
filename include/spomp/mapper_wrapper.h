@@ -27,6 +27,7 @@ class MapperWrapper {
     void globalEstCallback(
         const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& est_msg,
         const geometry_msgs::PoseStamped::ConstPtr &odom_msg);
+    void semPanoCallback(const sensor_msgs::Image::ConstPtr& sem_img_msg);
 
     void visualize(const ros::TimerEvent& timer = {});
     void vizPoseGraph(const ros::Time& stamp);
@@ -55,6 +56,7 @@ class MapperWrapper {
     std::unique_ptr<message_filters::TimeSynchronizer<
       geometry_msgs::PoseWithCovarianceStamped, 
       geometry_msgs::PoseStamped>> global_est_odom_sync_;
+    ros::Subscriber sem_pano_sub_;
 
     // Objects
     Mapper mapper_;

@@ -96,11 +96,12 @@ void MapperWrapper::initialize() {
   est_sub_ = std::make_unique<message_filters::Subscriber<
     geometry_msgs::PoseWithCovarianceStamped>>(nh_, "global_est", 1);
   odom_sub_ = std::make_unique<message_filters::Subscriber<
-    geometry_msgs::PoseStamped>>(nh_, "pose", 1);
+    geometry_msgs::PoseStamped>>(nh_, "pose", 20);
   global_est_odom_sync_ = std::make_unique<message_filters::TimeSynchronizer<
     geometry_msgs::PoseWithCovarianceStamped, 
-    geometry_msgs::PoseStamped>>(*est_sub_, *odom_sub_, 10);
+    geometry_msgs::PoseStamped>>(*est_sub_, *odom_sub_, 20);
   global_est_odom_sync_->registerCallback(&MapperWrapper::globalEstCallback, this);
+  sem_pano_sub_ = nh_.subscribe("pano/sem", 1, &MapperWrapper::semPanoCallback, this);
 
   // Timers
   viz_timer_ = nh_.createTimer(ros::Duration(viz_thread_period_ms_/1000.), 
@@ -123,11 +124,10 @@ void MapperWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
   cv::split(pano->image, channels);
 
   float depth_scale = info_msg->R[0];
-  cv::Mat rescaled_depth, byte_class;
+  cv::Mat rescaled_depth;
   channels[0].convertTo(rescaled_depth, CV_32F, 1./depth_scale);
-  //channels[3] -= 1;
 
-  mapper_.addKeyframe({static_cast<long>(info_msg->header.stamp.toNSec()), 
+  mapper_.addKeyframe({info_msg->header.stamp.toNSec(), 
                        pano_pose,
                        rescaled_depth,
                        channels[1],
@@ -153,6 +153,12 @@ void MapperWrapper::globalEstCallback(
 
   publishOdomCorrection(est_msg->header.stamp);
   mapper_.addPrior(prior);
+}
+
+void MapperWrapper::semPanoCallback(const sensor_msgs::Image::ConstPtr& sem_img_msg) {
+  auto sem_pano = cv_bridge::toCvShare(
+      sem_img_msg, sensor_msgs::image_encodings::MONO8);
+  mapper_.addSemantics({sem_img_msg->header.stamp.toNSec(), sem_pano->image});
 }
 
 void MapperWrapper::visualize(const ros::TimerEvent& timer) {

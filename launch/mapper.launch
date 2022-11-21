@@ -29,6 +29,7 @@
     <!-- Remappings -->
     <remap from="~pano/img" to="os_node/rofl_odom/pano/img"/>
     <remap from="~pano/camera_info" to="os_node/rofl_odom/pano/camera_info"/>
+    <remap from="~pano/sem" to="os_node/segmented_image"/>
     <remap from="~pose" to="os_node/rofl_odom/pose"/>
 
     <!-- Params -->

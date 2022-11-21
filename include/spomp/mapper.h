@@ -25,10 +25,16 @@ class Mapper {
     void addKeyframe(const Keyframe& k);
 
     struct StampedPrior {
-      long stamp = 0;
+      uint64_t stamp = 0;
       PoseGraph::Prior2D prior{};
     };
     void addPrior(const StampedPrior& p);
+
+    struct StampedSemantics {
+      uint64_t stamp = 0;
+      cv::Mat pano;
+    };
+    void addSemantics(const StampedSemantics& s);
 
     //! @return Vector of keyframe poses oldest to most recent
     std::vector<Eigen::Isometry3d> getGraph();
@@ -62,7 +68,7 @@ class Mapper {
     struct Keyframes {
       // Shared mutex here since a lot of places read only
       std::shared_mutex mtx;
-      std::map<long, Keyframe> frames;
+      std::map<uint64_t, Keyframe> frames;
       Eigen::Isometry3d odom_corr = Eigen::Isometry3d::Identity();
     } keyframes_;
 
@@ -75,6 +81,11 @@ class Mapper {
       std::mutex mtx;
       std::list<StampedPrior> priors;
     } prior_input_;
+
+    struct SemanticsInput {
+      std::mutex mtx;
+      std::list<StampedSemantics> sem_panos;
+    } semantics_input_;
 
     struct MapMessages {
       std::mutex mtx;
@@ -97,6 +108,8 @@ class Mapper {
       private:
         void parseBuffer();
 
+        void parseSemanticsBuffer();
+
         void updateKeyframes();
 
         // Reference back to parent
@@ -106,6 +119,7 @@ class Mapper {
 
         // Timers
         Timer* parse_buffer_t_{};
+        Timer* parse_semantics_buffer_t_{};
         Timer* update_keyframes_t_{};
     };
 
