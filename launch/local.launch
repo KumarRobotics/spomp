@@ -34,12 +34,14 @@
   <arg name="CO_ang_disc" default="4"/>
   <arg name="CO_obs_cost_weight" default="1"/>
 
+  <arg name="goal_topic" default="spomp_global/local_goal"/>
+
   <node pkg="spomp" type="node_local" name="spomp_local" output="$(arg output)">
     <!-- Remappings -->
     <remap from="~pano/img" to="os_node/rofl_odom/pano/img"/>
     <remap from="~pano/camera_info" to="os_node/rofl_odom/pano/camera_info"/>
     <remap from="~pose" to="os_node/rofl_odom/pose"/>
-    <remap from="~goal" to="spomp_global/local_goal"/>
+    <remap from="~goal" to="$(arg goal_topic)"/>
     <remap from="~control" to="twist_auto"/>
 
     <!-- Params -->
