@@ -194,9 +194,11 @@ bool Mapper::MapThread::operator()() {
   auto next = steady_clock::now();
   while (!mapper_.exit_threads_flag_) {
     auto keyframes_to_compute = getKeyframesToCompute();
-    resizeMap(keyframes_to_compute);
-    updateMap(keyframes_to_compute);
-    exportMap();
+    if (keyframes_to_compute.size() > 0) {
+      resizeMap(keyframes_to_compute);
+      updateMap(keyframes_to_compute);
+      exportMap();
+    }
 
     // Sleep until next loop
     next += milliseconds(mapper_.params_.map_thread_period_ms);

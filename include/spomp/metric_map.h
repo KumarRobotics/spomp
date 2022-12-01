@@ -31,6 +31,12 @@ class MetricMap {
 
     bool needsMapUpdate(const Keyframe& frame) const;
 
+    std::vector<grid_map::Matrix*> getClsCounts();
+
+    static std::string getClsCountLayerName(int cls_id) {
+      return "cls_cnt" + std::to_string(cls_id);
+    }
+
     //! This is really just for test purposes
     const auto& getMap() const {
       return map_;
@@ -40,6 +46,7 @@ class MetricMap {
     Params params_{};
 
     SemanticColorLut semantic_color_lut_{};
+    int num_classes_{0};
 
     grid_map::GridMap map_{};
 

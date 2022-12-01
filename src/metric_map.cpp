@@ -6,13 +6,17 @@ MetricMap::MetricMap(const Params& p) : params_(p) {
   semantics_manager::ClassConfig class_config(
       semantics_manager::getClassesPath(params_.world_config_path));
   semantic_color_lut_ = class_config.color_lut;
+  num_classes_ = class_config.num_classes;
 
-  map_ = grid_map::GridMap({
+  std::vector<std::string> layers{
       "elevation",
       "intensity",
       "semantics",
-      "semantics_viz",
-      "num_points"});
+      "semantics_viz"};
+  for (int cls=0; cls<num_classes_; ++cls) {
+    layers.push_back(getClsCountLayerName(cls));
+  }
+  map_ = grid_map::GridMap(layers);
   map_.setBasicLayers({"elevation", "intensity"});
   // Reset layers to the appropriate values
   map_.setFrameId("map");
@@ -39,7 +43,7 @@ void MetricMap::addCloud(const PointCloudArray& cloud, long stamp) {
   grid_map::Matrix &intensity_layer = map_["intensity"];
   grid_map::Matrix &semantics_layer = map_["semantics"];
   grid_map::Matrix &semantics_viz_layer = map_["semantics_viz"];
-  grid_map::Matrix &num_points_layer = map_["num_points"];
+  auto class_counts = getClsCounts();
 
   grid_map::Index ind;
   for (int col=0; col<inds.cols(); col++) {
@@ -49,19 +53,32 @@ void MetricMap::addCloud(const PointCloudArray& cloud, long stamp) {
       continue;
     }
 
-    ++num_points_layer(ind[0], ind[1]);
-
     if (std::isnan(elevation_layer(ind[0], ind[1])) || 
         cloud(2, col) > elevation_layer(ind[0], ind[1])) 
     {
       elevation_layer(ind[0], ind[1]) = cloud(2, col);
       intensity_layer(ind[0], ind[1]) = cloud(3, col);
+    }
 
-      int sem_ind = cloud(4, col);
-      // Don't overwrite with unknown
-      if (sem_ind != 255) {
-        semantics_layer(ind[0], ind[1]) = sem_ind;
-        uint32_t sem_color_packed = semantic_color_lut_.ind2Color(sem_ind);
+    int sem_ind = cloud(4, col);
+    // Don't overwrite with unknown
+    if (sem_ind < num_classes_) {
+      ++(*class_counts[sem_ind])(ind[0], ind[1]);
+      if (sem_ind != semantics_layer(ind[0], ind[1])) {
+        // Added new class not current max.  Recompute.
+        int cls = 0;
+        int max_cls = 0;
+        int max_cnt = 0;
+        for (const grid_map::Matrix* cnts : class_counts) {
+          if ((*cnts)(ind[0], ind[1]) > max_cnt) {
+            max_cnt = (*cnts)(ind[0], ind[1]);
+            max_cls = cls;
+          }
+          ++cls;
+        }
+
+        semantics_layer(ind[0], ind[1]) = max_cls;
+        uint32_t sem_color_packed = semantic_color_lut_.ind2Color(max_cls);
         semantics_viz_layer(ind[0], ind[1]) = *reinterpret_cast<float*>(&sem_color_packed);
       }
     }
@@ -74,7 +91,9 @@ void MetricMap::clear() {
   map_.setConstant("intensity", NAN);
   map_.setConstant("semantics", NAN);
   map_.setConstant("semantics_viz", 0);
-  map_.setConstant("num_points", 0);
+  for (int cls=0; cls<num_classes_; ++cls) {
+    map_.setConstant(getClsCountLayerName(cls), 0);
+  }
 }
 
 void MetricMap::resizeToBounds(const Eigen::Vector2d& min, 
@@ -107,6 +126,14 @@ bool MetricMap::needsMapUpdate(const Keyframe& frame) const {
   Eigen::Isometry3d diff = frame.getPose().inverse() * frame.getMapPose();
   return (diff.translation().norm() > params_.dist_for_rebuild_m ||
       Eigen::AngleAxisd(diff.rotation()).angle() > params_.ang_for_rebuild_rad);
+}
+
+std::vector<grid_map::Matrix*> MetricMap::getClsCounts() {
+  std::vector<grid_map::Matrix*> counts;
+  for (int cls=0; cls<num_classes_; ++cls) {
+    counts.push_back(&map_[getClsCountLayerName(cls)]);
+  }
+  return counts;
 }
 
 } // namespace spomp
