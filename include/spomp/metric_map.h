@@ -45,8 +45,7 @@ class MetricMap {
   private:
     Params params_{};
 
-    SemanticColorLut semantic_color_lut_{};
-    int num_classes_{0};
+    semantics_manager::ClassConfig class_config_;
 
     grid_map::GridMap map_{};
 

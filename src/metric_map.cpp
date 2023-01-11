@@ -2,18 +2,18 @@
 
 namespace spomp {
 
-MetricMap::MetricMap(const Params& p) : params_(p) {
-  semantics_manager::ClassConfig class_config(
-      semantics_manager::getClassesPath(params_.world_config_path));
-  semantic_color_lut_ = class_config.color_lut;
-  num_classes_ = class_config.num_classes;
-
+MetricMap::MetricMap(const Params& p) : 
+  params_(p),
+  class_config_(semantics_manager::getClassesPath(params_.world_config_path)) 
+{
   std::vector<std::string> layers{
       "elevation",
       "intensity",
       "semantics",
-      "semantics_viz"};
-  for (int cls=0; cls<num_classes_; ++cls) {
+      "semantics_viz",
+      "semantics2",
+      "semantics2_viz"};
+  for (int cls=0; cls<class_config_.num_classes; ++cls) {
     layers.push_back(getClsCountLayerName(cls));
   }
   map_ = grid_map::GridMap(layers);
@@ -43,6 +43,8 @@ void MetricMap::addCloud(const PointCloudArray& cloud, long stamp) {
   grid_map::Matrix &intensity_layer = map_["intensity"];
   grid_map::Matrix &semantics_layer = map_["semantics"];
   grid_map::Matrix &semantics_viz_layer = map_["semantics_viz"];
+  grid_map::Matrix &semantics2_layer = map_["semantics2"];
+  grid_map::Matrix &semantics2_viz_layer = map_["semantics2_viz"];
   auto class_counts = getClsCounts();
 
   grid_map::Index ind;
@@ -62,24 +64,44 @@ void MetricMap::addCloud(const PointCloudArray& cloud, long stamp) {
 
     int sem_ind = cloud(4, col);
     // Don't overwrite with unknown
-    if (sem_ind < num_classes_) {
+    if (sem_ind < class_config_.num_classes) {
       ++(*class_counts[sem_ind])(ind[0], ind[1]);
       if (sem_ind != semantics_layer(ind[0], ind[1])) {
         // Added new class not current max.  Recompute.
-        int cls = 0;
+        int cls = -1;
         int max_cls = 0;
         int max_cnt = 0;
         for (const grid_map::Matrix* cnts : class_counts) {
+          ++cls;
           if ((*cnts)(ind[0], ind[1]) > max_cnt) {
             max_cnt = (*cnts)(ind[0], ind[1]);
             max_cls = cls;
           }
+        }
+
+        cls = -1;
+        int max_cls2 = 0;
+        int max_cnt2 = 0;
+        for (const grid_map::Matrix* cnts : class_counts) {
           ++cls;
+          if (cls == max_cls) continue;
+          if (class_config_.exclusivity[cls] && class_config_.exclusivity[max_cls]) continue;
+
+          if ((*cnts)(ind[0], ind[1]) > max_cnt2) {
+            max_cnt2 = (*cnts)(ind[0], ind[1]);
+            max_cls2 = cls;
+          }
         }
 
         semantics_layer(ind[0], ind[1]) = max_cls;
-        uint32_t sem_color_packed = semantic_color_lut_.ind2Color(max_cls);
+        uint32_t sem_color_packed = class_config_.color_lut.ind2Color(max_cls);
         semantics_viz_layer(ind[0], ind[1]) = *reinterpret_cast<float*>(&sem_color_packed);
+        
+        if (max_cnt2 > 5) {
+          semantics2_layer(ind[0], ind[1]) = max_cls2;
+          sem_color_packed = class_config_.color_lut.ind2Color(max_cls2);
+          semantics2_viz_layer(ind[0], ind[1]) = *reinterpret_cast<float*>(&sem_color_packed);
+        }
       }
     }
   }
@@ -91,7 +113,9 @@ void MetricMap::clear() {
   map_.setConstant("intensity", NAN);
   map_.setConstant("semantics", NAN);
   map_.setConstant("semantics_viz", 0);
-  for (int cls=0; cls<num_classes_; ++cls) {
+  map_.setConstant("semantics2", NAN);
+  map_.setConstant("semantics2_viz", 0);
+  for (int cls=0; cls<class_config_.num_classes; ++cls) {
     map_.setConstant(getClsCountLayerName(cls), 0);
   }
 }
@@ -130,7 +154,7 @@ bool MetricMap::needsMapUpdate(const Keyframe& frame) const {
 
 std::vector<grid_map::Matrix*> MetricMap::getClsCounts() {
   std::vector<grid_map::Matrix*> counts;
-  for (int cls=0; cls<num_classes_; ++cls) {
+  for (int cls=0; cls<class_config_.num_classes; ++cls) {
     counts.push_back(&map_[getClsCountLayerName(cls)]);
   }
   return counts;

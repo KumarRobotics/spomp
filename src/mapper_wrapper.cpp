@@ -98,12 +98,12 @@ void MapperWrapper::initialize() {
   // Subscribers
   pano_sub_ = it_.subscribeCamera("pano/img", 1, &MapperWrapper::panoCallback, this);
   est_sub_ = std::make_unique<message_filters::Subscriber<
-    geometry_msgs::PoseWithCovarianceStamped>>(nh_, "global_est", 1);
+    geometry_msgs::PoseWithCovarianceStamped>>(nh_, "global_est", 5);
   odom_sub_ = std::make_unique<message_filters::Subscriber<
-    geometry_msgs::PoseStamped>>(nh_, "pose", 20);
+    geometry_msgs::PoseStamped>>(nh_, "pose", 100);
   global_est_odom_sync_ = std::make_unique<message_filters::TimeSynchronizer<
     geometry_msgs::PoseWithCovarianceStamped, 
-    geometry_msgs::PoseStamped>>(*est_sub_, *odom_sub_, 20);
+    geometry_msgs::PoseStamped>>(*est_sub_, *odom_sub_, 100);
   global_est_odom_sync_->registerCallback(&MapperWrapper::globalEstCallback, this);
   sem_pano_sub_ = nh_.subscribe("pano/sem", 1, &MapperWrapper::semPanoCallback, this);
 
