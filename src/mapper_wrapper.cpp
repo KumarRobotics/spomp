@@ -97,14 +97,8 @@ Mapper MapperWrapper::createMapper(ros::NodeHandle& nh) {
 void MapperWrapper::initialize() {
   // Subscribers
   pano_sub_ = it_.subscribeCamera("pano/img", 1, &MapperWrapper::panoCallback, this);
-  est_sub_ = std::make_unique<message_filters::Subscriber<
-    geometry_msgs::PoseWithCovarianceStamped>>(nh_, "global_est", 5);
-  odom_sub_ = std::make_unique<message_filters::Subscriber<
-    geometry_msgs::PoseStamped>>(nh_, "pose", 100);
-  global_est_odom_sync_ = std::make_unique<message_filters::TimeSynchronizer<
-    geometry_msgs::PoseWithCovarianceStamped, 
-    geometry_msgs::PoseStamped>>(*est_sub_, *odom_sub_, 100);
-  global_est_odom_sync_->registerCallback(&MapperWrapper::globalEstCallback, this);
+  est_sub_ = nh_.subscribe("global_est", 1, &MapperWrapper::globalEstCallback, this);
+  odom_sub_ = nh_.subscribe("pose", 1, &MapperWrapper::odomCallback, this);
   sem_pano_sub_ = nh_.subscribe("pano/sem", 1, &MapperWrapper::semPanoCallback, this);
 
   // Timers
@@ -139,24 +133,39 @@ void MapperWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
 }
 
 void MapperWrapper::globalEstCallback(
-    const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& est_msg,
+    const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& est_msg)
+{
+  // Loop starting with most recent
+  // We assume that the global est will arrive after odom
+  // This is fairly reasonable, since global localizer uses odom as input
+  for (auto odom_it = odom_buf_.rbegin(); odom_it != odom_buf_.rend(); ++odom_it) {
+    if ((*odom_it)->header.stamp == est_msg->header.stamp) {
+      Mapper::StampedPrior prior{};
+      prior.stamp = est_msg->header.stamp.toNSec();
+      prior.prior.local_pose = ROS2Eigen<double>(**odom_it);
+      prior.prior.pose = pose32pose2(ROS2Eigen<double>(est_msg->pose.pose));
+
+      // organized as pos, rot, flipped from gtsam
+      const auto cov = Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(
+          &est_msg->pose.covariance[0]); 
+      // For now, just take the diagonal
+      // In the future, could use the full covariance
+      prior.prior.sigma_diag[0] = std::sqrt(cov.diagonal()[5]);
+      prior.prior.sigma_diag.tail<2>() = cov.diagonal().head<2>().array().sqrt();
+
+      publishOdomCorrection(est_msg->header.stamp);
+      mapper_.addPrior(prior);
+
+      odom_buf_.erase(odom_buf_.begin(), odom_it.base());
+      break;
+    }
+  }
+}
+
+void MapperWrapper::odomCallback(
     const geometry_msgs::PoseStamped::ConstPtr &odom_msg)
 {
-  Mapper::StampedPrior prior{};
-  prior.stamp = est_msg->header.stamp.toNSec();
-  prior.prior.local_pose = ROS2Eigen<double>(*odom_msg);
-  prior.prior.pose = pose32pose2(ROS2Eigen<double>(est_msg->pose.pose));
-
-  // organized as pos, rot, flipped from gtsam
-  const auto cov = Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(
-      &est_msg->pose.covariance[0]); 
-  // For now, just take the diagonal
-  // In the future, could use the full covariance
-  prior.prior.sigma_diag[0] = std::sqrt(cov.diagonal()[5]);
-  prior.prior.sigma_diag.tail<2>() = cov.diagonal().head<2>().array().sqrt();
-
-  publishOdomCorrection(est_msg->header.stamp);
-  mapper_.addPrior(prior);
+  odom_buf_.push_back(odom_msg);
 }
 
 void MapperWrapper::semPanoCallback(const sensor_msgs::Image::ConstPtr& sem_img_msg) {
