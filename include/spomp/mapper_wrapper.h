@@ -25,7 +25,8 @@ class MapperWrapper {
     void panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
       const sensor_msgs::CameraInfo::ConstPtr& info_msg);
     void globalEstCallback(
-        const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& est_msg,
+        const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& est_msg);
+    void odomCallback(
         const geometry_msgs::PoseStamped::ConstPtr &odom_msg);
     void semPanoCallback(const sensor_msgs::Image::ConstPtr& sem_img_msg);
 
@@ -49,17 +50,13 @@ class MapperWrapper {
 
     // Subs
     image_transport::CameraSubscriber pano_sub_;
-    std::unique_ptr<message_filters::Subscriber<
-      geometry_msgs::PoseWithCovarianceStamped>> est_sub_;
-    std::unique_ptr<message_filters::Subscriber<
-      geometry_msgs::PoseStamped>> odom_sub_;
-    std::unique_ptr<message_filters::TimeSynchronizer<
-      geometry_msgs::PoseWithCovarianceStamped, 
-      geometry_msgs::PoseStamped>> global_est_odom_sync_;
+    ros::Subscriber est_sub_;
+    ros::Subscriber odom_sub_;
     ros::Subscriber sem_pano_sub_;
 
     // Objects
     Mapper mapper_;
+    std::list<geometry_msgs::PoseStamped::ConstPtr> odom_buf_;
 
     // Static because read in static functions
     static std::string odom_frame_;
