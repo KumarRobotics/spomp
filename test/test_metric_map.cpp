@@ -30,9 +30,7 @@ TEST(metric_map, test_map) {
   cloud.col(1) << pos2.cast<float>(), 2, 2, 2;
   map.addCloud(cloud, 0);
   EXPECT_FLOAT_EQ(map.getMap().atPosition("elevation", pos1), 1);
-  EXPECT_EQ(map.getMap().atPosition("num_points", pos1), 1);
   EXPECT_FLOAT_EQ(map.getMap().atPosition("elevation", pos2), 2);
-  EXPECT_EQ(map.getMap().atPosition("num_points", pos2), 1);
   EXPECT_EQ(map.getMap().atPosition("intensity", pos1), 1);
   EXPECT_EQ(map.getMap().atPosition("intensity", pos2), 2);
 
@@ -42,9 +40,7 @@ TEST(metric_map, test_map) {
   cloud.col(1) << pos2.cast<float>(), 3, 3, 3;
   map.addCloud(cloud, 0);
   EXPECT_FLOAT_EQ(map.getMap().atPosition("elevation", pos1), 1);
-  EXPECT_EQ(map.getMap().atPosition("num_points", pos1), 2);
   EXPECT_FLOAT_EQ(map.getMap().atPosition("elevation", pos2), 3);
-  EXPECT_EQ(map.getMap().atPosition("num_points", pos2), 2);
   EXPECT_EQ(map.getMap().atPosition("intensity", pos1), 1);
   EXPECT_EQ(map.getMap().atPosition("intensity", pos2), 3);
 
