@@ -35,7 +35,7 @@ class AerialMap:
                 elif topic == '/asoom/map_sem_img_viz':
                     self.sem_viz_ = img
                     print("Loaded sem viz")
-                elif topic == '/asoom/map_intermed_viz':
+                elif topic == '/asoom/map_intermed_img':
                     self.intermed_ = img
                     print("Loaded intermed")
             elif topic == '/asoom/map_sem_img_center':
@@ -53,6 +53,20 @@ class AerialMap:
             return (0, 255, 0)
         else:
             return (0, 0, 255)
+
+    def get_sample_pts(self):
+        X = np.empty((0, 16*2))
+        y = np.empty(0, dtype=np.uint8)
+
+        for edge in self.trav_edges_:
+            descriptor0 = self.intermed_[edge[1][1], edge[1][0]]
+            descriptor1 = self.intermed_[edge[2][1], edge[2][0]]
+            X = np.vstack((X, np.concatenate((descriptor0, descriptor1))))
+            X = np.vstack((X, np.concatenate((descriptor1, descriptor0))))
+
+            y = np.append(y, (edge[0], edge[0]))
+
+        return X, y
 
     def publish_map(self, timer=None):
         annotated_map = self.color_.copy()
