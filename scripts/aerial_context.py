@@ -2,6 +2,7 @@
 
 import numpy as np
 import cv2
+from sklearn.linear_model import LogisticRegression
 
 import rospy
 import rosbag
@@ -19,6 +20,8 @@ class AerialMap:
         self.trav_edges_ = []
         self.new_edges_trav_ = True
         self.last_pt_ = None
+
+        self.model_ = None
 
         for topic, msg, t in rosbag.Bag(path, 'r').read_messages():
             if 'Image' in str(msg.__class__):
@@ -67,6 +70,13 @@ class AerialMap:
             y = np.append(y, (edge[0], edge[0]))
 
         return X, y
+    
+    def fit_model(self):
+        X, y = self.get_sample_pts()
+
+        print("Fitting model")
+        self.model_ = LogisticRegression(random_state=0, solver='lbfgs').fit(X, y)
+        print("Model fit")
 
     def publish_map(self, timer=None):
         annotated_map = self.color_.copy()
@@ -96,6 +106,7 @@ class AerialMap:
             self.trav_edges_.append((self.new_edges_trav_, pt, self.last_pt_))
             self.last_pt_ = None
             self.publish_map()
+            self.fit_model()
 
 if __name__ == '__main__':
     rospy.init_node("aerial_context_test")
