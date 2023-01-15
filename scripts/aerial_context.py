@@ -49,6 +49,10 @@ class AerialMap:
         self.map_pub_ = rospy.Publisher('~map', Image, queue_size=10)
         self.map_click_sub_ = rospy.Subscriber('~map_mouse_left', Point, self.map_click_cb)
 
+        self.est_trav_pub_ = rospy.Publisher('~est_trav', Image, queue_size=10)
+        self.est_trav_click_sub_ = rospy.Subscriber('~est_trav_mouse_left', Point, 
+                self.est_trav_click_cb)
+
         self.pub_timer_ = rospy.Timer(rospy.Duration(1), self.publish_map)
 
     def get_trav_color(self, is_trav):
@@ -78,20 +82,26 @@ class AerialMap:
         self.model_ = LogisticRegression(random_state=0, solver='lbfgs').fit(X, y)
         print("Model fit")
 
+    def pub_rgb(self, image, publisher):
+        msg = Image()
+        msg.encoding = "bgr8"
+        msg.height = image.shape[0]
+        msg.width = image.shape[1]
+        msg.step = msg.width * 3
+        msg.data = image.tobytes()
+        publisher.publish(msg)
+
     def publish_map(self, timer=None):
         annotated_map = self.color_.copy()
 
         cv2.rectangle(annotated_map, (0, 0), (20, 20), self.get_trav_color(self.new_edges_trav_), -1)
         for edge in self.trav_edges_:
-            cv2.line(annotated_map, edge[1], edge[2], self.get_trav_color(edge[0]), 1)
+            cv2.line(annotated_map, tuple(edge[1]), tuple(edge[2]), 
+                    self.get_trav_color(edge[0]), 1)
 
-        map_msg = Image()
-        map_msg.encoding = "bgr8"
-        map_msg.height = annotated_map.shape[0]
-        map_msg.width = annotated_map.shape[1]
-        map_msg.step = map_msg.width * 3
-        map_msg.data = annotated_map.tobytes()
-        self.map_pub_.publish(map_msg)
+        self.pub_rgb(annotated_map, self.map_pub_)
+        if self.model_ is None:
+            self.pub_rgb(annotated_map, self.est_trav_pub_)
 
     def map_click_cb(self, click_pt_msg):
         if click_pt_msg.x < 20 and click_pt_msg.y < 20:
@@ -107,6 +117,31 @@ class AerialMap:
             self.last_pt_ = None
             self.publish_map()
             self.fit_model()
+
+    def est_trav_click_cb(self, click_pt_msg):
+        if self.model_ is None:
+            print("No model yet")
+            return
+
+        print("Inferring trav")
+        start_desc = self.intermed_[int(click_pt_msg.y), int(click_pt_msg.x)]
+        nonzero_pts = (self.sem_[:,:,0] != 255)
+        end_desc = self.intermed_[nonzero_pts, :]
+        X = np.hstack((np.tile(start_desc, (end_desc.shape[0], 1)), end_desc))
+
+        probs = self.model_.predict_proba(X)
+        print("Trav inferred")
+
+        annotated_map = self.color_.copy()
+        probs_img = np.zeros(self.sem_.shape)
+        probs_img[nonzero_pts] = probs[:, 0, None]
+
+        # colormap
+        probs_img = (probs_img*255).astype(np.uint8)
+        probs_color = cv2.applyColorMap(probs_img, cv2.COLORMAP_JET)
+        annotated_map = cv2.addWeighted(annotated_map, 0.5, probs_color, 0.5, 0.0)
+
+        self.pub_rgb(annotated_map, self.est_trav_pub_)
 
 if __name__ == '__main__':
     rospy.init_node("aerial_context_test")
