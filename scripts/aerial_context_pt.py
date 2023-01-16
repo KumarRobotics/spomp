@@ -21,6 +21,7 @@ class AerialMap:
         self.map_size_ = np.array([0., 0])
         self.scale_ = 2
         self.reach_proj_ = None
+        self.no_reach_proj_ = None
 
         self.model_ = None
 
@@ -69,25 +70,40 @@ class AerialMap:
                                reachability.reachability.angle_max, 
                                reachability.reachability.angle_increment)[:, None]
             pts = np.hstack((np.cos(thetas), np.sin(thetas)))
-            ranges = np.arange(0, reachability.reachability.range_max, 1/self.scale_)
+            ranges = np.arange(0, reachability.reachability.range_max-1, 1/self.scale_)
             self.reach_proj_ = pts[None,:,:] * ranges[:,None,None]/np.max(ranges)
+            self.no_reach_proj_ = pts
 
         pos = np.array([reachability.pose.x, reachability.pose.y])
         theta = reachability.pose.theta
         rot = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
 
         trav_pts = self.reach_proj_ * np.array(reachability.reachability.ranges)[None,:,None]
-        return pos + (rot @ trav_pts.reshape(-1, 2).transpose()).transpose(), None
+
+        # select only rays terminating with obstacle
+        obs_rays = np.array(reachability.reachability.intensities, dtype=bool)
+        no_trav_ranges = np.array(reachability.reachability.ranges)[obs_rays]
+
+        # select the next chunk of meters after the obstacle
+        no_trav_ranges = no_trav_ranges[None,:] + np.arange(0, 3, 1)[:,None]
+        no_trav_pts = self.no_reach_proj_[None,obs_rays] * no_trav_ranges[:,:,None]
+
+        return (pos + (rot @ trav_pts.reshape(-1, 2).transpose()).transpose(), 
+                pos + (rot @ no_trav_pts.reshape(-1, 2).transpose()).transpose())
 
     def load_trav(self, path):
+        comb_trav_img = np.zeros(self.sem_.shape, dtype=np.int)
         for topic, msg, t in rosbag.Bag(path, 'r').read_messages():
             for reachability in msg.reachabilities:
                 reach_pts, no_reach_pts = self.parse_reachability(reachability)
                 reach_pts_px = self.world2img(reach_pts)
-                self.trav_img_[reach_pts_px[:, 0], reach_pts_px[:, 1]] = 1
-                #no_reach_pts_px = self.world2img(no_reach_pts)
-                #self.no_trav_img_[no_reach_pts_px[:, 0], no_reach_pts_px[:, 1]] = 1
+                comb_trav_img[reach_pts_px[:, 0], reach_pts_px[:, 1]] += 1
+                no_reach_pts_px = self.world2img(no_reach_pts)
+                comb_trav_img[no_reach_pts_px[:, 0], no_reach_pts_px[:, 1]] -= 1
             break
+
+        self.trav_img_ = (comb_trav_img>3).astype(np.uint8)
+        self.no_trav_img_ = (comb_trav_img<0).astype(np.uint8)
 
     def world2img(self, world_pos):
         return ((-world_pos + self.origin_) * self.scale_ +
@@ -118,7 +134,7 @@ class AerialMap:
         X, y = self.get_sample_pts()
 
         print("Fitting model")
-        self.model_ = MLPClassifier(random_state=1, max_iter=1000, alpha=50).fit(X, y)
+        self.model_ = MLPClassifier(random_state=1, max_iter=1000, alpha=5).fit(X, y)
         print("Model fit")
 
     def pub_rgb(self, image, publisher):
@@ -150,7 +166,9 @@ class AerialMap:
         pt = np.array([click_pt_msg.x, click_pt_msg.y], dtype=np.int16)
         if self.new_pts_trav_:
             cv2.circle(self.trav_img_, pt, 3, 1, thickness=-1)
+            cv2.circle(self.no_trav_img_, pt, 3, 0, thickness=-1)
         else:
+            cv2.circle(self.trav_img_, pt, 3, 0, thickness=-1)
             cv2.circle(self.no_trav_img_, pt, 3, 1, thickness=-1)
         self.publish_map()
 
