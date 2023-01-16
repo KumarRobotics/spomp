@@ -3,6 +3,7 @@
 import numpy as np
 import cv2
 from sklearn.linear_model import LogisticRegression
+from sklearn.neural_network import MLPClassifier
 
 import rospy
 import rosbag
@@ -79,7 +80,7 @@ class AerialMap:
         X, y = self.get_sample_pts()
 
         print("Fitting model")
-        self.model_ = LogisticRegression(random_state=0, solver='lbfgs').fit(X, y)
+        self.model_ = MLPClassifier(random_state=1, max_iter=1000).fit(X, y)
         print("Model fit")
 
     def pub_rgb(self, image, publisher):
@@ -145,5 +146,5 @@ class AerialMap:
 
 if __name__ == '__main__':
     rospy.init_node("aerial_context_test")
-    am = AerialMap('/media/ian/ResearchSSD/xview_collab/iapetus/twojackalquad4_asoomoutput.bag')
+    am = AerialMap('/media/ian/ResearchSSD/xview_collab/iapetus/twojackalquad4_asoomoutput_cityscapes.bag')
     rospy.spin()
