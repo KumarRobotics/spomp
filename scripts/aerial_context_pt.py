@@ -9,6 +9,7 @@ import rospy
 import rosbag
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Point
+from spomp.msg import LocalReachabilityArray
 
 class AerialMap:
     def __init__(self, path):
@@ -16,7 +17,10 @@ class AerialMap:
         self.sem_ = None
         self.sem_viz_ = None
         self.intermed_ = None
-        self.center_ = np.array([0., 0])
+        self.origin_ = np.array([0., 0])
+        self.map_size_ = np.array([0., 0])
+        self.scale_ = 2
+        self.reach_proj_ = None
 
         self.model_ = None
 
@@ -31,6 +35,7 @@ class AerialMap:
                     print("Loaded color")
                 elif topic == '/asoom/map_sem_img':
                     self.sem_ = img
+                    self.map_size_ = np.array(img.shape, dtype=np.float32)[:2]
                     print("Loaded sem")
                 elif topic == '/asoom/map_sem_img_viz':
                     self.sem_viz_ = img
@@ -39,8 +44,8 @@ class AerialMap:
                     self.intermed_ = img
                     print("Loaded intermed")
             elif topic == '/asoom/map_sem_img_center':
-                self.center_[0] = msg.point.x
-                self.center_[1] = msg.point.x
+                self.origin_[0] = msg.point.x
+                self.origin_[1] = msg.point.y
                 print("Loaded center")
 
         self.new_pts_trav_ = True
@@ -55,6 +60,42 @@ class AerialMap:
                 self.est_trav_click_cb)
 
         self.pub_timer_ = rospy.Timer(rospy.Duration(1), self.publish_map)
+
+    def parse_reachability(self, reachability):
+        if self.reach_proj_ is None: 
+            # assume projection intrinsics are always the same, so just have to 
+            # compute once
+            thetas = np.arange(reachability.reachability.angle_min, 
+                               reachability.reachability.angle_max, 
+                               reachability.reachability.angle_increment)[:, None]
+            pts = np.hstack((np.cos(thetas), np.sin(thetas)))
+            ranges = np.arange(0, reachability.reachability.range_max, 1/self.scale_)
+            self.reach_proj_ = pts[None,:,:] * ranges[:,None,None]/np.max(ranges)
+
+        pos = np.array([reachability.pose.x, reachability.pose.y])
+        theta = reachability.pose.theta
+        rot = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
+
+        trav_pts = self.reach_proj_ * np.array(reachability.reachability.ranges)[None,:,None]
+        return pos + (rot @ trav_pts.reshape(-1, 2).transpose()).transpose(), None
+
+    def load_trav(self, path):
+        for topic, msg, t in rosbag.Bag(path, 'r').read_messages():
+            for reachability in msg.reachabilities:
+                reach_pts, no_reach_pts = self.parse_reachability(reachability)
+                reach_pts_px = self.world2img(reach_pts)
+                self.trav_img_[reach_pts_px[:, 0], reach_pts_px[:, 1]] = 1
+                #no_reach_pts_px = self.world2img(no_reach_pts)
+                #self.no_trav_img_[no_reach_pts_px[:, 0], no_reach_pts_px[:, 1]] = 1
+            break
+
+    def world2img(self, world_pos):
+        return ((-world_pos + self.origin_) * self.scale_ +
+                self.map_size_/2).astype(np.int)
+
+    def img2world(self, img_pos):
+        return -(((img_pos -
+                self.map_size_/2)/self.scale_) - self.origin_)
 
     def get_trav_color(self, is_trav):
         if is_trav:
@@ -140,4 +181,5 @@ class AerialMap:
 if __name__ == '__main__':
     rospy.init_node("aerial_context_test")
     am = AerialMap('/media/ian/ResearchSSD/xview_collab/iapetus/twojackalquad4_asoomoutput_cityscapes.bag')
+    am.load_trav('/media/ian/ResearchSSD/xview_collab/iapetus/twojackalquad4_spompreachability.bag')
     rospy.spin()
