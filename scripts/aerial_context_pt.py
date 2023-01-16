@@ -18,10 +18,6 @@ class AerialMap:
         self.intermed_ = None
         self.center_ = np.array([0., 0])
 
-        self.trav_edges_ = []
-        self.new_edges_trav_ = True
-        self.last_pt_ = None
-
         self.model_ = None
 
         for topic, msg, t in rosbag.Bag(path, 'r').read_messages():
@@ -47,6 +43,10 @@ class AerialMap:
                 self.center_[1] = msg.point.x
                 print("Loaded center")
 
+        self.new_pts_trav_ = True
+        self.trav_img_ = np.zeros(self.sem_.shape, dtype=np.uint8)
+        self.no_trav_img_ = np.zeros(self.sem_.shape, dtype=np.uint8)
+
         self.map_pub_ = rospy.Publisher('~map', Image, queue_size=10)
         self.map_click_sub_ = rospy.Subscriber('~map_mouse_left', Point, self.map_click_cb)
 
@@ -63,16 +63,13 @@ class AerialMap:
             return (0, 0, 255)
 
     def get_sample_pts(self):
-        X = np.empty((0, 16*2))
+        X = np.empty((0, 16))
         y = np.empty(0, dtype=np.uint8)
 
-        for edge in self.trav_edges_:
-            descriptor0 = self.intermed_[edge[1][1], edge[1][0]]
-            descriptor1 = self.intermed_[edge[2][1], edge[2][0]]
-            X = np.vstack((X, np.concatenate((descriptor0, descriptor1))))
-            X = np.vstack((X, np.concatenate((descriptor1, descriptor0))))
-
-            y = np.append(y, (edge[0], edge[0]))
+        X = np.vstack((X, self.intermed_[self.trav_img_[:,:,0]>0, :]))
+        y = np.tile(1, int(np.sum(self.trav_img_)))
+        X = np.vstack((X, self.intermed_[self.no_trav_img_[:,:,0]>0, :]))
+        y = np.concatenate((y, np.tile(0, int(np.sum(self.no_trav_img_)))))
 
         return X, y
     
@@ -80,7 +77,7 @@ class AerialMap:
         X, y = self.get_sample_pts()
 
         print("Fitting model")
-        self.model_ = MLPClassifier(random_state=1, max_iter=1000).fit(X, y)
+        self.model_ = MLPClassifier(random_state=1, max_iter=1000, alpha=50).fit(X, y)
         print("Model fit")
 
     def pub_rgb(self, image, publisher):
@@ -95,10 +92,9 @@ class AerialMap:
     def publish_map(self, timer=None):
         annotated_map = self.color_.copy()
 
-        cv2.rectangle(annotated_map, (0, 0), (20, 20), self.get_trav_color(self.new_edges_trav_), -1)
-        for edge in self.trav_edges_:
-            cv2.line(annotated_map, tuple(edge[1]), tuple(edge[2]), 
-                    self.get_trav_color(edge[0]), 1)
+        cv2.rectangle(annotated_map, (0, 0), (20, 20), self.get_trav_color(self.new_pts_trav_), -1)
+        annotated_map[self.trav_img_[:,:,0]>0, :] = np.array([0,255,0])
+        annotated_map[self.no_trav_img_[:,:,0]>0, :] = np.array([0,0,255])
 
         self.pub_rgb(annotated_map, self.map_pub_)
         if self.model_ is None:
@@ -106,29 +102,26 @@ class AerialMap:
 
     def map_click_cb(self, click_pt_msg):
         if click_pt_msg.x < 20 and click_pt_msg.y < 20:
-            self.new_edges_trav_ = not self.new_edges_trav_
+            self.new_pts_trav_ = not self.new_pts_trav_
             self.publish_map()
             return
 
         pt = np.array([click_pt_msg.x, click_pt_msg.y], dtype=np.int16)
-        if self.last_pt_ is None:
-            self.last_pt_ = pt
+        if self.new_pts_trav_:
+            cv2.circle(self.trav_img_, pt, 3, 1, thickness=-1)
         else:
-            self.trav_edges_.append((self.new_edges_trav_, pt, self.last_pt_))
-            self.last_pt_ = None
-            self.publish_map()
-            self.fit_model()
+            cv2.circle(self.no_trav_img_, pt, 3, 1, thickness=-1)
+        self.publish_map()
 
     def est_trav_click_cb(self, click_pt_msg):
+        self.fit_model()
         if self.model_ is None:
             print("No model yet")
             return
 
         print("Inferring trav")
-        start_desc = self.intermed_[int(click_pt_msg.y), int(click_pt_msg.x)]
         nonzero_pts = (self.sem_[:,:,0] != 255)
-        end_desc = self.intermed_[nonzero_pts, :]
-        X = np.hstack((np.tile(start_desc, (end_desc.shape[0], 1)), end_desc))
+        X = self.intermed_[nonzero_pts, :]
 
         probs = self.model_.predict_proba(X)
         print("Trav inferred")
