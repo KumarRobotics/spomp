@@ -103,7 +103,7 @@ class AerialMap:
             break
 
         self.trav_img_ = (comb_trav_img>3).astype(np.uint8)
-        self.no_trav_img_ = (comb_trav_img<0).astype(np.uint8)
+        self.no_trav_img_ = (comb_trav_img<-3).astype(np.uint8)
 
     def world2img(self, world_pos):
         return ((-world_pos + self.origin_) * self.scale_ +
@@ -165,11 +165,11 @@ class AerialMap:
 
         pt = np.array([click_pt_msg.x, click_pt_msg.y], dtype=np.int16)
         if self.new_pts_trav_:
-            cv2.circle(self.trav_img_, pt, 3, 1, thickness=-1)
-            cv2.circle(self.no_trav_img_, pt, 3, 0, thickness=-1)
+            cv2.circle(self.trav_img_, tuple(pt), 3, 1, thickness=-1)
+            cv2.circle(self.no_trav_img_, tuple(pt), 3, 0, thickness=-1)
         else:
-            cv2.circle(self.trav_img_, pt, 3, 0, thickness=-1)
-            cv2.circle(self.no_trav_img_, pt, 3, 1, thickness=-1)
+            cv2.circle(self.trav_img_, tuple(pt), 3, 0, thickness=-1)
+            cv2.circle(self.no_trav_img_, tuple(pt), 3, 1, thickness=-1)
         self.publish_map()
 
     def est_trav_click_cb(self, click_pt_msg):
@@ -198,6 +198,6 @@ class AerialMap:
 
 if __name__ == '__main__':
     rospy.init_node("aerial_context_test")
-    am = AerialMap('/media/ian/ResearchSSD/xview_collab/iapetus/twojackalquad4_asoomoutput_cityscapes.bag')
-    am.load_trav('/media/ian/ResearchSSD/xview_collab/iapetus/twojackalquad4_spompreachability.bag')
+    am = AerialMap('/media/ian/ResearchSSD/west_point/2022_06_23/titan/jq5_asoomoutput_cityscapes.bag')
+    am.load_trav('/media/ian/ResearchSSD/west_point/2022_06_23/titan/jq5_spompreachability.bag')
     rospy.spin()
