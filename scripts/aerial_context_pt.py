@@ -70,19 +70,24 @@ class AerialMap:
                                reachability.reachability.angle_max, 
                                reachability.reachability.angle_increment)[:, None]
             pts = np.hstack((np.cos(thetas), np.sin(thetas)))
-            ranges = np.arange(0, reachability.reachability.range_max-1, 1/self.scale_)
+            ranges = np.arange(0, 5, 1/self.scale_)
             self.reach_proj_ = pts[None,:,:] * ranges[:,None,None]/np.max(ranges)
             self.no_reach_proj_ = pts
 
         pos = np.array([reachability.pose.x, reachability.pose.y])
         theta = reachability.pose.theta
         rot = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
+        ranges = np.array(reachability.reachability.ranges)
+        obs_rays = np.array(reachability.reachability.intensities, dtype=bool)
+        
+        # only trust nearby stuff
+        obs_rays[ranges > 5] = False
+        ranges[ranges > 5] = 5
 
-        trav_pts = self.reach_proj_ * np.array(reachability.reachability.ranges)[None,:,None]
+        trav_pts = self.reach_proj_ * ranges[None,:,None]
 
         # select only rays terminating with obstacle
-        obs_rays = np.array(reachability.reachability.intensities, dtype=bool)
-        no_trav_ranges = np.array(reachability.reachability.ranges)[obs_rays]
+        no_trav_ranges = ranges[obs_rays]
 
         # select the next chunk of meters after the obstacle
         no_trav_ranges = no_trav_ranges[None,:] + np.arange(0, 3, 1)[:,None]
@@ -198,6 +203,8 @@ class AerialMap:
 
 if __name__ == '__main__':
     rospy.init_node("aerial_context_test")
-    am = AerialMap('/media/ian/ResearchSSD/west_point/2022_06_23/titan/jq5_asoomoutput_cityscapes.bag')
-    am.load_trav('/media/ian/ResearchSSD/west_point/2022_06_23/titan/jq5_spompreachability.bag')
+    #am = AerialMap('/media/ian/ResearchSSD/west_point/2022_06_23/titan/jq5_asoomoutput_cityscapes.bag')
+    #am.load_trav('/media/ian/ResearchSSD/west_point/2022_06_23/titan/jq5_spompreachability.bag')
+    am = AerialMap('/media/ian/ResearchSSD/xview_collab/iapetus/twojackalquad4_asoomoutput_cityscapes.bag')
+    am.load_trav('/media/ian/ResearchSSD/xview_collab/iapetus/twojackalquad4_spompreachability.bag')
     rospy.spin()
