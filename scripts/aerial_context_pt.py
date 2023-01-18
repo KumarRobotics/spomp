@@ -17,6 +17,7 @@ class AerialMap:
         self.sem_ = None
         self.sem_viz_ = None
         self.intermed_ = None
+        self.elevation_ = None
         self.origin_ = np.array([0., 0])
         self.map_size_ = np.array([0., 0])
         self.scale_ = 2
@@ -48,6 +49,19 @@ class AerialMap:
                 self.origin_[0] = msg.point.x
                 self.origin_[1] = msg.point.y
                 print("Loaded center")
+            elif topic == '/asoom/map':
+                self.elevation_ = np.array(msg.data[0].data).astype(np.float32)
+
+        self.elevation_ = np.nan_to_num(self.elevation_, nan=0)
+        self.elevation_ = self.elevation_.reshape(int(self.map_size_[1]), 
+                int(self.map_size_[0])).transpose()
+
+        self.one_hot_sem_ = np.zeros((self.sem_.size, 256))
+        self.one_hot_sem_[np.arange(self.sem_.size), self.sem_.flatten()] = 1
+        self.one_hot_sem_ = self.one_hot_sem_[:,:8].reshape(*self.sem_.shape[:2], -1)
+        self.intermed_ = np.concatenate((self.color_.astype(np.float32)/100., 
+            self.one_hot_sem_.astype(np.float32),
+            self.elevation_[:,:,None]/50.), axis=2)
 
         self.new_pts_trav_ = True
         self.trav_img_ = np.zeros(self.sem_.shape, dtype=np.uint8)
@@ -125,10 +139,9 @@ class AerialMap:
             return (0, 0, 255)
 
     def get_sample_pts(self):
-        X = np.empty((0, 16))
         y = np.empty(0, dtype=np.uint8)
 
-        X = np.vstack((X, self.intermed_[self.trav_img_[:,:,0]>0, :]))
+        X = self.intermed_[self.trav_img_[:,:,0]>0, :]
         y = np.tile(1, int(np.sum(self.trav_img_)))
         X = np.vstack((X, self.intermed_[self.no_trav_img_[:,:,0]>0, :]))
         y = np.concatenate((y, np.tile(0, int(np.sum(self.no_trav_img_)))))
@@ -139,7 +152,7 @@ class AerialMap:
         X, y = self.get_sample_pts()
 
         print("Fitting model")
-        self.model_ = MLPClassifier(random_state=1, max_iter=1000, alpha=5).fit(X, y)
+        self.model_ = MLPClassifier(random_state=1, max_iter=1000, alpha=1).fit(X, y)
         print("Model fit")
 
     def pub_rgb(self, image, publisher):
@@ -197,14 +210,14 @@ class AerialMap:
         # colormap
         probs_img = (probs_img*255).astype(np.uint8)
         probs_color = cv2.applyColorMap(probs_img, cv2.COLORMAP_JET)
-        annotated_map = cv2.addWeighted(annotated_map, 0.5, probs_color, 0.5, 0.0)
+        annotated_map = cv2.addWeighted(annotated_map, 0, probs_color, 1, 0.0)
 
         self.pub_rgb(annotated_map, self.est_trav_pub_)
 
 if __name__ == '__main__':
     rospy.init_node("aerial_context_test")
-    #am = AerialMap('/media/ian/ResearchSSD/west_point/2022_06_23/titan/jq5_asoomoutput_cityscapes.bag')
+    #am = AerialMap('/media/ian/ResearchSSD/west_point/2022_06_23/titan/jq5_asoomoutput.bag')
     #am.load_trav('/media/ian/ResearchSSD/west_point/2022_06_23/titan/jq5_spompreachability.bag')
-    am = AerialMap('/media/ian/ResearchSSD/xview_collab/iapetus/twojackalquad4_asoomoutput_cityscapes.bag')
+    am = AerialMap('/media/ian/ResearchSSD/xview_collab/iapetus/twojackalquad4_asoomoutput.bag')
     am.load_trav('/media/ian/ResearchSSD/xview_collab/iapetus/twojackalquad4_spompreachability.bag')
     rospy.spin()
