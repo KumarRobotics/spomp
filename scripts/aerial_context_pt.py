@@ -4,6 +4,9 @@ import numpy as np
 import cv2
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
 
 import rospy
 import rosbag
@@ -59,9 +62,9 @@ class AerialMap:
         self.one_hot_sem_ = np.zeros((self.sem_.size, 256))
         self.one_hot_sem_[np.arange(self.sem_.size), self.sem_.flatten()] = 1
         self.one_hot_sem_ = self.one_hot_sem_[:,:8].reshape(*self.sem_.shape[:2], -1)
-        self.intermed_ = np.concatenate((self.color_.astype(np.float32)/100., 
+        self.intermed_ = np.concatenate((self.color_.astype(np.float32), 
             self.one_hot_sem_.astype(np.float32),
-            self.elevation_[:,:,None]/50.), axis=2)
+            self.elevation_[:,:,None]), axis=2)
 
         self.new_pts_trav_ = True
         self.trav_img_ = np.zeros(self.sem_.shape, dtype=np.uint8)
@@ -151,8 +154,13 @@ class AerialMap:
     def fit_model(self):
         X, y = self.get_sample_pts()
 
+        # MLP
+        self.model_ = make_pipeline(StandardScaler(), MLPClassifier(random_state=1, max_iter=1000, alpha=1))
+        # SVM
+        #self.model_ = make_pipeline(StandardScaler(), SVC(gamma='auto', probability=True, C=0.001))
+
         print("Fitting model")
-        self.model_ = MLPClassifier(random_state=1, max_iter=1000, alpha=1).fit(X, y)
+        self.model_.fit(X,y)
         print("Model fit")
 
     def pub_rgb(self, image, publisher):
