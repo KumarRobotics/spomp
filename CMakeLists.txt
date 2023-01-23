@@ -291,6 +291,7 @@ add_library(${PROJECT_NAME}_global
   src/timer.cpp
   src/trav_graph.cpp
   src/trav_map.cpp
+  src/aerial_map.cpp
   src/waypoint_manager.cpp
   src/global.cpp
   src/reachability.cpp
@@ -393,6 +394,7 @@ if(CATKIN_ENABLE_TESTING)
     test/test_controller.cpp
     test/test_pose_graph.cpp
     test/test_trav_graph_map.cpp
+    test/test_aerial_map.cpp
     test/test_keyframe.cpp
     test/test_metric_map.cpp
   )
