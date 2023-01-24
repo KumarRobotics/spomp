@@ -1,6 +1,5 @@
 #pragma once
 
-#include <dlib/dnn.h>
 #include <opencv2/core.hpp>
 #include "spomp/trav_graph.h"
 
