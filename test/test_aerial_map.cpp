@@ -5,6 +5,8 @@
 namespace spomp {
 
 TEST(aerial_map, test) {
+  AerialMap am({});
+  am.testML();
 }
 
 } // namespace spomp

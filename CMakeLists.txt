@@ -40,6 +40,7 @@ find_package(Eigen3 REQUIRED NO_MODULE)
 find_package(TBB REQUIRED)
 find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs highgui)
 find_package(GTSAM REQUIRED)
+find_package(dlib REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -313,6 +314,7 @@ target_link_libraries(${PROJECT_NAME}_global
   opencv_imgcodecs
   opencv_highgui
   yaml-cpp
+  dlib::dlib
   ${catkin_LIBRARIES}
 )
 
