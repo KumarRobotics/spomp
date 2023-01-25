@@ -6,4 +6,5 @@
 * grid_map (Forked version) https://github.com/iandouglas96/grid_map
 * GTSAM (Tested with 4.0.3)
 * ROS1 (Tested with Melodic and Noetic)
-* dlib (Tested with 19.24)
+* mlpack (Tested with 4.0.1)
+  * Note that mlpack has dependencies on Armadillo and ensmallen

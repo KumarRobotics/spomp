@@ -40,7 +40,9 @@ find_package(Eigen3 REQUIRED NO_MODULE)
 find_package(TBB REQUIRED)
 find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs highgui)
 find_package(GTSAM REQUIRED)
-find_package(MiniDNN REQUIRED)
+find_package(mlpack REQUIRED)
+# Needed for mlpack
+find_package(Armadillo REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -293,6 +295,7 @@ add_library(${PROJECT_NAME}_global
   src/trav_graph.cpp
   src/trav_map.cpp
   src/aerial_map.cpp
+  src/mlp_model.cpp
   src/waypoint_manager.cpp
   src/global.cpp
   src/reachability.cpp
@@ -314,8 +317,13 @@ target_link_libraries(${PROJECT_NAME}_global
   opencv_imgcodecs
   opencv_highgui
   yaml-cpp
-  MiniDNN::MiniDNN
+  ${ARMADILLO_LIBRARIES}
   ${catkin_LIBRARIES}
+)
+
+# MLPACK has a dated Findmlpack.cmake, so we use the older header include method
+target_include_directories(${PROJECT_NAME}_global PRIVATE
+  ${MLPACK_INCLUDE_DIRECTORIES}
 )
 
 ## Declare a C++ executable
