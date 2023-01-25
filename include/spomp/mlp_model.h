@@ -31,6 +31,9 @@ class MLPModel {
      * LOCAL VARIABLES
      *********************************************************/
     mlpack::FFN<mlpack::NegativeLogLikelihood, mlpack::RandomInitialization> model_;
+
+    arma::mat feat_means_;
+    arma::mat feat_stds_;
 };
 
 } // namespace spomp
