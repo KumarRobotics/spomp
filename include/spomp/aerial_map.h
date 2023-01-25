@@ -12,7 +12,9 @@ class AerialMap {
     };
     AerialMap(const Params& p);
 
-    void updateMap(const cv::Mat& sem_map, const cv::Mat& other_channels);
+    void updateMap(const cv::Mat& sem_map, const MapReferenceFrame& mrf);
+
+    void updateLocalReachability(const Reachability& reach);
 
     float getEdgeProb(const Eigen::Vector2f& n1, const Eigen::Vector2f& n2) const;
 
@@ -29,6 +31,8 @@ class AerialMap {
     /*********************************************************
      * LOCAL VARIABLES
      *********************************************************/
+    cv::Mat map_{};
+    MapReferenceFrame map_ref_frame_{};
 };
 
 } // namespace spomp

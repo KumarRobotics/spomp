@@ -3,6 +3,7 @@
 //! Various helper functions, mostly math primitives
 
 #include <Eigen/Dense>
+#include <iostream>
 
 namespace spomp {
 
@@ -169,6 +170,28 @@ struct AngularProj {
   Eigen::VectorXf getAngles() const {
     return Eigen::VectorXf::LinSpaced(num, 
         start_angle, start_angle + (num-1)*delta_angle);
+  }
+};
+
+struct MapReferenceFrame {
+  float res{1};
+  Eigen::Vector2f center{0, 0};
+  Eigen::Vector2f size{};
+
+  Eigen::Vector2f world2img(const Eigen::Vector2f& world_c) const {
+    Eigen::Vector2f world_pt = world_c - center;
+    Eigen::Vector2f img_pt = {-world_pt[1], -world_pt[0]};
+    img_pt *= res;
+    img_pt += size/2;
+    return img_pt;
+  }
+
+  Eigen::Vector2f img2world(const Eigen::Vector2f& img_c) const {
+    Eigen::Vector2f img_pt = img_c - size/2;
+    img_pt /= res;
+    Eigen::Vector2f world_pt = {-img_pt[1], -img_pt[0]};
+    world_pt += center;
+    return world_pt;
   }
 };
   

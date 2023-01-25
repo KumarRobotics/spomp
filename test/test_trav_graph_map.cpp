@@ -78,8 +78,8 @@ TEST(trav_map, test_transforms) {
   m.updateMap(map_img, {-24.1119060516, 62.8522758484});
 
   Eigen::Vector2f im_pt{100, 200};
-  Eigen::Vector2f world_pt = m.img2world(im_pt);
-  ASSERT_FLOAT_EQ((im_pt - m.world2img(world_pt)).norm(), 0);
+  Eigen::Vector2f world_pt = m.getMapReferenceFrame().img2world(im_pt);
+  ASSERT_FLOAT_EQ((im_pt - m.getMapReferenceFrame().world2img(world_pt)).norm(), 0);
 }
 
 TEST(trav_map, test_map_graph_search) {

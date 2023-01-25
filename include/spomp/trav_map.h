@@ -39,14 +39,15 @@ class TravMap {
       return graph_.updateEdgeFromReachability(edge, start_node, reachability, start_pos);
     }
 
-    Eigen::Vector2f world2img(const Eigen::Vector2f& world_c) const;
-    Eigen::Vector2f img2world(const Eigen::Vector2f& img_c) const;
-
     cv::Mat viz() const;
     cv::Mat viz_visibility() const;
 
     const auto& getEdges() const {
       return graph_.getEdges();
+    }
+
+    const auto& getMapReferenceFrame() const {
+      return map_ref_frame_;
     }
 
   private:
@@ -77,14 +78,13 @@ class TravMap {
      *********************************************************/
     Params params_;
     cv::Mat terrain_lut_{};
-    float map_res_{1};
     bool dynamic_{true};
 
     /*********************************************************
      * LOCAL VARIABLES
      *********************************************************/
     cv::Mat map_{};
-    Eigen::Vector2f map_center_{};
+    MapReferenceFrame map_ref_frame_{};
 
     std::vector<cv::Mat> dist_maps_{};
     cv::Mat visibility_map_{};

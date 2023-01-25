@@ -23,6 +23,11 @@ class MLPModel {
 
   private:
     /*********************************************************
+     * LOCAL FUNCTIONS
+     *********************************************************/
+    arma::mat preprocFeatures(const Eigen::ArrayXXf& feat, bool update_stats = false);
+
+    /*********************************************************
      * LOCAL CONSTANTS
      *********************************************************/
     Params params_;
@@ -32,8 +37,8 @@ class MLPModel {
      *********************************************************/
     mlpack::FFN<mlpack::NegativeLogLikelihood, mlpack::RandomInitialization> model_;
 
-    arma::mat feat_means_;
-    arma::mat feat_stds_;
+    arma::colvec feat_means_;
+    arma::colvec feat_stds_;
 };
 
 } // namespace spomp

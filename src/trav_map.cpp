@@ -29,7 +29,7 @@ TravMap::TravMap(const Params& tm_p, const TravGraph::Params& tg_p) :
       << "\033[0m" << std::endl;
     terrain_lut_.at<uint8_t>(0) = 0;
     terrain_lut_.at<uint8_t>(1) = 1;
-    map_res_ = 1;
+    map_ref_frame_.res = 1;
   }
 }
 
@@ -47,7 +47,7 @@ void TravMap::loadClasses(const semantics_manager::ClassConfig& class_config) {
 void TravMap::loadStaticMap(const semantics_manager::MapConfig& map_config, 
     const semantics_manager::ClassConfig& class_config) 
 {
-  map_res_ = map_config.resolution;
+  map_ref_frame_.res = map_config.resolution;
 
   // Initialize dist_maps_
   dist_maps_.reserve(TravGraph::Edge::MAX_TERRAIN);
@@ -70,32 +70,17 @@ void TravMap::loadStaticMap(const semantics_manager::MapConfig& map_config,
   }
 
   class_config.color_lut.color2Ind(color_sem, class_sem);
-  map_center_ = Eigen::Vector2f(class_sem.cols, class_sem.rows)/2 / map_res_;
+  Eigen::Vector2f map_center = Eigen::Vector2f(class_sem.cols, class_sem.rows)/2 / 
+    map_config.resolution;
 
   // Set map now so that world2img works properly
   cv::rotate(class_sem, class_sem, cv::ROTATE_90_COUNTERCLOCKWISE);
 
   // We have set map_center_ already, but want to postproc
-  updateMap(class_sem, map_center_);
+  updateMap(class_sem, map_center);
   // Set this to block updateMap from doing anything in the future
   dynamic_ = false;
   std::cout << "\033[36m" << "[SPOMP-Global] Static Map loaded" << "\033[0m" << std::endl;
-}
-
-Eigen::Vector2f TravMap::world2img(const Eigen::Vector2f& world_c) const {
-  Eigen::Vector2f world_pt = world_c - map_center_;
-  Eigen::Vector2f img_pt = {-world_pt[1], -world_pt[0]};
-  img_pt *= map_res_;
-  img_pt += Eigen::Vector2f(map_.cols, map_.rows)/2;
-  return img_pt;
-}
-
-Eigen::Vector2f TravMap::img2world(const Eigen::Vector2f& img_c) const {
-  Eigen::Vector2f img_pt = img_c - Eigen::Vector2f(map_.cols, map_.rows)/2;
-  img_pt /= map_res_;
-  Eigen::Vector2f world_pt = {-img_pt[1], -img_pt[0]};
-  world_pt += map_center_;
-  return world_pt;
 }
 
 void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center) {
@@ -109,7 +94,8 @@ void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center) {
     cv::cvtColor(map, map_, cv::COLOR_BGR2GRAY);
   }
   cv::LUT(map_, terrain_lut_, map_);
-  map_center_ = center;
+  map_ref_frame_.center = center;
+  map_ref_frame_.size = Eigen::Vector2f(map_.cols, map_.rows);
 
   computeDistMaps();
   reweightGraph();
@@ -126,8 +112,8 @@ std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,
     return path;
   }
 
-  auto n1_img_pos = world2img(start_p);
-  auto n2_img_pos = world2img(end_p);
+  auto n1_img_pos = map_ref_frame_.world2img(start_p);
+  auto n2_img_pos = map_ref_frame_.world2img(end_p);
   if ((n1_img_pos.array() < 0).any() || 
       (n1_img_pos.array() >= Eigen::Vector2f(map_.cols, map_.rows).array()).any() ||
       (n2_img_pos.array() < 0).any() ||
@@ -253,8 +239,8 @@ void TravMap::computeDistMaps() {
 
   int t_cls = 0;
   auto kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(
-        params_.max_hole_fill_size_m * map_res_,
-        params_.max_hole_fill_size_m * map_res_));
+        params_.max_hole_fill_size_m * map_ref_frame_.res,
+        params_.max_hole_fill_size_m * map_ref_frame_.res));
 
   for (auto& dist_map : dist_maps_) {
     cv::Mat trav_map;
@@ -293,7 +279,7 @@ void TravMap::reweightGraph() {
   }
 
   for (auto& [node_id, node] : graph_.getNodes()) {
-    auto img_loc = world2img(node.pos);
+    auto img_loc = map_ref_frame_.world2img(node.pos);
     int node_cls = map_.at<uint8_t>(cv::Point(img_loc[0], img_loc[1]));
     if (node_cls == TravGraph::Edge::MAX_TERRAIN) {
       // Node is no longer traversable, sad
@@ -330,7 +316,7 @@ void TravMap::buildGraph() {
         break;
       }
 
-      auto n_ptr = addNode(img2world({max_l.x, max_l.y}), t_cls);
+      auto n_ptr = addNode(map_ref_frame_.img2world({max_l.x, max_l.y}), t_cls);
       // Make absolutely sure that we don't pick the same pt again
       visibility_map_.at<int32_t>(max_l) = n_ptr->id;
     }
@@ -342,8 +328,8 @@ void TravMap::buildGraph() {
 std::pair<int, float> TravMap::traceEdge(const Eigen::Vector2f& n1, 
     const Eigen::Vector2f& n2)
 {
-  auto img_pt1 = world2img(n1);
-  auto img_pt2 = world2img(n2);
+  auto img_pt1 = map_ref_frame_.world2img(n1);
+  auto img_pt2 = map_ref_frame_.world2img(n2);
   float dist = (img_pt1 - img_pt2).norm();
   Eigen::Vector2f dir = (img_pt2 - img_pt1).normalized();
 
@@ -374,7 +360,7 @@ std::pair<int, float> TravMap::traceEdge(const Eigen::Vector2f& n1,
     // Ignore unknwon
   } 
 
-  return {worst_cls, 1/(worst_dist/map_res_ + 0.01)};
+  return {worst_cls, 1/(worst_dist/map_ref_frame_.res + 0.01)};
 }
 
 TravGraph::Node* TravMap::addNode(const Eigen::Vector2f& pos, int t_cls) {
@@ -396,7 +382,7 @@ TravGraph::Node* TravMap::addNode(const Eigen::Vector2f& pos, int t_cls) {
         graph_.addEdge({n, overlap_n, worst_cost, worst_cls});
       } else if (map_.at<uint8_t>(cv::Point(overlap_loc[0], overlap_loc[1])) <= t_cls) {
         // Add new intermediate node
-        auto intermed_n = graph_.addNode({img2world(overlap_loc)});
+        auto intermed_n = graph_.addNode({map_ref_frame_.img2world(overlap_loc)});
         addNodeToVisibility(*intermed_n);
         auto edge_info = traceEdge(n->pos, intermed_n->pos);
         graph_.addEdge({n, intermed_n, edge_info.second, edge_info.first});
@@ -411,7 +397,7 @@ TravGraph::Node* TravMap::addNode(const Eigen::Vector2f& pos, int t_cls) {
 
 std::map<int, Eigen::Vector2f> TravMap::addNodeToVisibility(const TravGraph::Node& n) {
   // Get class of node location
-  auto img_loc = world2img(n.pos);
+  auto img_loc = map_ref_frame_.world2img(n.pos);
   int node_cls = map_.at<uint8_t>(cv::Point(img_loc[0], img_loc[1]));
   //std::cout << "+++++++++++" << std::endl;
   //std::cout << img_loc.transpose() << std::endl;
@@ -420,11 +406,11 @@ std::map<int, Eigen::Vector2f> TravMap::addNodeToVisibility(const TravGraph::Nod
   std::map<int, Eigen::Vector2f> overlapping_nodes;
 
   // Choose delta such that ends of rays are within 0.5 cells
-  float delta_t = 0.5 / (params_.vis_dist_m * map_res_);
+  float delta_t = 0.5 / (params_.vis_dist_m * map_ref_frame_.res);
   for (float theta=0; theta<2*pi; theta+=delta_t) {
     Eigen::Vector2f dir = {cos(theta), sin(theta)};
 
-    for (float r=0; r<map_res_*params_.vis_dist_m; r+=0.5) {
+    for (float r=0; r<map_ref_frame_.res*params_.vis_dist_m; r+=0.5) {
       Eigen::Vector2f img_cell = img_loc + dir*r;
       if ((img_cell.array() < 0).any() || 
           (img_cell.array() >= Eigen::Vector2f(map_.cols, map_.rows).array()).any()) {
@@ -463,21 +449,18 @@ cv::Mat TravMap::viz() const {
   cv::applyColorMap(scaled_map, cmapped_map, cv::COLORMAP_PARULA);
   // Mask unknown regions
   cmapped_map.copyTo(viz, map_ < 255);
-  // Draw origin
-  auto origin_img = world2img({0, 0});
-  cv::circle(viz, cv::Point(origin_img[0], origin_img[1]), 3, cv::Scalar(0, 0, 255), 2);
 
   // Draw nodes
   for (const auto& [node_id, node] : graph_.getNodes()) {
-    auto node_img_pos = world2img(node.pos);
+    auto node_img_pos = map_ref_frame_.world2img(node.pos);
     cv::circle(viz, cv::Point(node_img_pos[0], node_img_pos[1]), 1, cv::Scalar(0, 255, 0), 2);
   }
 
   // Draw edges
   for (const auto& edge : graph_.getEdges()) {
     if (edge.cls >= TravGraph::Edge::MAX_TERRAIN) continue;
-    auto node1_img_pos = world2img(edge.node1->pos);
-    auto node2_img_pos = world2img(edge.node2->pos);
+    auto node1_img_pos = map_ref_frame_.world2img(edge.node1->pos);
+    auto node2_img_pos = map_ref_frame_.world2img(edge.node2->pos);
     cv::Scalar color;
     if (edge.cls == 0) {
       color = {0, 255, 0};
@@ -490,6 +473,10 @@ cv::Mat TravMap::viz() const {
     cv::line(viz, cv::Point(node1_img_pos[0], node1_img_pos[1]),
              cv::Point(node2_img_pos[0], node2_img_pos[1]), color);
   }
+
+  // Draw origin
+  auto origin_img = map_ref_frame_.world2img({0, 0});
+  cv::circle(viz, cv::Point(origin_img[0], origin_img[1]), 3, cv::Scalar(0, 0, 255), 2);
   
   return viz;
 }
