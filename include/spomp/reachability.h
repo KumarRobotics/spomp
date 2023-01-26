@@ -20,7 +20,9 @@ class Reachability {
       bool is_obs;
     };
     RangeObs getObsAtAz(float az) const {
-      int ind = proj_.indAt(az);
+      return getObsAtInd(proj_.indAt(az));
+    }
+    RangeObs getObsAtInd(int ind) const {
       return {scan_[ind], static_cast<bool>(is_obs_[ind])};
     }
 

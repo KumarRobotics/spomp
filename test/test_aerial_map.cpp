@@ -4,7 +4,7 @@
 namespace spomp {
 
 TEST(aerial_map, test) {
-  AerialMap am({});
+  AerialMap am({}, {});
 }
 
 TEST(mlp_model, test) {

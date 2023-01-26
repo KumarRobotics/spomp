@@ -10,13 +10,17 @@ class AerialMap {
   public:
     struct Params {
     };
-    AerialMap(const Params& p);
+    AerialMap(const Params& p, const MLPModel::Params& mlp_p);
 
     void updateMap(const cv::Mat& sem_map, const MapReferenceFrame& mrf);
 
     void updateLocalReachability(const Reachability& reach);
 
     float getEdgeProb(const Eigen::Vector2f& n1, const Eigen::Vector2f& n2) const;
+
+    void fitModel();
+
+    cv::Mat viz();
 
   private:
     /*********************************************************
@@ -31,8 +35,12 @@ class AerialMap {
     /*********************************************************
      * LOCAL VARIABLES
      *********************************************************/
-    cv::Mat map_{};
+    cv::Mat sem_map_{};
     MapReferenceFrame map_ref_frame_{};
+
+    cv::Mat trav_map_{};
+
+    MLPModel model_;
 };
 
 } // namespace spomp
