@@ -17,6 +17,12 @@ class MLPModel {
     };
     MLPModel(const Params& p);
 
+    /*!
+     * @param feat Set of feature vectors.  Each sample should be a column.
+     * Since Eigen stores things column-major this makes accessing a sample
+     * fast, since a sample is contiguous in memory.
+     * @param labels Vector of labels
+     */
     void fit(const Eigen::ArrayXXf& feat, const Eigen::VectorXi& labels);
 
     Eigen::VectorXf infer(const Eigen::ArrayXXf& feat);

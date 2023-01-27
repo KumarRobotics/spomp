@@ -19,7 +19,7 @@ arma::mat MLPModel::preprocFeatures(const Eigen::ArrayXXf& feat, bool update_sta
       feat.rows(), feat.cols(), false, false);
   // This does a copy, but we need to convert to double and normalize
   // So unavoidable
-  arma::mat feat_arma_mat = arma::conv_to<arma::mat>::from(feat_arma.t());
+  arma::mat feat_arma_mat = arma::conv_to<arma::mat>::from(feat_arma);
   if (update_stats) {
     feat_means_ = arma::mean(feat_arma_mat, 1);
     feat_stds_ = arma::stddev(feat_arma_mat, /*normalize using N*/ 1, /*dim*/ 1);

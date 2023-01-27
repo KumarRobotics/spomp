@@ -32,12 +32,11 @@ void AerialMap::updateLocalReachability(const Reachability& reach) {
     }
 
     if (ray_info.is_obs) {
-      for (float range=ray_info.range; range<ray_info.range+3; range+=1./map_ref_frame_.res) {
+      for (float range=ray_info.range; range<ray_info.range + params_.not_trav_range_m; 
+          range+=1./map_ref_frame_.res) 
+      {
         Eigen::Vector2f pt = ray_dir*range + img_center;
         if (map_ref_frame_.imgPointInMap(pt)) {
-          // This -1 will map to 254 in an unsigned int8
-          // When we sum later it will have the effect of decrementing, which is
-          // what we really want.
           trav_map_delta.at<int16_t>(cv::Point(pt[0], pt[1])) = -1;
         }
       }
@@ -53,12 +52,41 @@ float AerialMap::getEdgeProb(const Eigen::Vector2f& n1,
   return 0;
 }
 
+Eigen::VectorXf AerialMap::getFeatureAtPoint(const cv::Point& pt) {
+  return {};
+}
+
 void AerialMap::fitModel() {
+  // No more features than number of nonzero pixels in trav map
+  int max_features = cv::countNonZero(trav_map_);
+  Eigen::ArrayXXf features(6, max_features);
+  Eigen::VectorXi labels(max_features);
+
+  int n_features = 0;
+  for(int i=0; i<trav_map_.rows; i++) {
+    for(int j=0; j<trav_map_.cols; j++) {
+      if (trav_map_.at<int16_t>(i,j) <= -params_.not_trav_thresh) {
+        features.col(n_features) = getFeatureAtPoint(cv::Point(i,j));
+        labels[n_features] = 0;
+        ++n_features;
+      } else if (trav_map_.at<int16_t>(i,j) >= params_.trav_thresh) {
+        features.col(n_features) = getFeatureAtPoint(cv::Point(i,j));
+        labels[n_features] = 1;
+        ++n_features;
+      }
+    }
+  }
+
+  model_.fit(features, labels);
+  updateProbabilityMap();
+}
+
+void AerialMap::updateProbabilityMap() {
 }
 
 cv::Mat AerialMap::viz() {
   cv::Mat trav_viz;
-  constexpr int16_t new_center = 128;
+  constexpr int new_center = std::numeric_limits<uint8_t>::max()/2;
   trav_map_.convertTo(trav_viz, CV_8UC1, 1, new_center);
 
   auto center = map_ref_frame_.world2img({0,0});
@@ -67,14 +95,19 @@ cv::Mat AerialMap::viz() {
 
   using Pixel = cv::Point3_<uint8_t>;
   trav_viz.forEach<Pixel>([&](Pixel& pixel, const int position[]) -> void {
-    if (pixel.x <= new_center-1) {
+    if (pixel.x <= new_center - params_.not_trav_thresh) {
       pixel.x = 0;   // b
       pixel.y = 0;   // g
       pixel.z = 255; // r
-    } else if (pixel.x >= new_center+1) {
+    } else if (pixel.x >= new_center + params_.trav_thresh) {
       pixel.x = 0;   // b
       pixel.y = 255; // g
       pixel.z = 0;   // r
+    } else {
+      // white
+      pixel.x = 255;
+      pixel.y = 255;
+      pixel.z = 255;
     }
   });
 

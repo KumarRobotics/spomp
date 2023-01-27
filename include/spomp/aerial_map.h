@@ -9,6 +9,9 @@ namespace spomp {
 class AerialMap {
   public:
     struct Params {
+      int trav_thresh = 1;
+      int not_trav_thresh = 1;
+      float not_trav_range_m = 3;
     };
     AerialMap(const Params& p, const MLPModel::Params& mlp_p);
 
@@ -26,6 +29,8 @@ class AerialMap {
     /*********************************************************
      * LOCAL FUNCTIONS
      *********************************************************/
+    Eigen::VectorXf getFeatureAtPoint(const cv::Point& pt);
+    void updateProbabilityMap();
 
     /*********************************************************
      * LOCAL CONSTANTS
