@@ -114,10 +114,8 @@ std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,
 
   auto n1_img_pos = map_ref_frame_.world2img(start_p);
   auto n2_img_pos = map_ref_frame_.world2img(end_p);
-  if ((n1_img_pos.array() < 0).any() || 
-      (n1_img_pos.array() >= Eigen::Vector2f(map_.cols, map_.rows).array()).any() ||
-      (n2_img_pos.array() < 0).any() ||
-      (n2_img_pos.array() >= Eigen::Vector2f(map_.cols, map_.rows).array()).any())
+  if (!map_ref_frame_.imgPointInMap(n1_img_pos) || 
+      !map_ref_frame_.imgPointInMap(n2_img_pos))
   {
     // Out of bounds
     return path;

@@ -183,7 +183,7 @@ struct MapReferenceFrame {
     Eigen::Vector2f img_pt = {-world_pt[1], -world_pt[0]};
     img_pt *= res;
     img_pt += size/2;
-    return img_pt;
+    return img_pt.array().round();
   }
 
   Eigen::Vector2f img2world(const Eigen::Vector2f& img_c) const {
@@ -192,6 +192,11 @@ struct MapReferenceFrame {
     Eigen::Vector2f world_pt = {-img_pt[1], -img_pt[0]};
     world_pt += center;
     return world_pt;
+  }
+  
+  bool imgPointInMap(const Eigen::Vector2f& img_c) const {
+    return ((img_c.array() >= 0).all() && 
+            (img_c.array() < size.array()).all());
   }
 };
   
