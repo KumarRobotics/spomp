@@ -95,7 +95,7 @@ void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center) {
   }
   cv::LUT(map_, terrain_lut_, map_);
   map_ref_frame_.center = center;
-  map_ref_frame_.size = Eigen::Vector2f(map_.cols, map_.rows);
+  map_ref_frame_.setMapSizeFrom(map_);
 
   computeDistMaps();
   reweightGraph();

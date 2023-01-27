@@ -2,6 +2,7 @@
 
 //! Various helper functions, mostly math primitives
 
+#include <opencv2/core/core.hpp>
 #include <Eigen/Dense>
 #include <iostream>
 
@@ -177,6 +178,10 @@ struct MapReferenceFrame {
   float res{1};
   Eigen::Vector2f center{0, 0};
   Eigen::Vector2f size{};
+
+  void setMapSizeFrom(const cv::Mat& map) {
+    size = Eigen::Vector2f(map.cols, map.rows);
+  }
 
   Eigen::Vector2f world2img(const Eigen::Vector2f& world_c) const {
     Eigen::Vector2f world_pt = world_c - center;

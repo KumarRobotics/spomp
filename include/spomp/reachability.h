@@ -51,6 +51,12 @@ class Reachability {
     const auto& getIsObs() const {
       return is_obs_;
     }
+    auto& getScan() {
+      return scan_;
+    }
+    auto& getIsObs() {
+      return is_obs_;
+    }
     const auto& getProj() const {
       return proj_;
     }

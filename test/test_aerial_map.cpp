@@ -1,10 +1,28 @@
 #include <gtest/gtest.h>
+#include <ros/package.h>
+#include <opencv2/imgcodecs/imgcodecs.hpp>
 #include "spomp/aerial_map.h"
 
 namespace spomp {
 
 TEST(aerial_map, test) {
   AerialMap am({}, {});
+
+  cv::Mat map_img = cv::imread(ros::package::getPath("spomp") + 
+                               "/test/map.png");
+  MapReferenceFrame mrf{2, {-24.1119060516, 62.8522758484}, {}};
+  mrf.setMapSizeFrom(map_img);
+
+  am.updateMap(map_img, mrf);
+
+  Reachability reach(0, {AngularProj::StartFinish{0, 2*pi}, 100});
+  reach.getScan().setConstant(5);
+  reach.getScan().head<50>().setConstant(10);
+  reach.getIsObs().head<50>().setConstant(1);
+
+  am.updateLocalReachability(reach);
+
+  cv::imwrite("spomp_aerial_map.png", am.viz());
 }
 
 TEST(mlp_model, test) {
