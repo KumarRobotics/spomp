@@ -44,6 +44,7 @@ class AerialMap {
     MapReferenceFrame map_ref_frame_{};
 
     cv::Mat trav_map_{};
+    cv::Mat prob_map_{};
 
     MLPModel model_;
 };

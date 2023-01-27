@@ -24,6 +24,8 @@ arma::mat MLPModel::preprocFeatures(const Eigen::ArrayXXf& feat, bool update_sta
     feat_means_ = arma::mean(feat_arma_mat, 1);
     feat_stds_ = arma::stddev(feat_arma_mat, /*normalize using N*/ 1, /*dim*/ 1);
   }
+  // Replace all zeros with 1 to avoid divide by 0
+  feat_stds_.transform( [](double val) { return val == 0 ? 1 : val; } );
 
   // Normalize
   feat_arma_mat.each_col() -= feat_means_;
