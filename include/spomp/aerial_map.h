@@ -47,6 +47,10 @@ class AerialMap {
     cv::Mat prob_map_{};
 
     MLPModel model_;
+
+    Timer* update_reachability_t_;
+    Timer* model_fit_t_;
+    Timer* update_probability_map_t_;
 };
 
 } // namespace spomp

@@ -4,7 +4,13 @@
 namespace spomp {
 
 AerialMap::AerialMap(const Params& p, const MLPModel::Params& mlp_p) : 
-  params_(p), model_(mlp_p) {}
+  params_(p), model_(mlp_p) 
+{
+  auto& tm = TimerManager::getGlobal();
+  update_reachability_t_ = tm.get("AM_update_reachability");
+  model_fit_t_ = tm.get("AM_model_fit");
+  update_probability_map_t_ = tm.get("AM_update_probability_map");
+}
 
 void AerialMap::updateMap(const cv::Mat& sem_map, const MapReferenceFrame& mrf) {
   if (sem_map.channels() == 1) {
@@ -20,6 +26,8 @@ void AerialMap::updateMap(const cv::Mat& sem_map, const MapReferenceFrame& mrf) 
 }
 
 void AerialMap::updateLocalReachability(const Reachability& reach) {
+  update_reachability_t_->start();
+
   Eigen::Vector2f img_center = 
     map_ref_frame_.world2img(reach.getPose().translation());
 
@@ -51,6 +59,8 @@ void AerialMap::updateLocalReachability(const Reachability& reach) {
   }
 
   trav_map_ += trav_map_delta;
+
+  update_reachability_t_->end();
 }
 
 float AerialMap::getEdgeProb(const Eigen::Vector2f& n1, 
@@ -60,19 +70,21 @@ float AerialMap::getEdgeProb(const Eigen::Vector2f& n1,
 }
 
 Eigen::VectorXf AerialMap::getFeatureAtPoint(const cv::Point& pt) {
-  Eigen::VectorXf feat = Eigen::VectorXf::Zero(6);
+  Eigen::VectorXf feat = Eigen::VectorXf::Zero(8);
   int cls = sem_map_.at<uint8_t>(pt);
-  if (cls < 6) {
+  if (cls < feat.size()) {
     feat[cls] = 1;
   }
   return feat;
 }
 
 void AerialMap::fitModel() {
+  model_fit_t_->start();
+
   // No more features than number of nonzero pixels in trav map
   int max_features = cv::countNonZero(trav_map_);
   if (max_features == 0) return;
-  Eigen::ArrayXXf features(6, max_features);
+  Eigen::ArrayXXf features(8, max_features);
   Eigen::VectorXi labels(max_features);
 
   int n_features = 0;
@@ -94,12 +106,16 @@ void AerialMap::fitModel() {
   labels.conservativeResize(n_features);
 
   model_.fit(features, labels);
+  model_fit_t_->end();
+
   updateProbabilityMap();
 }
 
 void AerialMap::updateProbabilityMap() {
+  update_probability_map_t_->start();
+
   int n_features = cv::countNonZero(sem_map_ < 255);
-  Eigen::ArrayXXf features(6, n_features);
+  Eigen::ArrayXXf features(8, n_features);
   std::vector<float*> prob_ptrs(n_features);
 
   int feat_cnt = 0;
@@ -119,6 +135,8 @@ void AerialMap::updateProbabilityMap() {
   for (int i=0; i<feat_cnt; ++i) {
     *(prob_ptrs[i]) = std::exp(pred_log_probs[i]);
   }
+
+  update_probability_map_t_->end();
 }
 
 cv::Mat AerialMap::viz() const {
