@@ -9,6 +9,7 @@ namespace spomp {
 class Global {
   public:
     Global(const TravMap::Params& tm_p, const TravGraph::Params& tg_p, 
+        const AerialMap::Params& am_p, const MLPModel::Params& mlp_p,
         const WaypointManager::Params& wm_p);
 
     void updateMap(const cv::Mat &map, const Eigen::Vector2f& center) {
@@ -55,6 +56,10 @@ class Global {
 
     const cv::Mat getMapImageViz() const {
       return map_.viz();
+    }
+
+    const cv::Mat getAerialMapTrav() const {
+      return map_.getAerialMapTrav();
     }
 
     const auto& getReachabilityHistory() const {

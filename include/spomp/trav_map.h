@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <opencv2/core.hpp>
 #include "spomp/trav_graph.h"
+#include "spomp/aerial_map.h"
 #include "spomp/timer.h"
 #include "semantics_manager/semantics_manager.h"
 
@@ -19,7 +20,8 @@ class TravMap {
       float unvis_stop_thresh = 0.01;
       bool prune = true;
     };
-    TravMap(const Params& tm_p, const TravGraph::Params& tg_p);
+    TravMap(const Params& tm_p, const TravGraph::Params& tg_p, 
+        const AerialMap::Params& am_p, const MLPModel::Params& mlp_p);
 
     void updateMap(const cv::Mat& map, const Eigen::Vector2f& center);
     std::list<TravGraph::Node*> getPath(const Eigen::Vector2f& start_p,
@@ -29,8 +31,14 @@ class TravMap {
     float getPathCost(const std::list<TravGraph::Node*>& path) {
       return graph_.getPathCost(path);
     }
-    //! @return True if map changed
+    //! @return True if graph changed
+    // May want to also flag if aerial map changes
     bool updateLocalReachability(const Reachability& reachability) {
+      aerial_map_.updateLocalReachability(reachability);
+      if (reach_cnt % 5 == 0) {
+        aerial_map_.fitModel();
+      }
+      ++reach_cnt;
       return graph_.updateLocalReachability(reachability);
     }
     bool updateEdgeFromReachability(TravGraph::Edge& edge, 
@@ -48,6 +56,10 @@ class TravMap {
 
     const auto& getMapReferenceFrame() const {
       return map_ref_frame_;
+    }
+
+    const cv::Mat getAerialMapTrav() const {
+      return aerial_map_.viz();
     }
 
   private:
@@ -88,8 +100,10 @@ class TravMap {
 
     std::vector<cv::Mat> dist_maps_{};
     cv::Mat visibility_map_{};
+    int reach_cnt = 0;
     
     TravGraph graph_;
+    AerialMap aerial_map_;
 
     Timer* compute_dist_maps_t_;
     Timer* reweight_graph_t_;

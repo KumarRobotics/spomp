@@ -7,8 +7,9 @@
 
 namespace spomp {
 
-TravMap::TravMap(const Params& tm_p, const TravGraph::Params& tg_p) : 
-  params_(tm_p), graph_(tg_p) 
+TravMap::TravMap(const Params& tm_p, const TravGraph::Params& tg_p, 
+    const AerialMap::Params& am_p, const MLPModel::Params& mlp_p) : 
+  params_(tm_p), graph_(tg_p), aerial_map_(am_p, mlp_p) 
 {
   auto& tm = TimerManager::getGlobal();
   compute_dist_maps_t_ = tm.get("TM_compute_dist_maps");
@@ -96,6 +97,8 @@ void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center) {
   cv::LUT(map_, terrain_lut_, map_);
   map_ref_frame_.center = center;
   map_ref_frame_.setMapSizeFrom(map_);
+
+  aerial_map_.updateMap(map, map_ref_frame_);
 
   computeDistMaps();
   reweightGraph();

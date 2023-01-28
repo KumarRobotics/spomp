@@ -27,12 +27,15 @@ GlobalWrapper::GlobalWrapper(ros::NodeHandle& nh) :
   graph_viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("graph_viz", 1, true);
   path_viz_pub_ = nh_.advertise<nav_msgs::Path>("path_viz", 1, true);
   map_img_viz_pub_ = nh_.advertise<sensor_msgs::Image>("viz_img", 1);
+  aerial_map_trav_viz_pub_ = nh_.advertise<sensor_msgs::Image>("aerial_map_trav_viz", 1);
 }
 
 Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   TravMap::Params tm_params{};
-  WaypointManager::Params wm_params{};
   TravGraph::Params tg_params{};
+  AerialMap::Params am_params{};
+  MLPModel::Params mlp_params{};
+  WaypointManager::Params wm_params{};
 
   nh.getParam("world_config_path", tm_params.world_config_path);
   nh.getParam("robot_list", robot_list_);
@@ -48,6 +51,13 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   nh.getParam("TG_trav_window_rad", tg_params.trav_window_rad);
   nh.getParam("TG_max_trav_discontinuity_m", tg_params.max_trav_discontinuity_m);
   nh.getParam("TG_num_untrav_before_mark", tg_params.num_untrav_before_mark);
+
+  nh.getParam("AM_trav_thresh", am_params.trav_thresh);
+  nh.getParam("AM_not_trav_thresh", am_params.not_trav_thresh);
+  nh.getParam("AM_not_trav_range_m", am_params.not_trav_range_m);
+
+  nh.getParam("MLP_hidden_layer_size", mlp_params.hidden_layer_size);
+  nh.getParam("MLP_regularization", mlp_params.regularization);
 
   nh.getParam("WM_waypoint_thresh_m", wm_params.waypoint_thresh_m);
 
@@ -65,6 +75,13 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
     setw(width) << "[ROS] TM_unvis_stop_thresh: " << tm_params.unvis_stop_thresh << endl <<
     setw(width) << "[ROS] TM_prune: " << tm_params.prune << endl <<
     "[ROS] ===============================" << endl <<
+    setw(width) << "[ROS] AM_trav_thresh: " << am_params.trav_thresh << endl <<
+    setw(width) << "[ROS] AM_not_trav_thresh: " << am_params.not_trav_thresh << endl <<
+    setw(width) << "[ROS] AM_not_trav_range_m: " << am_params.not_trav_range_m << endl <<
+    "[ROS] ===============================" << endl <<
+    setw(width) << "[ROS] MLP_hidden_layer_size: " << mlp_params.hidden_layer_size << endl <<
+    setw(width) << "[ROS] MLP_regularization: " << mlp_params.regularization << endl <<
+    "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] TG_reach_node_max_dist_m: " << tg_params.reach_node_max_dist_m << endl <<
     setw(width) << "[ROS] TG_trav_window_rad: " << tg_params.trav_window_rad << endl <<
     setw(width) << "[ROS] TG_max_trav_discontinuity_m: " << tg_params.max_trav_discontinuity_m << endl <<
@@ -73,7 +90,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
     setw(width) << "[ROS] WM_waypoint_thresh_m: " << wm_params.waypoint_thresh_m << endl <<
     "[ROS] ====== End Configuration ======" << "\033[0m");
 
-  return Global(tm_params, tg_params, wm_params);
+  return Global(tm_params, tg_params, am_params, mlp_params, wm_params);
 }
 
 void GlobalWrapper::initialize() {
@@ -205,6 +222,7 @@ void GlobalWrapper::reachabilityCallback(
   global_.updateLocalReachability(reachability);
   visualizePath(reachability_msg->header.stamp);
   visualizeGraph(reachability_msg->header.stamp);
+  visualizeAerialMap(reachability_msg->header.stamp);
   publishReachabilityHistory();
   printTimings();
 }
@@ -390,6 +408,15 @@ void GlobalWrapper::visualizePath(const ros::Time& stamp) {
   }
 
   path_viz_pub_.publish(path_msg);
+}
+
+void GlobalWrapper::visualizeAerialMap(const ros::Time& stamp) {
+  std_msgs::Header header;
+  header.stamp = stamp;
+  header.frame_id = map_frame_;
+  sensor_msgs::Image::Ptr img_msg = cv_bridge::CvImage(header, "bgr8", 
+      global_.getAerialMapTrav()).toImageMsg();
+  aerial_map_trav_viz_pub_.publish(img_msg);
 }
 
 void GlobalWrapper::printTimings() {

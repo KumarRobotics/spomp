@@ -29,10 +29,10 @@ void AerialMap::updateLocalReachability(const Reachability& reach) {
   cv::Mat trav_map_delta = cv::Mat::zeros(trav_map_.size(), CV_16SC1);
 
   for (int i=0; i<thetas.size(); ++i) {
-    Eigen::Vector2f ray_dir(cos(thetas[i]), sin(thetas[i]));
+    Eigen::Vector2f ray_dir(-sin(thetas[i]), -cos(thetas[i]));
     auto ray_info = reach.getObsAtInd(i);
     for (float range=0; range<ray_info.range; range+=1./map_ref_frame_.res) {
-      Eigen::Vector2f pt = ray_dir*range + img_center;
+      Eigen::Vector2f pt = ray_dir*range*map_ref_frame_.res + img_center;
       if (map_ref_frame_.imgPointInMap(pt)) {
         trav_map_delta.at<int16_t>(cv::Point(pt[0], pt[1])) = 1;
       }
@@ -42,7 +42,7 @@ void AerialMap::updateLocalReachability(const Reachability& reach) {
       for (float range=ray_info.range; range<ray_info.range + params_.not_trav_range_m; 
           range+=1./map_ref_frame_.res) 
       {
-        Eigen::Vector2f pt = ray_dir*range + img_center;
+        Eigen::Vector2f pt = ray_dir*range*map_ref_frame_.res + img_center;
         if (map_ref_frame_.imgPointInMap(pt)) {
           trav_map_delta.at<int16_t>(cv::Point(pt[0], pt[1])) = -1;
         }
@@ -121,7 +121,7 @@ void AerialMap::updateProbabilityMap() {
   }
 }
 
-cv::Mat AerialMap::viz() {
+cv::Mat AerialMap::viz() const {
   cv::Mat trav_viz;
   constexpr int new_center = std::numeric_limits<uint8_t>::max()/2;
   trav_map_.convertTo(trav_viz, CV_8UC1, 1, new_center);

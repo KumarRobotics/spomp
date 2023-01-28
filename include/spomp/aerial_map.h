@@ -23,7 +23,7 @@ class AerialMap {
 
     void fitModel();
 
-    cv::Mat viz();
+    cv::Mat viz() const;
 
   private:
     /*********************************************************

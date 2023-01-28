@@ -41,6 +41,7 @@ class GlobalWrapper {
     void publishReachabilityHistory();
     void visualizeGraph(const ros::Time& stamp);
     void visualizePath(const ros::Time& stamp);
+    void visualizeAerialMap(const ros::Time& stamp);
     void printTimings();
 
     /*********************************************************
@@ -56,6 +57,7 @@ class GlobalWrapper {
     ros::Publisher graph_viz_pub_;
     ros::Publisher path_viz_pub_;
     ros::Publisher map_img_viz_pub_;
+    ros::Publisher aerial_map_trav_viz_pub_;
 
     // Subs
     ros::Subscriber map_sem_img_sub_;
