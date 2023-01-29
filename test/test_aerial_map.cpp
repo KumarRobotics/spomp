@@ -30,7 +30,7 @@ TEST(aerial_map, test_model_fit_stable) {
   am_p.inference_thread_period_ms = 10;
   AerialMap am(am_p, {});
   // Does it explode if no map
-  std::this_thread::sleep_for(std::chrono::milliseconds(150));
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
   cv::Mat map_img = cv::imread(ros::package::getPath("spomp") + 
                                "/test/map.png");
@@ -39,15 +39,18 @@ TEST(aerial_map, test_model_fit_stable) {
 
   am.updateMap(map_img, mrf);
   // Does it explode if no trav
-  std::this_thread::sleep_for(std::chrono::milliseconds(150));
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
   Reachability reach(0, {AngularProj::StartFinish{0, 2*pi}, 100});
   reach.getScan().setConstant(10);
   reach.getScan().head<50>().setConstant(20);
   reach.getIsObs().head<50>().setConstant(1);
 
+  am.setProbabilitesRead();
   am.updateLocalReachability(reach);
-  std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+  while (!am.haveNewProbabilities()) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
 
   cv::imwrite("spomp_aerial_map_infer.png", am.viz());
 }

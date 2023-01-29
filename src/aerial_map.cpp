@@ -81,9 +81,23 @@ void AerialMap::updateLocalReachability(const Reachability& reach) {
 }
 
 float AerialMap::getEdgeProb(const Eigen::Vector2f& n1, 
-    const Eigen::Vector2f& n2) const 
+    const Eigen::Vector2f& n2)
 {
-  return 0;
+  Eigen::Vector2f n1_img = map_ref_frame_.world2img(n1);
+  Eigen::Vector2f n2_img = map_ref_frame_.world2img(n2);
+
+  Eigen::Vector2f diff = n2_img - n1_img;
+  Eigen::Vector2f diff_dir = diff.normalized();
+
+  std::scoped_lock lock(prob_map_.mtx);
+  float worst_prob = 1;
+  for (int d=0; d<diff.norm(); d += 0.5) {
+    Eigen::Vector2f pt = n1_img + diff_dir*d;
+    float prob = prob_map_.map.at<float>(cv::Point(pt[0], pt[1]));
+    worst_prob = std::min(prob, worst_prob);
+  }
+
+  return worst_prob;
 }
 
 
@@ -151,6 +165,7 @@ bool AerialMap::InferenceThread::operator()() {
     {
       std::scoped_lock lock(aerial_map_.prob_map_.mtx);
       aerial_map_.prob_map_.map = prob_map;
+      aerial_map_.prob_map_.have_new = true;
     }
 
     // Sleep until next loop

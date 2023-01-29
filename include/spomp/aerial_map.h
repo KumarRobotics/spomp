@@ -23,15 +23,21 @@ class AerialMap {
 
     void updateLocalReachability(const Reachability& reach);
 
-    float getEdgeProb(const Eigen::Vector2f& n1, const Eigen::Vector2f& n2) const;
+    float getEdgeProb(const Eigen::Vector2f& n1, const Eigen::Vector2f& n2);
+
+    bool haveNewProbabilities() {
+      std::scoped_lock lock(prob_map_.mtx);
+      return prob_map_.have_new;
+    }
+
+    void setProbabilitesRead() {
+      std::scoped_lock lock(prob_map_.mtx);
+      prob_map_.have_new = false;
+    }
 
     cv::Mat viz();
 
   private:
-    /*********************************************************
-     * LOCAL FUNCTIONS
-     *********************************************************/
-
     /*********************************************************
      * LOCAL CONSTANTS
      *********************************************************/
@@ -55,6 +61,7 @@ class AerialMap {
     struct ProbabilityMap {
       std::mutex mtx;
       cv::Mat map;
+      bool have_new{false};
     } prob_map_;
 
 
