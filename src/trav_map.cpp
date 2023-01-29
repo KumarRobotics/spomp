@@ -11,7 +11,7 @@ TravMap::TravMap(const Params& tm_p, const TravGraph::Params& tg_p,
     const AerialMap::Params& am_p, const MLPModel::Params& mlp_p) : 
   params_(tm_p), graph_(tg_p), aerial_map_(am_p, mlp_p) 
 {
-  auto& tm = TimerManager::getGlobal();
+  auto& tm = TimerManager::getGlobal(true);
   compute_dist_maps_t_ = tm.get("TM_compute_dist_maps");
   reweight_graph_t_ = tm.get("TM_reweight_graph");
   rebuild_visibility_t_ = tm.get("TM_rebuild_visibility");

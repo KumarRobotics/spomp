@@ -18,6 +18,14 @@
   <arg name="TG_max_trav_discontinuity_m" default="2"/>
   <arg name="TG_num_untrav_before_mark" default="2"/>
 
+  <arg name="AM_inference_thread_period_ms" default="10000"/>
+  <arg name="AM_trav_thresh" default="3"/>
+  <arg name="AM_not_trav_thresh" default="3"/>
+  <arg name="AM_not_trav_range_m" default="3"/>
+
+  <arg name="MLP_hidden_layer_size" default="10"/>
+  <arg name="MLP_regularization" default="0.01"/>
+
   <arg name="WM_waypoint_thresh_m" default="2.5"/>
 
   <node pkg="spomp" type="node_global" name="spomp_global" output="$(arg output)">

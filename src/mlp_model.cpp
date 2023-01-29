@@ -37,12 +37,15 @@ arma::mat MLPModel::preprocFeatures(const Eigen::ArrayXXf& feat, bool update_sta
 void MLPModel::fit(const Eigen::ArrayXXf& feat, 
     const Eigen::VectorXi& labels) 
 {
+  if (feat.cols() == 0 || labels.size() == 0) return;
   const arma::Mat<int> labels_arma(const_cast<int*>(labels.data()), 
       labels.rows(), labels.cols(), false, false);
 
   // Can only train using double matrices
   model_.Train(preprocFeatures(feat, true), 
       arma::conv_to<arma::mat>::from(labels_arma.t()));
+
+  is_trained_ = true;
 }
 
 Eigen::VectorXf MLPModel::infer(const Eigen::ArrayXXf& feat) {

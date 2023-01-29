@@ -52,6 +52,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   nh.getParam("TG_max_trav_discontinuity_m", tg_params.max_trav_discontinuity_m);
   nh.getParam("TG_num_untrav_before_mark", tg_params.num_untrav_before_mark);
 
+  nh.getParam("AM_inference_thread_period_ms", am_params.inference_thread_period_ms);
   nh.getParam("AM_trav_thresh", am_params.trav_thresh);
   nh.getParam("AM_not_trav_thresh", am_params.not_trav_thresh);
   nh.getParam("AM_not_trav_range_m", am_params.not_trav_range_m);
@@ -75,6 +76,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
     setw(width) << "[ROS] TM_unvis_stop_thresh: " << tm_params.unvis_stop_thresh << endl <<
     setw(width) << "[ROS] TM_prune: " << tm_params.prune << endl <<
     "[ROS] ===============================" << endl <<
+    setw(width) << "[ROS] AM_inference_thread_period_ms: " << am_params.inference_thread_period_ms << endl <<
     setw(width) << "[ROS] AM_trav_thresh: " << am_params.trav_thresh << endl <<
     setw(width) << "[ROS] AM_not_trav_thresh: " << am_params.not_trav_thresh << endl <<
     setw(width) << "[ROS] AM_not_trav_range_m: " << am_params.not_trav_range_m << endl <<

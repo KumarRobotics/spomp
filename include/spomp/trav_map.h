@@ -35,10 +35,6 @@ class TravMap {
     // May want to also flag if aerial map changes
     bool updateLocalReachability(const Reachability& reachability) {
       aerial_map_.updateLocalReachability(reachability);
-      if (reach_cnt % 5 == 0) {
-        aerial_map_.fitModel();
-      }
-      ++reach_cnt;
       return graph_.updateLocalReachability(reachability);
     }
     bool updateEdgeFromReachability(TravGraph::Edge& edge, 
@@ -58,7 +54,7 @@ class TravMap {
       return map_ref_frame_;
     }
 
-    const cv::Mat getAerialMapTrav() const {
+    const cv::Mat getAerialMapTrav() {
       return aerial_map_.viz();
     }
 
@@ -100,7 +96,6 @@ class TravMap {
 
     std::vector<cv::Mat> dist_maps_{};
     cv::Mat visibility_map_{};
-    int reach_cnt = 0;
     
     TravGraph graph_;
     AerialMap aerial_map_;

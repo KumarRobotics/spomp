@@ -72,7 +72,7 @@ TEST(reachability, test_reach) {
 TEST(trav_map, test_transforms) {
   TravMap::Params m_p;
   m_p.world_config_path = ros::package::getPath("semantics_manager") + "/config/test_config_dynamic.yaml";
-  TravMap m(m_p, {});
+  TravMap m(m_p, {}, {}, {});
   cv::Mat map_img = cv::imread(ros::package::getPath("spomp") + 
                                "/test/map.png");
   m.updateMap(map_img, {-24.1119060516, 62.8522758484});
@@ -85,7 +85,7 @@ TEST(trav_map, test_transforms) {
 TEST(trav_map, test_map_graph_search) {
   TravMap::Params m_p;
   m_p.world_config_path = ros::package::getPath("semantics_manager") + "/config/test_config_dynamic.yaml";
-  TravMap m(m_p, {});
+  TravMap m(m_p, {}, {}, {});
   cv::Mat map_img = cv::imread(ros::package::getPath("spomp") + 
                                "/test/map.png");
   m.updateMap(map_img, {-24.1119060516, 62.8522758484});
@@ -108,7 +108,7 @@ TEST(trav_map, test_map_graph_search) {
 TEST(trav_map, test_static_map) {
   TravMap::Params m_p;
   m_p.world_config_path = ros::package::getPath("semantics_manager") + "/config/test_config.yaml";
-  TravMap m(m_p, {});
+  TravMap m(m_p, {}, {}, {});
 
   // save
   cv::imwrite("spomp_trav_static_map.png", m.viz());
@@ -120,7 +120,7 @@ TEST(trav_map, update_map) {
   TravGraph::Params g_p;
   g_p.reach_node_max_dist_m = 3;
   m_p.world_config_path = ros::package::getPath("semantics_manager") + "/config/test_config.yaml";
-  TravMap m(m_p, g_p);
+  TravMap m(m_p, g_p, {}, {});
   cv::Mat map_img = cv::imread(ros::package::getPath("spomp") + 
                                "/test/map.png");
   m.updateMap(map_img, {-24.1119060516, 62.8522758484});

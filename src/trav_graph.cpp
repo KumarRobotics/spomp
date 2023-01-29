@@ -6,7 +6,7 @@ namespace spomp {
 int TravGraph::Edge::MAX_TERRAIN = 1;
 
 TravGraph::TravGraph(const Params& p) : params_(p) {
-  auto& tm = TimerManager::getGlobal();
+  auto& tm = TimerManager::getGlobal(true);
   get_path_t_ = tm.get("TG_get_path");
   update_edge_t_ = tm.get("TG_update_edge");
   get_near_nodes_t_ = tm.get("TG_get_near_nodes");

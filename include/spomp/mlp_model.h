@@ -12,7 +12,7 @@ namespace spomp {
 class MLPModel {
   public:
     struct Params {
-      int hidden_layer_size = 100;
+      int hidden_layer_size = 10;
       float regularization = 0.01;
     };
     MLPModel(const Params& p);
@@ -26,6 +26,10 @@ class MLPModel {
     void fit(const Eigen::ArrayXXf& feat, const Eigen::VectorXi& labels);
 
     Eigen::VectorXf infer(const Eigen::ArrayXXf& feat);
+
+    bool trained() const {
+      return is_trained_;
+    }
 
   private:
     /*********************************************************
@@ -42,6 +46,7 @@ class MLPModel {
      * LOCAL VARIABLES
      *********************************************************/
     mlpack::FFN<mlpack::NegativeLogLikelihood, mlpack::RandomInitialization> model_;
+    bool is_trained_{false};
 
     arma::colvec feat_means_;
     arma::colvec feat_stds_;

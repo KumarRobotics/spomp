@@ -58,7 +58,7 @@ class Global {
       return map_.viz();
     }
 
-    const cv::Mat getAerialMapTrav() const {
+    const cv::Mat getAerialMapTrav() {
       return map_.getAerialMapTrav();
     }
 
