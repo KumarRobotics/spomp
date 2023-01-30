@@ -49,8 +49,10 @@ AerialMap::EdgeInfo AerialMapPrior::traceEdge(const Eigen::Vector2f& n1,
     }
     // Ignore unknwon
   } 
+  float cost = 1/(worst_dist/map_ref_frame_.res + 0.01);
+  float length = dist/map_ref_frame_.res;
 
-  return {worst_cls, static_cast<float>(1/(worst_dist/map_ref_frame_.res + 0.01))};
+  return {worst_cls, length + std::min<float>(10*cost, 100)*length};
 }
 
 /*********************************************************

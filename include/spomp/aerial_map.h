@@ -28,7 +28,11 @@ class AerialMap {
         /*cols*/ map_ref_frame_.size[0], CV_8UC3);
     }
 
-    virtual bool haveNewTrav() { return true; }
+    virtual bool haveNewTrav() { 
+      // Want to default to false
+      // This way we don't unneccessarily rebuild graph costs
+      return false; 
+    }
 
     virtual void setTravRead() {}
 

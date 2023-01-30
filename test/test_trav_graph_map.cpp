@@ -16,25 +16,25 @@ TEST(trav_graph, test_graph_search) {
   TravGraph::Node* n3 = g.addNode({{3, 0}});
   TravGraph::Node* n4 = g.addNode({{4, 1}});
 
-  g.addEdge({n0, n1});
-  g.addEdge({n1, n2});
-  g.addEdge({n2, n3});
+  g.addEdge({n0, n1, (n0->pos - n1->pos).norm()});
+  g.addEdge({n1, n2, (n1->pos - n2->pos).norm()});
+  g.addEdge({n2, n3, (n2->pos - n3->pos).norm()});
 
   auto path = g.getPath(n0, n4);
   // No path found
   ASSERT_EQ(path.size(), 0);
 
-  g.addEdge({n3, n4});
+  g.addEdge({n3, n4, (n3->pos - n4->pos).norm()});
   path = g.getPath(n0, n4);
   ASSERT_EQ(path.size(), 5);
   ASSERT_FLOAT_EQ(path.back()->cost, 3 + std::sqrt(2));
 
-  g.addEdge({n1, n4});
+  g.addEdge({n1, n4, (n1->pos - n4->pos).norm()});
   path = g.getPath(n0, n4);
   ASSERT_EQ(path.size(), 3);
   ASSERT_FLOAT_EQ(path.back()->cost, 1 + std::sqrt(9 + 1));
 
-  g.addEdge({n0, n4});
+  g.addEdge({n0, n4, (n0->pos - n4->pos).norm()});
   path = g.getPath(n0, n4);
   ASSERT_EQ(path.size(), 2);
   ASSERT_FLOAT_EQ(path.back()->cost, std::sqrt(16 + 1));

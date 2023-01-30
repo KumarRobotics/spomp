@@ -17,7 +17,11 @@ TravMap::TravMap(const Params& tm_p, const TravGraph::Params& tg_p,
   rebuild_visibility_t_ = tm.get("TM_rebuild_visibility");
   build_graph_t_ = tm.get("TM_build_graph");
 
-  aerial_map_ = std::make_unique<AerialMapPrior>();
+  if (params_.learn_trav) {
+    aerial_map_ = std::make_unique<AerialMapInfer>(am_p, mlp_p);
+  } else {
+    aerial_map_ = std::make_unique<AerialMapPrior>();
+  }
 
   terrain_lut_ = cv::Mat::ones(256, 1, CV_8UC1) * 255;
   if (params_.world_config_path != "") {
@@ -62,6 +66,8 @@ void TravMap::loadStaticMap(const semantics_manager::MapConfig& map_config,
     dynamic_ = true;
     std::cout << "\033[36m" << "[SPOMP-Global] Using dynamic map" << "\033[0m" << std::endl;
     return;
+  } else {
+    std::cout << "\033[36m" << "[SPOMP-Global] Loading static map..." << "\033[0m" << std::endl;
   }
 
   cv::Mat color_sem, class_sem;

@@ -7,6 +7,7 @@
   <arg name="this_robot" default="robot"/>
   <arg name="aerial_map_ns" default="titan"/>
 
+  <arg name="TM_learn_trav" default="False"/>
   <arg name="TM_max_hole_fill_size_m" default="2"/>
   <arg name="TM_vis_dist_m" default="10"/>
   <arg name="TM_unvis_start_thresh" default="0.1"/>
@@ -41,6 +42,8 @@
     <param name="robot_list" value="$(arg robot_list)"/>
     <param name="this_robot" value="$(arg this_robot)"/>
 
+    <param name="TM_learn_trav" value="$(arg TM_learn_trav)"/>
+    <param name="TM_max_hole_fill_size_m" value="$(arg TM_max_hole_fill_size_m)"/>
     <param name="TM_vis_dist_m" value="$(arg TM_vis_dist_m)"/>
     <param name="TM_unvis_start_thresh" value="$(arg TM_unvis_start_thresh)"/>
     <param name="TM_unvis_stop_thresh" value="$(arg TM_unvis_stop_thresh)"/>
@@ -50,6 +53,14 @@
     <param name="TG_trav_window_rad" value="$(arg TG_trav_window_rad)"/>
     <param name="TG_max_trav_discontinuity_m" value="$(arg TG_max_trav_discontinuity_m)"/>
     <param name="TG_num_untrav_before_mark" value="$(arg TG_num_untrav_before_mark)"/>
+
+    <param name="AM_inference_thread_period_ms" value="$(arg AM_inference_thread_period_ms)"/>
+    <param name="AM_trav_thresh" value="$(arg AM_trav_thresh)"/>
+    <param name="AM_not_trav_thresh" value="$(arg AM_not_trav_thresh)"/>
+    <param name="AM_not_trav_range_m" value="$(arg AM_not_trav_range_m)"/>
+
+    <param name="MLP_hidden_layer_size" value="$(arg MLP_hidden_layer_size)"/>
+    <param name="MLP_regularization" value="$(arg MLP_regularization)"/>
 
     <param name="WM_waypoint_thresh_m" value="$(arg WM_waypoint_thresh_m)"/>
   </node>

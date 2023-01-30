@@ -14,6 +14,7 @@ class TravMap {
   public:
     struct Params {
       std::string world_config_path = "";
+      bool learn_trav = false;
       float max_hole_fill_size_m = 2;
       float vis_dist_m = 10;
       float unvis_start_thresh = 0.1;
@@ -98,6 +99,7 @@ class TravMap {
     cv::Mat visibility_map_{};
     
     TravGraph graph_;
+    // This has to be a pointer because AerialMap is a virtual interface class
     std::unique_ptr<AerialMap> aerial_map_;
 
     Timer* compute_dist_maps_t_;
