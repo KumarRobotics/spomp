@@ -8,14 +8,16 @@
 namespace spomp {
 
 TravMap::TravMap(const Params& tm_p, const TravGraph::Params& tg_p, 
-    const AerialMap::Params& am_p, const MLPModel::Params& mlp_p) : 
-  params_(tm_p), graph_(tg_p), aerial_map_(am_p, mlp_p) 
+    const AerialMapInfer::Params& am_p, const MLPModel::Params& mlp_p) : 
+  params_(tm_p), graph_(tg_p)
 {
   auto& tm = TimerManager::getGlobal(true);
   compute_dist_maps_t_ = tm.get("TM_compute_dist_maps");
   reweight_graph_t_ = tm.get("TM_reweight_graph");
   rebuild_visibility_t_ = tm.get("TM_rebuild_visibility");
   build_graph_t_ = tm.get("TM_build_graph");
+
+  aerial_map_ = std::make_unique<AerialMapPrior>();
 
   terrain_lut_ = cv::Mat::ones(256, 1, CV_8UC1) * 255;
   if (params_.world_config_path != "") {
@@ -98,9 +100,9 @@ void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center) {
   map_ref_frame_.center = center;
   map_ref_frame_.setMapSizeFrom(map_);
 
-  aerial_map_.updateMap(map, map_ref_frame_);
-
   computeDistMaps();
+  aerial_map_->updateMap(map_, dist_maps_, map_ref_frame_);
+
   reweightGraph();
   rebuildVisibility();
   buildGraph();
@@ -142,15 +144,15 @@ std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,
     } else {
       // Add start and end nodes to graph, if they are far enough away
       if ((start_p - path.front()->pos).norm() > 2) {
-        auto [worst_cls, worst_cost] = traceEdge(start_p, path.front()->pos);
+        auto worst_edge = aerial_map_->traceEdge(start_p, path.front()->pos);
         auto new_n = addNode(start_p, -1);
-        graph_.addEdge({path.front(), new_n, worst_cost, worst_cls});
+        graph_.addEdge({path.front(), new_n, worst_edge.cost, worst_edge.cls});
         path.push_front(new_n);
       }
       if ((end_p - path.back()->pos).norm() > 2) {
-        auto [worst_cls, worst_cost] = traceEdge(end_p, path.back()->pos);
+        auto worst_edge = aerial_map_->traceEdge(end_p, path.back()->pos);
         auto new_n = addNode(end_p, -1);
-        graph_.addEdge({path.back(), new_n, worst_cost, worst_cls});
+        graph_.addEdge({path.back(), new_n, worst_edge.cost, worst_edge.cls});
         path.push_back(new_n);
       }
     }
@@ -190,8 +192,8 @@ std::list<TravGraph::Node*> TravMap::prunePath(
     } else {
       summed_cost += node->getEdgeToNode(last_node)->totalCost();
 
-      const auto [edge_cls, edge_cost] = traceEdge(pruned_path.back()->pos, node->pos);
-      TravGraph::Edge direct_edge(pruned_path.back(), node, edge_cost, edge_cls);
+      const auto edge_info = aerial_map_->traceEdge(pruned_path.back()->pos, node->pos);
+      TravGraph::Edge direct_edge(pruned_path.back(), node, edge_info.cost, edge_info.cls);
 
       // Add extra check that the two edges are not the same
       // Costs can vary slightly because they can vary depending on which direction
@@ -273,9 +275,9 @@ void TravMap::reweightGraph() {
   for (auto& edge : graph_.getEdges()) {
     // Only reweight if we don't already have first-hand experience
     if (!edge.is_experienced) {
-      auto [edge_cls, edge_cost] = traceEdge(edge.node1->pos, edge.node2->pos);
-      edge.cls = edge_cls;
-      edge.cost = edge_cost;
+      auto edge_info = aerial_map_->traceEdge(edge.node1->pos, edge.node2->pos);
+      edge.cls = edge_info.cls;
+      edge.cost = edge_info.cost;
     }
   }
 
@@ -326,44 +328,6 @@ void TravMap::buildGraph() {
   build_graph_t_->end();
 }
 
-std::pair<int, float> TravMap::traceEdge(const Eigen::Vector2f& n1, 
-    const Eigen::Vector2f& n2)
-{
-  auto img_pt1 = map_ref_frame_.world2img(n1);
-  auto img_pt2 = map_ref_frame_.world2img(n2);
-  float dist = (img_pt1 - img_pt2).norm();
-  Eigen::Vector2f dir = (img_pt2 - img_pt1).normalized();
-
-  int worst_cls = 0;
-  float worst_dist = std::numeric_limits<float>::infinity();
-
-  for (float cur_dist=0; cur_dist<dist; cur_dist+=0.5) {
-    Eigen::Vector2f sample_pt = img_pt1 + dir*cur_dist;
-    auto t_cls = map_.at<uint8_t>(cv::Point(sample_pt[0], sample_pt[1]));
-    float dist = 0;
-    if (t_cls < TravGraph::Edge::MAX_TERRAIN) {
-      dist = dist_maps_[t_cls].at<float>(cv::Point(sample_pt[0], sample_pt[1]));
-      //std::cout << sample_pt.transpose() << std::endl;
-      //std::cout << dist << std::endl;
-    
-      if (t_cls > worst_cls) {
-        worst_cls = t_cls;
-        worst_dist = dist;
-      } else if (dist < worst_dist && t_cls == worst_cls) {
-        worst_dist = dist;
-      }
-    } else if (t_cls == TravGraph::Edge::MAX_TERRAIN) {
-      worst_cls = TravGraph::Edge::MAX_TERRAIN;
-      worst_dist = 0;
-      // Can't get any worse than this
-      break;
-    }
-    // Ignore unknwon
-  } 
-
-  return {worst_cls, 1/(worst_dist/map_ref_frame_.res + 0.01)};
-}
-
 TravGraph::Node* TravMap::addNode(const Eigen::Vector2f& pos, int t_cls) {
   TravGraph::Node* n = graph_.addNode(pos);
   auto overlapping_nodes = addNodeToVisibility(*n);
@@ -378,17 +342,17 @@ TravGraph::Node* TravMap::addNode(const Eigen::Vector2f& pos, int t_cls) {
   if (t_cls >= 0) {
     for (const auto& [overlap_n_id, overlap_loc] : overlapping_nodes) {
       auto overlap_n = &graph_.getNode(overlap_n_id);
-      auto [worst_cls, worst_cost] = traceEdge(n->pos, overlap_n->pos);
-      if (worst_cls <= t_cls) {
-        graph_.addEdge({n, overlap_n, worst_cost, worst_cls});
+      auto worst_edge = aerial_map_->traceEdge(n->pos, overlap_n->pos);
+      if (worst_edge.cls <= t_cls) {
+        graph_.addEdge({n, overlap_n, worst_edge.cost, worst_edge.cls});
       } else if (map_.at<uint8_t>(cv::Point(overlap_loc[0], overlap_loc[1])) <= t_cls) {
         // Add new intermediate node
         auto intermed_n = graph_.addNode({map_ref_frame_.img2world(overlap_loc)});
         addNodeToVisibility(*intermed_n);
-        auto edge_info = traceEdge(n->pos, intermed_n->pos);
-        graph_.addEdge({n, intermed_n, edge_info.second, edge_info.first});
-        edge_info = traceEdge(overlap_n->pos, intermed_n->pos);
-        graph_.addEdge({overlap_n, intermed_n, edge_info.second, edge_info.first});
+        auto edge_info = aerial_map_->traceEdge(n->pos, intermed_n->pos);
+        graph_.addEdge({n, intermed_n, edge_info.cost, edge_info.cls});
+        edge_info = aerial_map_->traceEdge(overlap_n->pos, intermed_n->pos);
+        graph_.addEdge({overlap_n, intermed_n, edge_info.cost, edge_info.cls});
       }
     }
   }

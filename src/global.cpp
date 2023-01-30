@@ -3,7 +3,7 @@
 namespace spomp {
 
 Global::Global(const TravMap::Params& tm_p, const TravGraph::Params& tg_p, 
-    const AerialMap::Params& am_p, const MLPModel::Params& mlp_p,
+    const AerialMapInfer::Params& am_p, const MLPModel::Params& mlp_p,
     const WaypointManager::Params& wm_p) : 
   map_(tm_p, tg_p, am_p, mlp_p), waypoint_manager_(wm_p) {}
 

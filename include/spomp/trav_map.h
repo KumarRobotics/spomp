@@ -21,7 +21,7 @@ class TravMap {
       bool prune = true;
     };
     TravMap(const Params& tm_p, const TravGraph::Params& tg_p, 
-        const AerialMap::Params& am_p, const MLPModel::Params& mlp_p);
+        const AerialMapInfer::Params& am_p, const MLPModel::Params& mlp_p);
 
     void updateMap(const cv::Mat& map, const Eigen::Vector2f& center);
     std::list<TravGraph::Node*> getPath(const Eigen::Vector2f& start_p,
@@ -34,7 +34,7 @@ class TravMap {
     //! @return True if graph changed
     // May want to also flag if aerial map changes
     bool updateLocalReachability(const Reachability& reachability) {
-      aerial_map_.updateLocalReachability(reachability);
+      aerial_map_->updateLocalReachability(reachability);
       return graph_.updateLocalReachability(reachability);
     }
     bool updateEdgeFromReachability(TravGraph::Edge& edge, 
@@ -55,7 +55,7 @@ class TravMap {
     }
 
     const cv::Mat getAerialMapTrav() {
-      return aerial_map_.viz();
+      return aerial_map_->viz();
     }
 
   private:
@@ -98,7 +98,7 @@ class TravMap {
     cv::Mat visibility_map_{};
     
     TravGraph graph_;
-    AerialMap aerial_map_;
+    std::unique_ptr<AerialMap> aerial_map_;
 
     Timer* compute_dist_maps_t_;
     Timer* reweight_graph_t_;

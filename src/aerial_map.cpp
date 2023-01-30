@@ -3,7 +3,61 @@
 
 namespace spomp {
 
-AerialMap::AerialMap(const Params& p, const MLPModel::Params& mlp_p) : 
+/*********************************************************
+ * AERIAL MAP PRIOR
+ *********************************************************/
+void AerialMapPrior::updateMap(const cv::Mat& sem_map, 
+    const std::vector<cv::Mat>& dm, const MapReferenceFrame& mrf)
+{
+  // copies aren't a big deal, because cv::Mat is really a pointer anyway
+  dist_maps_ = dm;
+  map_ = sem_map;
+  map_ref_frame_ = mrf;
+}
+
+AerialMap::EdgeInfo AerialMapPrior::traceEdge(const Eigen::Vector2f& n1, 
+    const Eigen::Vector2f& n2)
+{
+  auto img_pt1 = map_ref_frame_.world2img(n1);
+  auto img_pt2 = map_ref_frame_.world2img(n2);
+  float dist = (img_pt1 - img_pt2).norm();
+  Eigen::Vector2f dir = (img_pt2 - img_pt1).normalized();
+
+  int worst_cls = 0;
+  float worst_dist = std::numeric_limits<float>::infinity();
+
+  for (float cur_dist=0; cur_dist<dist; cur_dist+=0.5) {
+    Eigen::Vector2f sample_pt = img_pt1 + dir*cur_dist;
+    auto t_cls = map_.at<uint8_t>(cv::Point(sample_pt[0], sample_pt[1]));
+    float dist = 0;
+    if (t_cls < TravGraph::Edge::MAX_TERRAIN) {
+      dist = dist_maps_[t_cls].at<float>(cv::Point(sample_pt[0], sample_pt[1]));
+      //std::cout << sample_pt.transpose() << std::endl;
+      //std::cout << dist << std::endl;
+    
+      if (t_cls > worst_cls) {
+        worst_cls = t_cls;
+        worst_dist = dist;
+      } else if (dist < worst_dist && t_cls == worst_cls) {
+        worst_dist = dist;
+      }
+    } else if (t_cls == TravGraph::Edge::MAX_TERRAIN) {
+      worst_cls = TravGraph::Edge::MAX_TERRAIN;
+      worst_dist = 0;
+      // Can't get any worse than this
+      break;
+    }
+    // Ignore unknwon
+  } 
+
+  return {worst_cls, static_cast<float>(1/(worst_dist/map_ref_frame_.res + 0.01))};
+}
+
+/*********************************************************
+ * AERIAL MAP INFER
+ *********************************************************/
+AerialMapInfer::AerialMapInfer(const Params& p, 
+    const MLPModel::Params& mlp_p) : 
   params_(p)
 {
   auto& tm = TimerManager::getGlobal(true);
@@ -12,12 +66,14 @@ AerialMap::AerialMap(const Params& p, const MLPModel::Params& mlp_p) :
   inference_thread_ = std::thread(InferenceThread(*this, mlp_p));
 }
 
-AerialMap::~AerialMap() {
+AerialMapInfer::~AerialMapInfer() {
   exit_threads_flag_ = true;
   inference_thread_.join();
 }
 
-void AerialMap::updateMap(const cv::Mat& sem_map, const MapReferenceFrame& mrf) {
+void AerialMapInfer::updateMap(const cv::Mat& sem_map, 
+    const std::vector<cv::Mat>& dm, const MapReferenceFrame& mrf)
+{
   if (sem_map.channels() == 1) {
     std::scoped_lock lock(feature_map_.mtx);
     feature_map_.map = sem_map;
@@ -38,7 +94,7 @@ void AerialMap::updateMap(const cv::Mat& sem_map, const MapReferenceFrame& mrf) 
   }
 }
 
-void AerialMap::updateLocalReachability(const Reachability& reach) {
+void AerialMapInfer::updateLocalReachability(const Reachability& reach) {
   update_reachability_t_->start();
 
   Eigen::Vector2f img_center = 
@@ -80,7 +136,7 @@ void AerialMap::updateLocalReachability(const Reachability& reach) {
   update_reachability_t_->end();
 }
 
-float AerialMap::getEdgeProb(const Eigen::Vector2f& n1, 
+AerialMap::EdgeInfo AerialMapInfer::traceEdge(const Eigen::Vector2f& n1, 
     const Eigen::Vector2f& n2)
 {
   Eigen::Vector2f n1_img = map_ref_frame_.world2img(n1);
@@ -97,11 +153,11 @@ float AerialMap::getEdgeProb(const Eigen::Vector2f& n1,
     worst_prob = std::min(prob, worst_prob);
   }
 
-  return worst_prob;
+  return {0, worst_prob};
 }
 
 
-cv::Mat AerialMap::viz() {
+cv::Mat AerialMapInfer::viz() {
   cv::Mat trav_viz;
   constexpr int new_center = std::numeric_limits<uint8_t>::max()/2;
   {
@@ -151,7 +207,7 @@ cv::Mat AerialMap::viz() {
 /*********************************************************
  * INFERENCE THREAD
  *********************************************************/
-bool AerialMap::InferenceThread::operator()() {
+bool AerialMapInfer::InferenceThread::operator()() {
   auto& tm = TimerManager::getGlobal(true);
   model_fit_t_ = tm.get("AM_model_fit");
   update_probability_map_t_ = tm.get("AM_update_probability_map");
@@ -180,7 +236,7 @@ bool AerialMap::InferenceThread::operator()() {
   return true;
 }
 
-Eigen::VectorXf AerialMap::InferenceThread::getFeatureAtPoint(
+Eigen::VectorXf AerialMapInfer::InferenceThread::getFeatureAtPoint(
     const cv::Mat& sem_map, const cv::Point& pt) 
 {
   Eigen::VectorXf feat = Eigen::VectorXf::Zero(8);
@@ -191,7 +247,7 @@ Eigen::VectorXf AerialMap::InferenceThread::getFeatureAtPoint(
   return feat;
 }
 
-void AerialMap::InferenceThread::fitModel() {
+void AerialMapInfer::InferenceThread::fitModel() {
   // No more features than number of nonzero pixels in trav map
   int max_features;
   Eigen::ArrayXXf features;
@@ -233,7 +289,7 @@ void AerialMap::InferenceThread::fitModel() {
   model_fit_t_->end();
 }
 
-cv::Mat AerialMap::InferenceThread::updateProbabilityMap() {
+cv::Mat AerialMapInfer::InferenceThread::updateProbabilityMap() {
   cv::Mat prob_map;
   if (!model_.trained()) return prob_map;
 

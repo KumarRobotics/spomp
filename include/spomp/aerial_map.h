@@ -9,6 +9,49 @@ namespace spomp {
 
 class AerialMap {
   public:
+    virtual ~AerialMap() {}
+
+    virtual void updateMap(const cv::Mat& sem_map, 
+        const std::vector<cv::Mat>& dm, const MapReferenceFrame& mrf) {}
+
+    struct EdgeInfo {
+      int cls = 0;
+      float cost = 0;
+    };
+    virtual EdgeInfo traceEdge(const Eigen::Vector2f& n1, 
+        const Eigen::Vector2f& n2) {return {};}
+
+    virtual void updateLocalReachability(const Reachability& reach) {}
+
+    virtual cv::Mat viz() { 
+      return cv::Mat::zeros(/*rows*/ map_ref_frame_.size[1], 
+        /*cols*/ map_ref_frame_.size[0], CV_8UC3);
+    }
+
+    virtual bool haveNewTrav() { return true; }
+
+    virtual void setTravRead() {}
+
+  protected:
+    MapReferenceFrame map_ref_frame_;
+};
+
+class AerialMapPrior : public AerialMap {
+  public:
+    AerialMapPrior() = default;
+
+    void updateMap(const cv::Mat& sem_map, 
+        const std::vector<cv::Mat>& dm, const MapReferenceFrame& mrf);
+
+    EdgeInfo traceEdge(const Eigen::Vector2f& n1, const Eigen::Vector2f& n2);
+
+  private:
+    cv::Mat map_{};
+    std::vector<cv::Mat> dist_maps_{};
+};
+
+class AerialMapInfer : public AerialMap {
+  public:
     struct Params {
       // This is really short for test purposes
       int inference_thread_period_ms = 10;
@@ -16,21 +59,22 @@ class AerialMap {
       int not_trav_thresh = 1;
       float not_trav_range_m = 3;
     };
-    AerialMap(const Params& p, const MLPModel::Params& mlp_p);
-    ~AerialMap();
+    AerialMapInfer(const Params& p, const MLPModel::Params& mlp_p);
+    ~AerialMapInfer();
 
-    void updateMap(const cv::Mat& sem_map, const MapReferenceFrame& mrf);
+    void updateMap(const cv::Mat& sem_map, 
+        const std::vector<cv::Mat>& dm, const MapReferenceFrame& mrf);
 
     void updateLocalReachability(const Reachability& reach);
 
-    float getEdgeProb(const Eigen::Vector2f& n1, const Eigen::Vector2f& n2);
+    EdgeInfo traceEdge(const Eigen::Vector2f& n1, const Eigen::Vector2f& n2);
 
-    bool haveNewProbabilities() {
+    bool haveNewTrav() {
       std::scoped_lock lock(prob_map_.mtx);
       return prob_map_.have_new;
     }
 
-    void setProbabilitesRead() {
+    void setTravRead() {
       std::scoped_lock lock(prob_map_.mtx);
       prob_map_.have_new = false;
     }
@@ -50,8 +94,6 @@ class AerialMap {
       std::mutex mtx;
       cv::Mat map;
     } feature_map_;
-
-    MapReferenceFrame map_ref_frame_;
 
     struct ReachabilityMap {
       std::mutex mtx;
@@ -75,7 +117,7 @@ class AerialMap {
     std::thread inference_thread_;
     class InferenceThread {
       public:
-        InferenceThread(AerialMap& am, const MLPModel::Params& mlp_p) : 
+        InferenceThread(AerialMapInfer& am, const MLPModel::Params& mlp_p) : 
           aerial_map_(am), model_(mlp_p) {}
 
         bool operator()();
@@ -89,7 +131,7 @@ class AerialMap {
         MLPModel model_;
 
         // Reference back to parent
-        AerialMap& aerial_map_;
+        AerialMapInfer& aerial_map_;
 
         Timer* model_fit_t_;
         Timer* update_probability_map_t_;

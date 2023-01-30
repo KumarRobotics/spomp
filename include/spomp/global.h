@@ -9,7 +9,7 @@ namespace spomp {
 class Global {
   public:
     Global(const TravMap::Params& tm_p, const TravGraph::Params& tg_p, 
-        const AerialMap::Params& am_p, const MLPModel::Params& mlp_p,
+        const AerialMapInfer::Params& am_p, const MLPModel::Params& mlp_p,
         const WaypointManager::Params& wm_p);
 
     void updateMap(const cv::Mat &map, const Eigen::Vector2f& center) {

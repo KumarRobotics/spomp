@@ -33,7 +33,7 @@ GlobalWrapper::GlobalWrapper(ros::NodeHandle& nh) :
 Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   TravMap::Params tm_params{};
   TravGraph::Params tg_params{};
-  AerialMap::Params am_params{};
+  AerialMapInfer::Params am_params{};
   MLPModel::Params mlp_params{};
   WaypointManager::Params wm_params{};
 

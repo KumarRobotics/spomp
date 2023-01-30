@@ -5,30 +5,30 @@
 
 namespace spomp {
 
-TEST(aerial_map, test_update_reachability) {
-  AerialMap am({}, {});
+TEST(aerial_map_infer, test_update_reachability) {
+  std::unique_ptr<AerialMap> am(new AerialMapInfer({}, {}));
 
   cv::Mat map_img = cv::imread(ros::package::getPath("spomp") + 
                                "/test/map.png");
   MapReferenceFrame mrf{2, {-24.1119060516, 62.8522758484}, {}};
   mrf.setMapSizeFrom(map_img);
 
-  am.updateMap(map_img, mrf);
+  am->updateMap(map_img, {}, mrf);
 
   Reachability reach(0, {AngularProj::StartFinish{0, 2*pi}, 100});
   reach.getScan().setConstant(5);
   reach.getScan().head<50>().setConstant(10);
   reach.getIsObs().head<50>().setConstant(1);
 
-  am.updateLocalReachability(reach);
+  am->updateLocalReachability(reach);
 
-  cv::imwrite("spomp_aerial_map.png", am.viz());
+  cv::imwrite("spomp_aerial_map.png", am->viz());
 }
 
-TEST(aerial_map, test_model_fit_stable) {
-  AerialMap::Params am_p;
+TEST(aerial_map_infer, test_model_fit_stable) {
+  AerialMapInfer::Params am_p;
   am_p.inference_thread_period_ms = 10;
-  AerialMap am(am_p, {});
+  std::unique_ptr<AerialMap> am(new AerialMapInfer(am_p, {}));
   // Does it explode if no map
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -37,7 +37,7 @@ TEST(aerial_map, test_model_fit_stable) {
   MapReferenceFrame mrf{2, {-24.1119060516, 62.8522758484}, {}};
   mrf.setMapSizeFrom(map_img);
 
-  am.updateMap(map_img, mrf);
+  am->updateMap(map_img, {}, mrf);
   // Does it explode if no trav
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -46,13 +46,13 @@ TEST(aerial_map, test_model_fit_stable) {
   reach.getScan().head<50>().setConstant(20);
   reach.getIsObs().head<50>().setConstant(1);
 
-  am.setProbabilitesRead();
-  am.updateLocalReachability(reach);
-  while (!am.haveNewProbabilities()) {
+  am->setTravRead();
+  am->updateLocalReachability(reach);
+  while (!am->haveNewTrav()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 
-  cv::imwrite("spomp_aerial_map_infer.png", am.viz());
+  cv::imwrite("spomp_aerial_map_infer.png", am->viz());
 }
 
 TEST(mlp_model, test) {
