@@ -52,7 +52,9 @@ AerialMap::EdgeInfo AerialMapPrior::traceEdge(const Eigen::Vector2f& n1,
   float cost = 1/(worst_dist/map_ref_frame_.res + 0.01);
   float length = dist/map_ref_frame_.res;
 
-  return {worst_cls, length + std::min<float>(10*cost, 100)*length};
+  // We can scale cost however
+  // Ideally, want it in range (0, 1)
+  return {worst_cls, (length + std::min<float>(10*cost, 100)*length)/50};
 }
 
 /*********************************************************
@@ -86,6 +88,11 @@ void AerialMapInfer::updateMap(const cv::Mat& sem_map,
     cv::cvtColor(sem_map, feature_map_.map, cv::COLOR_BGR2GRAY);
   }
   map_ref_frame_ = mrf;
+  // TODO: This is a lazy approach.
+  // What we really need to do is resize the map accordingly and preserve
+  // the old data, instead of just wiping it clean. Current approach is 
+  // fine for static maps, but not great for dynamic ones since we throw
+  // out all data.
   {
     std::scoped_lock lock(reachability_map_.mtx);
     reachability_map_.map = cv::Mat::zeros(sem_map.size(), CV_16SC1);
@@ -93,6 +100,9 @@ void AerialMapInfer::updateMap(const cv::Mat& sem_map,
   {
     std::scoped_lock lock(prob_map_.mtx);
     prob_map_.map = cv::Mat::zeros(sem_map.size(), CV_32FC1);
+    // Set this to false since we don't want to read prob map until
+    // we have recomputed model
+    prob_map_.have_new = false;
   }
 }
 
@@ -141,21 +151,22 @@ void AerialMapInfer::updateLocalReachability(const Reachability& reach) {
 AerialMap::EdgeInfo AerialMapInfer::traceEdge(const Eigen::Vector2f& n1, 
     const Eigen::Vector2f& n2)
 {
-  Eigen::Vector2f n1_img = map_ref_frame_.world2img(n1);
-  Eigen::Vector2f n2_img = map_ref_frame_.world2img(n2);
-
-  Eigen::Vector2f diff = n2_img - n1_img;
-  Eigen::Vector2f diff_dir = diff.normalized();
+  auto img_pt1 = map_ref_frame_.world2img(n1);
+  auto img_pt2 = map_ref_frame_.world2img(n2);
+  float dist = (img_pt1 - img_pt2).norm();
+  Eigen::Vector2f dir = (img_pt2 - img_pt1).normalized();
 
   std::scoped_lock lock(prob_map_.mtx);
   float worst_prob = 1;
-  for (int d=0; d<diff.norm(); d += 0.5) {
-    Eigen::Vector2f pt = n1_img + diff_dir*d;
-    float prob = prob_map_.map.at<float>(cv::Point(pt[0], pt[1]));
-    worst_prob = std::min(prob, worst_prob);
+  for (float cur_dist=0; cur_dist<dist; cur_dist+=0.5) {
+    Eigen::Vector2f sample_pt = img_pt1 + dir*cur_dist;
+    float prob = prob_map_.map.at<float>(cv::Point(sample_pt[0], sample_pt[1]));
+    if (prob != 0) {
+      worst_prob = std::min(prob, worst_prob);
+    }
   }
 
-  return {0, worst_prob};
+  return {0, -std::log(std::max<float>(worst_prob, 0.0001))};
 }
 
 
@@ -222,8 +233,10 @@ bool AerialMapInfer::InferenceThread::operator()() {
     cv::Mat prob_map = updateProbabilityMap();
     {
       std::scoped_lock lock(aerial_map_.prob_map_.mtx);
-      aerial_map_.prob_map_.map = prob_map;
-      aerial_map_.prob_map_.have_new = true;
+      if (prob_map.size() == aerial_map_.prob_map_.map.size()) {
+        aerial_map_.prob_map_.map = prob_map;
+        aerial_map_.prob_map_.have_new = true;
+      }
     }
 
     // Sleep until next loop

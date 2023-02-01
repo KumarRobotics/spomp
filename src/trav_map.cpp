@@ -151,6 +151,8 @@ std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,
       // Add start and end nodes to graph, if they are far enough away
       if ((start_p - path.front()->pos).norm() > 2) {
         auto worst_edge = aerial_map_->traceEdge(start_p, path.front()->pos);
+        // Negative class to avoid addNode from trying to connect the node
+        // to everything
         auto new_n = addNode(start_p, -1);
         graph_.addEdge({path.front(), new_n, worst_edge.cost, worst_edge.cls});
         path.push_front(new_n);
@@ -169,6 +171,15 @@ std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,
     final_path = prunePath(path);
   }
   return final_path;
+}
+
+bool TravMap::updateLocalReachability(const Reachability& reachability) {
+  aerial_map_->updateLocalReachability(reachability);
+  if (aerial_map_->haveNewTrav()) {
+    reweightGraph();
+    aerial_map_->setTravRead();
+  }
+  return graph_.updateLocalReachability(reachability);
 }
 
 std::list<TravGraph::Node*> TravMap::getPath(TravGraph::Node& start_n, 

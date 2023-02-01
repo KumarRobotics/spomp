@@ -34,10 +34,7 @@ class TravMap {
     }
     //! @return True if graph changed
     // May want to also flag if aerial map changes
-    bool updateLocalReachability(const Reachability& reachability) {
-      aerial_map_->updateLocalReachability(reachability);
-      return graph_.updateLocalReachability(reachability);
-    }
+    bool updateLocalReachability(const Reachability& reachability);
     bool updateEdgeFromReachability(TravGraph::Edge& edge, 
         const TravGraph::Node& start_node, const Reachability& reachability,
         std::optional<Eigen::Vector2f> start_pos = {}) {
