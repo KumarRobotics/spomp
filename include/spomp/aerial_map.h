@@ -37,7 +37,7 @@ class AerialMap {
     virtual void setTravRead() {}
 
   protected:
-    MapReferenceFrame map_ref_frame_;
+    MapReferenceFrame map_ref_frame_{};
 };
 
 class AerialMapPrior : public AerialMap {

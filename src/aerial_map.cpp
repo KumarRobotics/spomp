@@ -87,23 +87,36 @@ void AerialMapInfer::updateMap(const cv::Mat& sem_map,
     std::scoped_lock lock(feature_map_.mtx);
     cv::cvtColor(sem_map, feature_map_.map, cv::COLOR_BGR2GRAY);
   }
-  map_ref_frame_ = mrf;
-  // TODO: This is a lazy approach.
-  // What we really need to do is resize the map accordingly and preserve
-  // the old data, instead of just wiping it clean. Current approach is 
-  // fine for static maps, but not great for dynamic ones since we throw
-  // out all data.
+
+  // Location of upper left corner of old map in new map
+  Eigen::Vector2f ul_old_in_new = mrf.world2img(
+      map_ref_frame_.img2world({0, 0}));
+  cv::Rect old_roi(cv::Point(ul_old_in_new[0], ul_old_in_new[1]), 
+      cv::Size(map_ref_frame_.size[0], map_ref_frame_.size[1]));
+  cv::Rect new_roi({}, sem_map.size());
+
+  auto intersect = new_roi & old_roi;
+  auto intersect_old_frame = intersect;
+  intersect_old_frame -= old_roi.tl();
+
   {
     std::scoped_lock lock(reachability_map_.mtx);
+    cv::Mat old_reach_map = reachability_map_.map.clone();
     reachability_map_.map = cv::Mat::zeros(sem_map.size(), CV_16SC1);
+    if (!intersect.empty()) {
+      old_reach_map(intersect_old_frame).copyTo(reachability_map_.map(intersect));
+    }
   }
   {
     std::scoped_lock lock(prob_map_.mtx);
+    cv::Mat old_prob_map = prob_map_.map.clone();
     prob_map_.map = cv::Mat::zeros(sem_map.size(), CV_32FC1);
-    // Set this to false since we don't want to read prob map until
-    // we have recomputed model
-    prob_map_.have_new = false;
+    if (!intersect.empty()) {
+      old_prob_map(intersect_old_frame).copyTo(prob_map_.map(intersect));
+    }
   }
+
+  map_ref_frame_ = mrf;
 }
 
 void AerialMapInfer::updateLocalReachability(const Reachability& reach) {

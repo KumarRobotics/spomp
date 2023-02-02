@@ -55,6 +55,56 @@ TEST(aerial_map_infer, test_model_fit_stable) {
   cv::imwrite("spomp_aerial_map_infer.png", am->viz());
 }
 
+TEST(aerial_map_infer, test_map_resize) {
+  AerialMapInfer::Params am_p;
+  am_p.inference_thread_period_ms = 10;
+  std::unique_ptr<AerialMap> am(new AerialMapInfer(am_p, {}));
+
+  cv::Mat map_img = cv::imread(ros::package::getPath("spomp") + 
+                               "/test/map.png");
+  MapReferenceFrame mrf{2, {0, 0}, {}};
+  mrf.setMapSizeFrom(map_img);
+
+  MapReferenceFrame mrf_sub = mrf;
+  mrf_sub.size /= 2;
+  Eigen::Vector2f mrf_sub_ul_in_mrf = mrf.world2img(
+      mrf_sub.img2world({0, 0}));
+  auto mrf_sub_rect = cv::Rect(cv::Point(mrf_sub_ul_in_mrf[0], mrf_sub_ul_in_mrf[1]), 
+      map_img.size()/2);
+
+  MapReferenceFrame mrf_sub2 = mrf_sub;
+  mrf_sub2.center += Eigen::Vector2f(-10, 10);
+  Eigen::Vector2f mrf_sub2_ul_in_mrf = mrf.world2img(
+      mrf_sub2.img2world({0, 0}));
+  auto mrf_sub2_rect = cv::Rect(cv::Point(mrf_sub2_ul_in_mrf[0], mrf_sub2_ul_in_mrf[1]), 
+      map_img.size()/2);
+
+  am->updateMap(map_img(mrf_sub_rect), {}, mrf_sub);
+  Reachability reach(0, {AngularProj::StartFinish{0, 2*pi}, 100});
+  reach.getScan().setConstant(10);
+  reach.getScan().head<50>().setConstant(20);
+  reach.getIsObs().head<50>().setConstant(1);
+
+  am->setTravRead();
+  am->updateLocalReachability(reach);
+  while (!am->haveNewTrav()) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+
+  cv::imwrite("spomp_aerial_map_sub.png", am->viz());
+
+  am->updateMap(map_img(mrf_sub2_rect), {}, mrf_sub2);
+  cv::imwrite("spomp_aerial_map_sub2.png", am->viz());
+  am->setTravRead();
+  while (!am->haveNewTrav()) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+  cv::imwrite("spomp_aerial_map_sub2_fit.png", am->viz());
+
+  am->updateMap(map_img, {}, mrf);
+  cv::imwrite("spomp_aerial_map_full.png", am->viz());
+}
+
 TEST(mlp_model, test) {
   MLPModel mlp({100, 0.0001});
   // Not trained yet

@@ -177,7 +177,8 @@ struct AngularProj {
 struct MapReferenceFrame {
   float res{1};
   Eigen::Vector2f center{0, 0};
-  Eigen::Vector2f size{};
+  // width (cols) x height (rows)
+  Eigen::Vector2f size{0, 0};
 
   void setMapSizeFrom(const cv::Mat& map) {
     size = Eigen::Vector2f(map.cols, map.rows);
