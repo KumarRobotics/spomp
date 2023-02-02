@@ -171,19 +171,28 @@ AerialMap::EdgeInfo AerialMapInfer::traceEdge(const Eigen::Vector2f& n1,
 
   std::scoped_lock lock(prob_map_.mtx);
   float total_neg_log_prob = 0;
+  float num_valid = 0;
+  float num_invalid = 0;
   for (float cur_dist=0; cur_dist<dist; cur_dist+=map_ref_frame_.res) {
     Eigen::Vector2f sample_pt = img_pt1 + dir*cur_dist;
     float prob = prob_map_.map.at<float>(cv::Point(sample_pt[0], sample_pt[1]));
     if (prob != 0) {
       total_neg_log_prob += -std::log(std::max<float>(prob, 0.0001))/5;
+      ++num_valid;
+    } else {
+      ++num_invalid;
     }
   }
 
-  if (total_neg_log_prob == 0) {
+  if (num_valid == 0) {
     // If everything is unknown, just use a small cost weighted by distance
     // Make small cost so that when we have real costs the cost will
     // increase, forcing a path recomputation
     total_neg_log_prob = 0.001 * dist / map_ref_frame_.res;
+  } else {
+    // Scale by unknown.  Otherwise if we have a mostly unknown edge,
+    // it will have disproportionally low cost
+    total_neg_log_prob *= (num_valid + num_invalid)/num_valid;
   }
 
   return {0, total_neg_log_prob};
