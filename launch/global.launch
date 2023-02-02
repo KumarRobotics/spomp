@@ -8,6 +8,7 @@
   <arg name="aerial_map_ns" default="titan"/>
 
   <arg name="TM_learn_trav" default="False"/>
+  <arg name="TM_no_max_terrain_in_graph" default="True"/>
   <arg name="TM_max_hole_fill_size_m" default="2"/>
   <arg name="TM_vis_dist_m" default="10"/>
   <arg name="TM_unvis_start_thresh" default="0.1"/>
@@ -43,6 +44,7 @@
     <param name="this_robot" value="$(arg this_robot)"/>
 
     <param name="TM_learn_trav" value="$(arg TM_learn_trav)"/>
+    <param name="TM_no_max_terrain_in_graph" value="$(arg TM_no_max_terrain_in_graph)"/>
     <param name="TM_max_hole_fill_size_m" value="$(arg TM_max_hole_fill_size_m)"/>
     <param name="TM_vis_dist_m" value="$(arg TM_vis_dist_m)"/>
     <param name="TM_unvis_start_thresh" value="$(arg TM_unvis_start_thresh)"/>

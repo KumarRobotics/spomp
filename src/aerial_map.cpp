@@ -157,16 +157,23 @@ AerialMap::EdgeInfo AerialMapInfer::traceEdge(const Eigen::Vector2f& n1,
   Eigen::Vector2f dir = (img_pt2 - img_pt1).normalized();
 
   std::scoped_lock lock(prob_map_.mtx);
-  float worst_prob = 1;
-  for (float cur_dist=0; cur_dist<dist; cur_dist+=0.5) {
+  float total_neg_log_prob = 0;
+  for (float cur_dist=0; cur_dist<dist; cur_dist+=map_ref_frame_.res) {
     Eigen::Vector2f sample_pt = img_pt1 + dir*cur_dist;
     float prob = prob_map_.map.at<float>(cv::Point(sample_pt[0], sample_pt[1]));
     if (prob != 0) {
-      worst_prob = std::min(prob, worst_prob);
+      total_neg_log_prob += -std::log(std::max<float>(prob, 0.0001))/5;
     }
   }
 
-  return {0, -std::log(std::max<float>(worst_prob, 0.0001))};
+  if (total_neg_log_prob == 0) {
+    // If everything is unknown, just use a small cost weighted by distance
+    // Make small cost so that when we have real costs the cost will
+    // increase, forcing a path recomputation
+    total_neg_log_prob = 0.001 * dist / map_ref_frame_.res;
+  }
+
+  return {0, total_neg_log_prob};
 }
 
 

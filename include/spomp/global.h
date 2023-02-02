@@ -74,6 +74,8 @@ class Global {
     WaypointManager waypoint_manager_;
 
     std::vector<Reachability> reachability_history_;
+
+    float old_cost_{0};
 };
 
 } // namespace spomp

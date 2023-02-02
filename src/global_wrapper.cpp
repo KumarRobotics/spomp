@@ -42,6 +42,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   nh.getParam("this_robot", this_robot_);
 
   nh.getParam("TM_learn_trav", tm_params.learn_trav);
+  nh.getParam("TM_no_max_terrain_in_graph", tm_params.no_max_terrain_in_graph);
   nh.getParam("TM_max_hole_fill_size_m", tm_params.max_hole_fill_size_m);
   nh.getParam("TM_vis_dist_m", tm_params.vis_dist_m);
   nh.getParam("TM_unvis_start_thresh", tm_params.unvis_start_thresh);
@@ -72,6 +73,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
     setw(width) << "[ROS] this_robot: " << this_robot_ << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] TM_learn_trav: " << tm_params.learn_trav << endl <<
+    setw(width) << "[ROS] TM_no_max_terrain_in_graph: " << tm_params.no_max_terrain_in_graph << endl <<
     setw(width) << "[ROS] TM_max_hole_fill_size_m: " << tm_params.max_hole_fill_size_m << endl <<
     setw(width) << "[ROS] TM_vis_dist_m: " << tm_params.vis_dist_m << endl <<
     setw(width) << "[ROS] TM_unvis_start_thresh: " << tm_params.unvis_start_thresh << endl <<

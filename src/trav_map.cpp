@@ -44,8 +44,12 @@ void TravMap::loadClasses(const semantics_manager::ClassConfig& class_config) {
   int terrain_ind = 0;
   for (const auto& terrain_type : class_config.traversabililty_diff) {
     terrain_lut_.at<uint8_t>(terrain_ind) = terrain_type;
-    if (terrain_type > TravGraph::Edge::MAX_TERRAIN) {
-      TravGraph::Edge::MAX_TERRAIN = terrain_type;
+    int terrain_type_tmp = terrain_type;
+    if (!params_.no_max_terrain_in_graph) {
+      terrain_type_tmp += 1;
+    }
+    if (terrain_type_tmp > TravGraph::Edge::MAX_TERRAIN) {
+      TravGraph::Edge::MAX_TERRAIN = terrain_type_tmp;
     }
     ++terrain_ind;
   }
