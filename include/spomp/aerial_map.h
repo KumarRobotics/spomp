@@ -96,7 +96,8 @@ class AerialMapInfer : public AerialMap {
      *********************************************************/
     struct FeatureMap {
       std::mutex mtx;
-      cv::Mat map;
+      cv::Mat sem_map;
+      std::vector<cv::Mat> dist_maps;
     } feature_map_;
 
     struct ReachabilityMap {
@@ -127,7 +128,7 @@ class AerialMapInfer : public AerialMap {
         bool operator()();
 
         void fitModel();
-        static Eigen::VectorXf getFeatureAtPoint(const cv::Mat& sem_map, 
+        static Eigen::VectorXf getFeatureAtPoint(const FeatureMap& feat_map, 
             const cv::Point& pt);
         cv::Mat updateProbabilityMap();
 

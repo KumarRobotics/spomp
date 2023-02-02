@@ -80,12 +80,13 @@ void AerialMapInfer::updateMap(const cv::Mat& sem_map,
 {
   if (sem_map.channels() == 1) {
     std::scoped_lock lock(feature_map_.mtx);
-    feature_map_.map = sem_map;
+    feature_map_.sem_map = sem_map;
+    feature_map_.dist_maps = dm;
   } else {
     // In the event we receive a 3 channel image, assume all channels are
     // the same
     std::scoped_lock lock(feature_map_.mtx);
-    cv::cvtColor(sem_map, feature_map_.map, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(sem_map, feature_map_.sem_map, cv::COLOR_BGR2GRAY);
   }
 
   // Location of upper left corner of old map in new map
@@ -281,12 +282,23 @@ bool AerialMapInfer::InferenceThread::operator()() {
 }
 
 Eigen::VectorXf AerialMapInfer::InferenceThread::getFeatureAtPoint(
-    const cv::Mat& sem_map, const cv::Point& pt) 
+    const AerialMapInfer::FeatureMap& feat_map, const cv::Point& pt) 
 {
   Eigen::VectorXf feat = Eigen::VectorXf::Zero(8);
-  int cls = sem_map.at<uint8_t>(pt);
-  if (cls < feat.size()) {
-    feat[cls] = 1;
+  if (feat_map.dist_maps.size() > 0 && 
+      feat_map.dist_maps[0].size() == feat_map.sem_map.size()) 
+  {
+    int cls = 0;
+    for (const auto& dist_map : feat_map.dist_maps) {
+      feat[cls] = dist_map.at<float>(pt);
+      ++cls;
+    }
+  } else {
+    // Fallback
+    int cls = feat_map.sem_map.at<uint8_t>(pt);
+    if (cls < feat.size()) {
+      feat[cls] = 1;
+    }
   }
   return feat;
 }
@@ -313,12 +325,12 @@ void AerialMapInfer::InferenceThread::fitModel() {
         int16_t trav_map_pt = aerial_map_.reachability_map_.map.at<int16_t>(pt);
         if (trav_map_pt <= -aerial_map_.params_.not_trav_thresh) {
           features.col(n_features) = getFeatureAtPoint(
-              aerial_map_.feature_map_.map, pt);
+              aerial_map_.feature_map_, pt);
           labels[n_features] = 0;
           ++n_features;
         } else if (trav_map_pt >= aerial_map_.params_.trav_thresh) {
           features.col(n_features) = getFeatureAtPoint(
-              aerial_map_.feature_map_.map, pt);
+              aerial_map_.feature_map_, pt);
           labels[n_features] = 1;
           ++n_features;
         }
@@ -342,10 +354,10 @@ cv::Mat AerialMapInfer::InferenceThread::updateProbabilityMap() {
   std::vector<float*> prob_ptrs;
   {
     std::scoped_lock lock(aerial_map_.feature_map_.mtx);
-    int n_features = cv::countNonZero(aerial_map_.feature_map_.map < 255);
+    int n_features = cv::countNonZero(aerial_map_.feature_map_.sem_map < 255);
     if (n_features == 0) return prob_map;
         
-    prob_map = cv::Mat::zeros(aerial_map_.feature_map_.map.size(), CV_32FC1);
+    prob_map = cv::Mat::zeros(aerial_map_.feature_map_.sem_map.size(), CV_32FC1);
     features = Eigen::ArrayXXf(8, n_features);
     prob_ptrs.resize(n_features);
 
@@ -353,10 +365,10 @@ cv::Mat AerialMapInfer::InferenceThread::updateProbabilityMap() {
       for(int j=0; j<prob_map.cols; ++j) {
         cv::Point pt(j, i);
 
-        if (aerial_map_.feature_map_.map.at<uint8_t>(pt) < 255) {
+        if (aerial_map_.feature_map_.sem_map.at<uint8_t>(pt) < 255) {
           prob_ptrs[feat_cnt] = prob_map.ptr<float>(i, j);
           features.col(feat_cnt) = getFeatureAtPoint(
-              aerial_map_.feature_map_.map, pt);
+              aerial_map_.feature_map_, pt);
           ++feat_cnt;
         }
       }
