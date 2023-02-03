@@ -7,6 +7,11 @@ namespace spomp {
 PanoPlanner::PanoPlanner(const Params& params) : params_(params) {
   auto& tm = TimerManager::getGlobal();
   pano_update_t_ = tm.get("PP");
+
+  // Initialize assuming we have space around us
+  // This way we are not paralyzed before getting a pano
+  reachability_ = Reachability(0, {AngularProj::StartFinish{0, 2*pi}, 100});
+  reachability_.getScan().setConstant(10);
 }
 
 void PanoPlanner::updatePano(const TerrainPano& pano) {

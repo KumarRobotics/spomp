@@ -28,6 +28,8 @@ GlobalWrapper::GlobalWrapper(ros::NodeHandle& nh) :
   path_viz_pub_ = nh_.advertise<nav_msgs::Path>("path_viz", 1, true);
   map_img_viz_pub_ = nh_.advertise<sensor_msgs::Image>("viz_img", 1);
   aerial_map_trav_viz_pub_ = nh_.advertise<sensor_msgs::Image>("aerial_map_trav_viz", 1);
+
+  visualizeGraph(ros::Time::now());
 }
 
 Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {

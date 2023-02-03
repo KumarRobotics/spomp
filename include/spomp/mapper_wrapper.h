@@ -32,7 +32,8 @@ class MapperWrapper {
 
     void visualize(const ros::TimerEvent& timer = {});
     void vizPoseGraph(const ros::Time& stamp);
-    void publishOdomCorrection(const ros::Time& stamp);
+    void publishOdomCorrection(const Eigen::Isometry3d& corr, 
+        const ros::Time& stamp);
 
     /*********************************************************
      * LOCAL VARIABLES
@@ -40,6 +41,7 @@ class MapperWrapper {
     ros::NodeHandle nh_;
     image_transport::ImageTransport it_;
     tf2_ros::StaticTransformBroadcaster tf_static_broadcaster_{};
+    bool initialized_odom_corr_{false};
 
     // Timers
     ros::Timer viz_timer_;

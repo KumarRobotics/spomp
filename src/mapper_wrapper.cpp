@@ -22,7 +22,7 @@ MapperWrapper::MapperWrapper(ros::NodeHandle& nh) :
   map_pub_ = nh_.advertise<grid_map_msgs::GridMap>("map", 1);
 
   // Publish initial ident transform
-  publishOdomCorrection(ros::Time::now());
+  publishOdomCorrection(Eigen::Isometry3d::Identity(), ros::Time::now());
 }
 
 Mapper MapperWrapper::createMapper(ros::NodeHandle& nh) {
@@ -135,6 +135,13 @@ void MapperWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
 void MapperWrapper::globalEstCallback(
     const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& est_msg)
 {
+  if (!initialized_odom_corr_) {
+    // Special case for first estimate
+    publishOdomCorrection(ROS2Eigen<double>(est_msg->pose.pose), est_msg->header.stamp);
+
+    initialized_odom_corr_ = true;
+  }
+
   // Loop starting with most recent
   // We assume that the global est will arrive after odom
   // This is fairly reasonable, since global localizer uses odom as input
@@ -153,8 +160,8 @@ void MapperWrapper::globalEstCallback(
       prior.prior.sigma_diag[0] = std::sqrt(cov.diagonal()[5]);
       prior.prior.sigma_diag.tail<2>() = cov.diagonal().head<2>().array().sqrt();
 
-      publishOdomCorrection(est_msg->header.stamp);
       mapper_.addPrior(prior);
+      publishOdomCorrection(mapper_.getOdomCorrection(), est_msg->header.stamp);
 
       odom_buf_.erase(odom_buf_.begin(), odom_it.base());
       break;
@@ -236,8 +243,9 @@ void MapperWrapper::vizPoseGraph(const ros::Time& stamp) {
   graph_viz_pub_.publish(marker_array);
 }
 
-void MapperWrapper::publishOdomCorrection(const ros::Time& stamp) {
-  Eigen::Isometry3d corr = mapper_.getOdomCorrection();
+void MapperWrapper::publishOdomCorrection(const Eigen::Isometry3d& corr, 
+    const ros::Time& stamp) 
+{
   geometry_msgs::TransformStamped corr_msg = Eigen2ROS(corr);
   corr_msg.header.stamp = stamp;
   corr_msg.header.frame_id = map_frame_;
