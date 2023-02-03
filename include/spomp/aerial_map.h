@@ -12,7 +12,8 @@ class AerialMap {
     virtual ~AerialMap() {}
 
     virtual void updateMap(const cv::Mat& sem_map, 
-        const std::vector<cv::Mat>& dm, const MapReferenceFrame& mrf) {}
+        const std::vector<cv::Mat>& dm, const MapReferenceFrame& mrf,
+        const cv::Mat& color_map = cv::Mat()) {}
 
     struct EdgeInfo {
       int cls = 0;
@@ -45,7 +46,8 @@ class AerialMapPrior : public AerialMap {
     AerialMapPrior() = default;
 
     void updateMap(const cv::Mat& sem_map, 
-        const std::vector<cv::Mat>& dm, const MapReferenceFrame& mrf);
+        const std::vector<cv::Mat>& dm, const MapReferenceFrame& mrf,
+        const cv::Mat& color_map = cv::Mat());
 
     EdgeInfo traceEdge(const Eigen::Vector2f& n1, const Eigen::Vector2f& n2);
 
@@ -63,11 +65,12 @@ class AerialMapInfer : public AerialMap {
       int not_trav_thresh = 1;
       float not_trav_range_m = 3;
     };
-    AerialMapInfer(const Params& p, const MLPModel::Params& mlp_p);
+    AerialMapInfer(const Params& p, const MLPModel::Params& mlp_p, int n_cls);
     ~AerialMapInfer();
 
     void updateMap(const cv::Mat& sem_map, 
-        const std::vector<cv::Mat>& dm, const MapReferenceFrame& mrf);
+        const std::vector<cv::Mat>& dm, const MapReferenceFrame& mrf,
+        const cv::Mat& color_map = cv::Mat());
 
     void updateLocalReachability(const Reachability& reach);
 
@@ -90,6 +93,7 @@ class AerialMapInfer : public AerialMap {
      * LOCAL CONSTANTS
      *********************************************************/
     Params params_;
+    static int feature_size_;
 
     /*********************************************************
      * LOCAL VARIABLES
@@ -97,6 +101,7 @@ class AerialMapInfer : public AerialMap {
     struct FeatureMap {
       std::mutex mtx;
       cv::Mat sem_map;
+      cv::Mat color_map;
       std::vector<cv::Mat> dist_maps;
     } feature_map_;
 

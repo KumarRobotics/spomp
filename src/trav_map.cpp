@@ -17,12 +17,6 @@ TravMap::TravMap(const Params& tm_p, const TravGraph::Params& tg_p,
   rebuild_visibility_t_ = tm.get("TM_rebuild_visibility");
   build_graph_t_ = tm.get("TM_build_graph");
 
-  if (params_.learn_trav) {
-    aerial_map_ = std::make_unique<AerialMapInfer>(am_p, mlp_p);
-  } else {
-    aerial_map_ = std::make_unique<AerialMapPrior>();
-  }
-
   terrain_lut_ = cv::Mat::ones(256, 1, CV_8UC1) * 255;
   if (params_.world_config_path != "") {
     semantics_manager::ClassConfig class_config(
@@ -30,6 +24,13 @@ TravMap::TravMap(const Params& tm_p, const TravGraph::Params& tg_p,
     semantics_manager::MapConfig map_config(
         semantics_manager::getMapPath(params_.world_config_path));
     loadClasses(class_config);
+
+    if (params_.learn_trav) {
+      aerial_map_ = std::make_unique<AerialMapInfer>(am_p, mlp_p,
+          TravGraph::Edge::MAX_TERRAIN);
+    } else {
+      aerial_map_ = std::make_unique<AerialMapPrior>();
+    }
     loadStaticMap(map_config, class_config);
   } else {
     std::cout << "\033[31m" << "[ERROR] Using TravMap defaults.  Really a test-only case." 
@@ -37,6 +38,12 @@ TravMap::TravMap(const Params& tm_p, const TravGraph::Params& tg_p,
     terrain_lut_.at<uint8_t>(0) = 0;
     terrain_lut_.at<uint8_t>(1) = 1;
     map_ref_frame_.res = 1;
+
+    if (params_.learn_trav) {
+      aerial_map_ = std::make_unique<AerialMapInfer>(am_p, mlp_p, 2);
+    } else {
+      aerial_map_ = std::make_unique<AerialMapPrior>();
+    }
   }
 }
 
@@ -74,12 +81,22 @@ void TravMap::loadStaticMap(const semantics_manager::MapConfig& map_config,
     std::cout << "\033[36m" << "[SPOMP-Global] Loading static map..." << "\033[0m" << std::endl;
   }
 
-  cv::Mat color_sem, class_sem;
+  cv::Mat color_sem, class_sem, color_map;
   color_sem = cv::imread(map_config.raster_path);
   if (color_sem.data == NULL) {
     std::cout << "\033[31m" << "[ERROR] Static Map path specified but not read correctly" 
       << "\033[0m" << std::endl;
     return;
+  }
+
+  if (!map_config.color_path.empty()) {
+    color_map = cv::imread(map_config.color_path);
+    if (color_map.data == NULL) {
+      std::cout << "\033[31m" << "[ERROR] Color Map path specified but not read correctly" 
+        << "\033[0m" << std::endl;
+    } else {
+      cv::rotate(color_map, color_map, cv::ROTATE_90_COUNTERCLOCKWISE);
+    }
   }
 
   class_config.color_lut.color2Ind(color_sem, class_sem);
@@ -90,13 +107,15 @@ void TravMap::loadStaticMap(const semantics_manager::MapConfig& map_config,
   cv::rotate(class_sem, class_sem, cv::ROTATE_90_COUNTERCLOCKWISE);
 
   // We have set map_center_ already, but want to postproc
-  updateMap(class_sem, map_center);
+  updateMap(class_sem, map_center, color_map);
   // Set this to block updateMap from doing anything in the future
   dynamic_ = false;
   std::cout << "\033[36m" << "[SPOMP-Global] Static Map loaded" << "\033[0m" << std::endl;
 }
 
-void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center) {
+void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center, 
+    const cv::Mat& color_map)
+{
   if (!dynamic_) return;
 
   if (map.channels() == 1) {
@@ -111,7 +130,7 @@ void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center) {
   map_ref_frame_.setMapSizeFrom(map_);
 
   computeDistMaps();
-  aerial_map_->updateMap(map_, dist_maps_, map_ref_frame_);
+  aerial_map_->updateMap(map_, dist_maps_, map_ref_frame_, color_map);
 
   reweightGraph();
   rebuildVisibility();

@@ -25,7 +25,8 @@ class TravMap {
     TravMap(const Params& tm_p, const TravGraph::Params& tg_p, 
         const AerialMapInfer::Params& am_p, const MLPModel::Params& mlp_p);
 
-    void updateMap(const cv::Mat& map, const Eigen::Vector2f& center);
+    void updateMap(const cv::Mat& map, const Eigen::Vector2f& center, 
+        const cv::Mat& color_map = cv::Mat());
     std::list<TravGraph::Node*> getPath(const Eigen::Vector2f& start_p,
         const Eigen::Vector2f& end_p);
     std::list<TravGraph::Node*> getPath(TravGraph::Node& start_n,

@@ -6,7 +6,7 @@
 namespace spomp {
 
 TEST(aerial_map_infer, test_update_reachability) {
-  std::unique_ptr<AerialMap> am(new AerialMapInfer({}, {}));
+  std::unique_ptr<AerialMap> am(new AerialMapInfer({}, {}, 8));
 
   cv::Mat map_img = cv::imread(ros::package::getPath("spomp") + 
                                "/test/map.png");
@@ -28,7 +28,7 @@ TEST(aerial_map_infer, test_update_reachability) {
 TEST(aerial_map_infer, test_model_fit_stable) {
   AerialMapInfer::Params am_p;
   am_p.inference_thread_period_ms = 10;
-  std::unique_ptr<AerialMap> am(new AerialMapInfer(am_p, {}));
+  std::unique_ptr<AerialMap> am(new AerialMapInfer(am_p, {}, 8));
   // Does it explode if no map
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -58,7 +58,7 @@ TEST(aerial_map_infer, test_model_fit_stable) {
 TEST(aerial_map_infer, test_map_resize) {
   AerialMapInfer::Params am_p;
   am_p.inference_thread_period_ms = 10;
-  std::unique_ptr<AerialMap> am(new AerialMapInfer(am_p, {}));
+  std::unique_ptr<AerialMap> am(new AerialMapInfer(am_p, {}, 8));
 
   cv::Mat map_img = cv::imread(ros::package::getPath("spomp") + 
                                "/test/map.png");

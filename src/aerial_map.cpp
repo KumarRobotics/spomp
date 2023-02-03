@@ -7,11 +7,15 @@ namespace spomp {
  * AERIAL MAP PRIOR
  *********************************************************/
 void AerialMapPrior::updateMap(const cv::Mat& sem_map, 
-    const std::vector<cv::Mat>& dm, const MapReferenceFrame& mrf)
+    const std::vector<cv::Mat>& dm, const MapReferenceFrame& mrf,
+    const cv::Mat& color_map)
 {
-  // copies aren't a big deal, because cv::Mat is really a pointer anyway
-  dist_maps_ = dm;
-  map_ = sem_map;
+  // Do deep copies
+  dist_maps_.clear();
+  for (const auto& dist_map : dm) {
+    dist_maps_.push_back(dist_map.clone());
+  }
+  map_ = sem_map.clone();
   map_ref_frame_ = mrf;
 }
 
@@ -60,13 +64,17 @@ AerialMap::EdgeInfo AerialMapPrior::traceEdge(const Eigen::Vector2f& n1,
 /*********************************************************
  * AERIAL MAP INFER
  *********************************************************/
+int AerialMapInfer::feature_size_{0};
+
 AerialMapInfer::AerialMapInfer(const Params& p, 
-    const MLPModel::Params& mlp_p) : 
+    const MLPModel::Params& mlp_p, int n_cls) : 
   params_(p)
 {
   auto& tm = TimerManager::getGlobal(true);
   update_reachability_t_ = tm.get("AM_update_reachability");
 
+  // N classes + RGB + elevation
+  feature_size_ = n_cls + 3 + 1;
   inference_thread_ = std::thread(InferenceThread(*this, mlp_p));
 }
 
@@ -76,17 +84,26 @@ AerialMapInfer::~AerialMapInfer() {
 }
 
 void AerialMapInfer::updateMap(const cv::Mat& sem_map, 
-    const std::vector<cv::Mat>& dm, const MapReferenceFrame& mrf)
+    const std::vector<cv::Mat>& dm, const MapReferenceFrame& mrf,
+    const cv::Mat& color_map)
 {
-  if (sem_map.channels() == 1) {
+  {
     std::scoped_lock lock(feature_map_.mtx);
-    feature_map_.sem_map = sem_map;
-    feature_map_.dist_maps = dm;
-  } else {
-    // In the event we receive a 3 channel image, assume all channels are
-    // the same
-    std::scoped_lock lock(feature_map_.mtx);
-    cv::cvtColor(sem_map, feature_map_.sem_map, cv::COLOR_BGR2GRAY);
+
+    // We clone all of these mats since there are multiple threads involved
+    // here, so safer to not have to worry about changes upstream
+    if (sem_map.channels() == 1) {
+      feature_map_.sem_map = sem_map.clone();
+    } else {
+      // In the event we receive a 3 channel image, assume all channels are
+      // the same
+      cv::cvtColor(sem_map, feature_map_.sem_map, cv::COLOR_BGR2GRAY);
+    }
+    feature_map_.dist_maps.clear();
+    for (const auto& dist_map : dm) {
+      feature_map_.dist_maps.push_back(dist_map.clone());
+    }
+    feature_map_.color_map = color_map.clone();
   }
 
   // Location of upper left corner of old map in new map
@@ -284,7 +301,7 @@ bool AerialMapInfer::InferenceThread::operator()() {
 Eigen::VectorXf AerialMapInfer::InferenceThread::getFeatureAtPoint(
     const AerialMapInfer::FeatureMap& feat_map, const cv::Point& pt) 
 {
-  Eigen::VectorXf feat = Eigen::VectorXf::Zero(8);
+  Eigen::VectorXf feat = Eigen::VectorXf::Zero(feature_size_);
   if (feat_map.dist_maps.size() > 0 && 
       feat_map.dist_maps[0].size() == feat_map.sem_map.size()) 
   {
@@ -300,6 +317,14 @@ Eigen::VectorXf AerialMapInfer::InferenceThread::getFeatureAtPoint(
       feat[cls] = 1;
     }
   }
+
+  if (feat_map.color_map.size() == feat_map.sem_map.size()) {
+    const auto& color = feat_map.color_map.at<cv::Vec3b>(pt);
+    feat[feature_size_ - 4] = color[0];
+    feat[feature_size_ - 3] = color[1];
+    feat[feature_size_ - 2] = color[2];
+  }
+
   return feat;
 }
 
@@ -316,7 +341,7 @@ void AerialMapInfer::InferenceThread::fitModel() {
 
     max_features = cv::countNonZero(aerial_map_.reachability_map_.map);
     if (max_features == 0) return;
-    features = Eigen::ArrayXXf(8, max_features);
+    features = Eigen::ArrayXXf(feature_size_, max_features);
     labels = Eigen::VectorXi(max_features);
 
     for(int i=0; i<aerial_map_.reachability_map_.map.rows; ++i) {
@@ -358,7 +383,7 @@ cv::Mat AerialMapInfer::InferenceThread::updateProbabilityMap() {
     if (n_features == 0) return prob_map;
         
     prob_map = cv::Mat::zeros(aerial_map_.feature_map_.sem_map.size(), CV_32FC1);
-    features = Eigen::ArrayXXf(8, n_features);
+    features = Eigen::ArrayXXf(feature_size_, n_features);
     prob_ptrs.resize(n_features);
 
     for(int i=0; i<prob_map.rows; ++i) {
