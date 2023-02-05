@@ -67,6 +67,7 @@
   <depend>grid_map_core</depend>
   <depend>grid_map_ros</depend>
   <depend>grid_map_msgs</depend>
+  <depend>grid_map_comp</depend>
   <depend>semantics_manager</depend>
   <build_depend>message_generation</build_depend>
   <exec_depend>message_runtime</exec_depend>

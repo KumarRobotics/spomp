@@ -6,7 +6,7 @@
 #include <spomp/GlobalNavigateAction.h>
 #include <spomp/LocalReachabilityArray.h>
 #include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/PointStamped.h>
+#include <grid_map_msgs/GridMap.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/LaserScan.h>
 #include "spomp/global.h"
@@ -25,8 +25,7 @@ class GlobalWrapper {
     /*********************************************************
      * LOCAL FUNCTIONS
      *********************************************************/
-    void mapSemImgCallback(const sensor_msgs::Image::ConstPtr& img_msg);
-    void mapSemImgCenterCallback(const geometry_msgs::PointStamped::ConstPtr& pt_msg);
+    void aerialMapCallback(const grid_map_msgs::GridMap::ConstPtr& map_msg);
     void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg);
     void goalSimpleCallback(const geometry_msgs::PoseStamped::ConstPtr& goal_msg);
     void reachabilityCallback(const sensor_msgs::LaserScan::ConstPtr& reachability_msg);
@@ -36,7 +35,6 @@ class GlobalWrapper {
     void globalNavigateGoalCallback();
     void globalNavigatePreemptCallback();
 
-    void processMapBuffers();
     void publishLocalGoal(const ros::Time& stamp);
     void publishReachabilityHistory();
     void visualizeGraph(const ros::Time& stamp);
@@ -60,8 +58,7 @@ class GlobalWrapper {
     ros::Publisher aerial_map_trav_viz_pub_;
 
     // Subs
-    ros::Subscriber map_sem_img_sub_;
-    ros::Subscriber map_sem_img_center_sub_;
+    ros::Subscriber aerial_map_sub_;
     ros::Subscriber pose_sub_;
     ros::Subscriber goal_sub_;
     ros::Subscriber reachability_sub_;
@@ -74,8 +71,6 @@ class GlobalWrapper {
     Global global_;
 
     uint64_t last_map_stamp_{0};
-    std::map<uint64_t, const sensor_msgs::Image::ConstPtr> map_sem_buf_{};
-    std::map<uint64_t, const geometry_msgs::PointStamped::ConstPtr> map_loc_buf_{};
 
     Eigen::Vector2f last_goal_{0, 0};
     bool using_action_server_{false};

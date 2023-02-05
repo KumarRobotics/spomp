@@ -2,6 +2,7 @@
 #include <nav_msgs/Path.h>
 #include <cv_bridge/cv_bridge.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <grid_map_comp/grid_map_comp.hpp>
 #include "spomp/global_wrapper.h"
 #include "spomp/timer.h"
 #include "spomp/rosutil.h"
@@ -103,9 +104,8 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
 
 void GlobalWrapper::initialize() {
   // Subscribers
-  map_sem_img_sub_ = nh_.subscribe("map_sem_img", 1, &GlobalWrapper::mapSemImgCallback, this);
-  map_sem_img_center_sub_ = nh_.subscribe("map_sem_img_center", 1, 
-      &GlobalWrapper::mapSemImgCenterCallback, this);
+  aerial_map_sub_ = nh_.subscribe("aerial_map", 1, 
+      &GlobalWrapper::aerialMapCallback, this);
   pose_sub_ = nh_.subscribe("pose", 1, &GlobalWrapper::poseCallback, this);
   goal_sub_ = nh_.subscribe("goal_simple", 1, &GlobalWrapper::goalSimpleCallback, this);
   reachability_sub_ = nh_.subscribe("reachability", 1, 
@@ -135,48 +135,21 @@ void GlobalWrapper::initialize() {
   ros::spin();
 }
 
-void GlobalWrapper::mapSemImgCallback(
-    const sensor_msgs::Image::ConstPtr& img_msg) 
+void GlobalWrapper::aerialMapCallback(
+    const grid_map_msgs::GridMap::ConstPtr& map_msg) 
 {
-  if (img_msg->header.stamp.toNSec() > last_map_stamp_) {
-    // Initial sanity check
-    if (img_msg->height > 0 && img_msg->width > 0) {
-      ROS_DEBUG("Got map img");
-      map_sem_buf_.insert({img_msg->header.stamp.toNSec(), img_msg});
-      processMapBuffers();
-    }
-  }
-}
+  if (map_msg->info.header.stamp.toNSec() <= last_map_stamp_) return;
+  if (map_msg->info.length_x <= 0 || map_msg->info.length_y <= 0) return;
 
-void GlobalWrapper::mapSemImgCenterCallback(
-    const geometry_msgs::PointStamped::ConstPtr& pt_msg) 
-{
-  if (pt_msg->header.stamp.toNSec() > last_map_stamp_) {
-    ROS_DEBUG("Got map loc");
-    map_loc_buf_.insert({pt_msg->header.stamp.toNSec(), pt_msg});
-    processMapBuffers();
-  }
-}
+  ROS_DEBUG_STREAM("Got new map");
+  last_map_stamp_ = map_msg->info.header.stamp.toNSec();
 
-void GlobalWrapper::processMapBuffers() {
-  // Loop starting with most recent
-  for (auto loc_it = map_loc_buf_.rbegin(); loc_it != map_loc_buf_.rend(); ++loc_it) {
-    auto img_it = map_sem_buf_.find(loc_it->first);
-    if (img_it != map_sem_buf_.end()) {
-      ROS_DEBUG_STREAM("Got new map");
-      last_map_stamp_ = loc_it->first;
+  cv::Mat sem_map_img;
+  grid_map::GridMapComp::toImage(*map_msg, {"semantics", "", "char"}, sem_map_img);
 
-      global_.updateMap(
-          cv_bridge::toCvCopy(img_it->second, sensor_msgs::image_encodings::MONO8)->image,
-          {loc_it->second->point.x, loc_it->second->point.y});
-      visualizeGraph(loc_it->second->header.stamp);
-
-      //Clean up buffers
-      map_sem_buf_.erase(map_sem_buf_.begin(), ++img_it);
-      map_loc_buf_.erase(map_loc_buf_.begin(), loc_it.base());
-      break;
-    }
-  }
+  global_.updateMap(sem_map_img,
+      {map_msg->info.pose.position.x, map_msg->info.pose.position.y});
+  visualizeGraph(map_msg->info.header.stamp);
 }
 
 void GlobalWrapper::poseCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg) {
