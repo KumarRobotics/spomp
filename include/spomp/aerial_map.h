@@ -13,7 +13,7 @@ class AerialMap {
 
     virtual void updateMap(const cv::Mat& sem_map, 
         const std::vector<cv::Mat>& dm, const MapReferenceFrame& mrf,
-        const cv::Mat& color_map = cv::Mat()) {}
+        const std::vector<cv::Mat>& om = {}) {}
 
     struct EdgeInfo {
       int cls = 0;
@@ -47,7 +47,7 @@ class AerialMapPrior : public AerialMap {
 
     void updateMap(const cv::Mat& sem_map, 
         const std::vector<cv::Mat>& dm, const MapReferenceFrame& mrf,
-        const cv::Mat& color_map = cv::Mat());
+        const std::vector<cv::Mat>& om = {});
 
     EdgeInfo traceEdge(const Eigen::Vector2f& n1, const Eigen::Vector2f& n2);
 
@@ -70,7 +70,7 @@ class AerialMapInfer : public AerialMap {
 
     void updateMap(const cv::Mat& sem_map, 
         const std::vector<cv::Mat>& dm, const MapReferenceFrame& mrf,
-        const cv::Mat& color_map = cv::Mat());
+        const std::vector<cv::Mat>& om = {});
 
     void updateLocalReachability(const Reachability& reach);
 
@@ -101,8 +101,8 @@ class AerialMapInfer : public AerialMap {
     struct FeatureMap {
       std::mutex mtx;
       cv::Mat sem_map;
-      cv::Mat color_map;
       std::vector<cv::Mat> dist_maps;
+      std::vector<cv::Mat> other_maps;
     } feature_map_;
 
     struct ReachabilityMap {

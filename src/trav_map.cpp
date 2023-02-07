@@ -107,14 +107,14 @@ void TravMap::loadStaticMap(const semantics_manager::MapConfig& map_config,
   cv::rotate(class_sem, class_sem, cv::ROTATE_90_COUNTERCLOCKWISE);
 
   // We have set map_center_ already, but want to postproc
-  updateMap(class_sem, map_center, color_map);
+  updateMap(class_sem, map_center, {color_map});
   // Set this to block updateMap from doing anything in the future
   dynamic_ = false;
   std::cout << "\033[36m" << "[SPOMP-Global] Static Map loaded" << "\033[0m" << std::endl;
 }
 
 void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center, 
-    const cv::Mat& color_map)
+    const std::vector<cv::Mat>& other_maps)
 {
   if (!dynamic_) return;
 
@@ -130,7 +130,7 @@ void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center,
   map_ref_frame_.setMapSizeFrom(map_);
 
   computeDistMaps();
-  aerial_map_->updateMap(map_, dist_maps_, map_ref_frame_, color_map);
+  aerial_map_->updateMap(map_, dist_maps_, map_ref_frame_, other_maps);
 
   reweightGraph();
   rebuildVisibility();

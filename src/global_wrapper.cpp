@@ -147,8 +147,14 @@ void GlobalWrapper::aerialMapCallback(
   cv::Mat sem_map_img;
   grid_map::GridMapComp::toImage(*map_msg, {"semantics", "", "char"}, sem_map_img);
 
+  std::vector<cv::Mat> other_maps;
+  other_maps.resize(2);
+  grid_map::GridMapComp::toImage(*map_msg, {"color", "", "rgb"}, other_maps[0]);
+  grid_map::GridMapComp::toImage(*map_msg, {"elevation", "", "float"}, other_maps[1]);
+
   global_.updateMap(sem_map_img,
-      {map_msg->info.pose.position.x, map_msg->info.pose.position.y});
+      {map_msg->info.pose.position.x, map_msg->info.pose.position.y}, 
+      other_maps);
   visualizeGraph(map_msg->info.header.stamp);
 }
 

@@ -12,8 +12,10 @@ class Global {
         const AerialMapInfer::Params& am_p, const MLPModel::Params& mlp_p,
         const WaypointManager::Params& wm_p);
 
-    void updateMap(const cv::Mat &map, const Eigen::Vector2f& center) {
-      map_.updateMap(map, center);
+    void updateMap(const cv::Mat &map, const Eigen::Vector2f& center,
+        const std::vector<cv::Mat>& other_maps = {}) 
+    {
+      map_.updateMap(map, center, other_maps);
     }
 
     /*!

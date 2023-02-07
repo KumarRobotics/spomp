@@ -8,7 +8,7 @@ namespace spomp {
  *********************************************************/
 void AerialMapPrior::updateMap(const cv::Mat& sem_map, 
     const std::vector<cv::Mat>& dm, const MapReferenceFrame& mrf,
-    const cv::Mat& color_map)
+    const std::vector<cv::Mat>& other_maps)
 {
   // Do deep copies
   dist_maps_.clear();
@@ -85,7 +85,7 @@ AerialMapInfer::~AerialMapInfer() {
 
 void AerialMapInfer::updateMap(const cv::Mat& sem_map, 
     const std::vector<cv::Mat>& dm, const MapReferenceFrame& mrf,
-    const cv::Mat& color_map)
+    const std::vector<cv::Mat>& om)
 {
   {
     std::scoped_lock lock(feature_map_.mtx);
@@ -103,7 +103,10 @@ void AerialMapInfer::updateMap(const cv::Mat& sem_map,
     for (const auto& dist_map : dm) {
       feature_map_.dist_maps.push_back(dist_map.clone());
     }
-    feature_map_.color_map = color_map.clone();
+
+    // Don't deep copy the cv mats here, since these aren't used 
+    // anywhere else
+    feature_map_.other_maps = om;
   }
 
   // Location of upper left corner of old map in new map
@@ -318,11 +321,23 @@ Eigen::VectorXf AerialMapInfer::InferenceThread::getFeatureAtPoint(
     }
   }
 
-  if (feat_map.color_map.size() == feat_map.sem_map.size()) {
-    const auto& color = feat_map.color_map.at<cv::Vec3b>(pt);
-    feat[feature_size_ - 4] = color[0];
-    feat[feature_size_ - 3] = color[1];
-    feat[feature_size_ - 2] = color[2];
+  int feat_ind = 0;
+  for (const auto& other_map : feat_map.other_maps) {
+    if (other_map.size() == feat_map.sem_map.size()) {
+      if (other_map.channels() == 3) {
+        const auto& color = other_map.at<cv::Vec3b>(pt);
+        feat[feature_size_ - 3 - feat_ind] = color[0];
+        feat[feature_size_ - 2 - feat_ind] = color[1];
+        feat[feature_size_ - 1 - feat_ind] = color[2];
+        feat_ind += 3;
+      } else {
+        float val = other_map.at<float>(pt);
+        if (std::isfinite(val)) {
+          feat[feature_size_ - 1 - feat_ind] = val;
+        }
+        feat_ind += 1;
+      }
+    }
   }
 
   return feat;
