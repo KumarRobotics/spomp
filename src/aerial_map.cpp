@@ -176,7 +176,9 @@ void AerialMapInfer::updateLocalReachability(const Reachability& reach) {
 
   {
     std::scoped_lock lock(reachability_map_.mtx);
-    reachability_map_.map += trav_map_delta;
+    if (!reachability_map_.map.empty()) {
+      reachability_map_.map += trav_map_delta;
+    }
   }
 
   update_reachability_t_->end();
@@ -225,6 +227,7 @@ cv::Mat AerialMapInfer::viz() {
   constexpr int new_center = std::numeric_limits<uint8_t>::max()/2;
   {
     std::scoped_lock lock(reachability_map_.mtx);
+    if (reachability_map_.map.empty()) return trav_viz;
     reachability_map_.map.convertTo(trav_viz, CV_8UC1, 1, new_center);
   }
 
