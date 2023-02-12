@@ -37,7 +37,7 @@ LocalWrapper::LocalWrapper(ros::NodeHandle& nh) :
 
   // Publishers
   // Viz
-  obs_pano_viz_pub_ = nh_.advertise<sensor_msgs::Image>("obs_pano_viz", 1);
+  obs_pano_viz_pub_ = it_.advertise("obs_pano_viz", 1);
   obs_cloud_viz_pub_ = nh_.advertise<sensor_msgs::PointCloud2>("obs_cloud_viz", 1);
   control_viz_pub_ = nh_.advertise<nav_msgs::Path>("control_viz", 1);
   local_goal_viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("local_goal_viz", 1);

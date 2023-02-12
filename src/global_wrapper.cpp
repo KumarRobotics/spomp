@@ -17,6 +17,7 @@ std::string GlobalWrapper::this_robot_{"robot"};
 GlobalWrapper::GlobalWrapper(ros::NodeHandle& nh) : 
   nh_(nh), 
   global_(createGlobal(nh)),
+  it_(nh),
   tf_buffer_(),
   tf_listener_(tf_buffer_),
   global_navigate_as_(nh_, "navigate", false)
@@ -27,8 +28,8 @@ GlobalWrapper::GlobalWrapper(ros::NodeHandle& nh) :
   reachability_history_pub_ = nh_.advertise<LocalReachabilityArray>("reachability_history", 1, true);
   graph_viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("graph_viz", 1, true);
   path_viz_pub_ = nh_.advertise<nav_msgs::Path>("path_viz", 1, true);
-  map_img_viz_pub_ = nh_.advertise<sensor_msgs::Image>("viz_img", 1);
-  aerial_map_trav_viz_pub_ = nh_.advertise<sensor_msgs::Image>("aerial_map_trav_viz", 1);
+  map_img_viz_pub_ = it_.advertise("viz_img", 1);
+  aerial_map_trav_viz_pub_ = it_.advertise("aerial_map_trav_viz", 1);
 
   visualizeGraph(ros::Time::now());
 }

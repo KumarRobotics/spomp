@@ -53,7 +53,7 @@ class LocalWrapper {
     tf2_ros::TransformListener tf_listener_;
 
     // Pubs
-    ros::Publisher obs_pano_viz_pub_;
+    image_transport::Publisher obs_pano_viz_pub_;
     ros::Publisher obs_cloud_viz_pub_;
     ros::Publisher control_viz_pub_;
     ros::Publisher local_goal_viz_pub_;

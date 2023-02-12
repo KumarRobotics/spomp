@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ros/ros.h>
+#include <image_transport/image_transport.h>
 #include <tf2_ros/transform_listener.h>
 #include <actionlib/server/simple_action_server.h>
 #include <spomp/GlobalNavigateAction.h>
@@ -46,6 +47,7 @@ class GlobalWrapper {
      * LOCAL VARIABLES
      *********************************************************/
     ros::NodeHandle nh_;
+    image_transport::ImageTransport it_;
     tf2_ros::Buffer tf_buffer_;
     tf2_ros::TransformListener tf_listener_;
 
@@ -54,8 +56,8 @@ class GlobalWrapper {
     ros::Publisher reachability_history_pub_;
     ros::Publisher graph_viz_pub_;
     ros::Publisher path_viz_pub_;
-    ros::Publisher map_img_viz_pub_;
-    ros::Publisher aerial_map_trav_viz_pub_;
+    image_transport::Publisher map_img_viz_pub_;
+    image_transport::Publisher aerial_map_trav_viz_pub_;
 
     // Subs
     ros::Subscriber aerial_map_sub_;
