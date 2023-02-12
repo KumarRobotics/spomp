@@ -111,12 +111,15 @@ TEST(trav_map, test_map_graph_search) {
   cv::imwrite("spomp_viz_map.png", m.viz_visibility());
 
   // test path
-  auto path = m.getPath({38, -11}, {-107, 42});
+  // road onto grass
+  auto path = m.getPath(m.getMapReferenceFrame().img2world({90, 244}),
+                        m.getMapReferenceFrame().img2world({225, 127}));
   ASSERT_TRUE(path.size() > 0);
   ASSERT_TRUE(path.back()->cost < std::pow(1000, 3));
   ASSERT_TRUE(path.back()->cost > std::pow(1000, 1));
 
-  path = m.getPath({38, -11}, {0, 0});
+  // stay on road
+  path = m.getPath(m.getMapReferenceFrame().img2world({392, 135}), {0, 0});
   ASSERT_TRUE(path.size() > 0);
   ASSERT_TRUE(path.back()->cost < std::pow(1000, 1));
 }
