@@ -82,9 +82,25 @@ TEST(trav_map, test_transforms) {
   ASSERT_FLOAT_EQ((im_pt - m.getMapReferenceFrame().world2img(world_pt)).norm(), 0);
 }
 
+TEST(trav_map, test_uniform_sampling) {
+  TravMap::Params m_p;
+  m_p.world_config_path = ros::package::getPath("semantics_manager") + "/config/test_config_dynamic.yaml";
+  m_p.no_max_terrain_in_graph = false;
+  m_p.uniform_node_sampling = true;
+  TravMap m(m_p, {}, {}, {});
+  cv::Mat map_img = cv::imread(ros::package::getPath("spomp") + 
+                               "/test/map.png");
+  m.updateMap(map_img, {-24.1119060516, 62.8522758484});
+
+  // save
+  cv::imwrite("spomp_uniform_trav_map.png", m.viz());
+  cv::imwrite("spomp_uniform_viz_map.png", m.viz_visibility());
+}
+
 TEST(trav_map, test_map_graph_search) {
   TravMap::Params m_p;
   m_p.world_config_path = ros::package::getPath("semantics_manager") + "/config/test_config_dynamic.yaml";
+  m_p.no_max_terrain_in_graph = false;
   TravMap m(m_p, {}, {}, {});
   cv::Mat map_img = cv::imread(ros::package::getPath("spomp") + 
                                "/test/map.png");
@@ -111,8 +127,8 @@ TEST(trav_map, test_static_map) {
   TravMap m(m_p, {}, {}, {});
 
   // save
-  cv::imwrite("spomp_trav_static_map.png", m.viz());
-  cv::imwrite("spomp_viz_static_map.png", m.viz_visibility());
+  cv::imwrite("spomp_static_trav_map.png", m.viz());
+  cv::imwrite("spomp_static_viz_map.png", m.viz_visibility());
 }
 
 TEST(trav_map, update_map) {

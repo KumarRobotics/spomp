@@ -15,8 +15,9 @@ class TravMap {
     struct Params {
       std::string world_config_path = "";
       bool learn_trav = false;
+      bool uniform_node_sampling = false;
       bool no_max_terrain_in_graph = true;
-      float max_hole_fill_size_m = 2;
+      float max_hole_fill_size_m = 1;
       float vis_dist_m = 10;
       float unvis_start_thresh = 0.1;
       float unvis_stop_thresh = 0.01;

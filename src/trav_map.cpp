@@ -281,10 +281,6 @@ void TravMap::computeDistMaps() {
   compute_dist_maps_t_->start();
 
   int t_cls = 0;
-  auto kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(
-        params_.max_hole_fill_size_m * map_ref_frame_.res,
-        params_.max_hole_fill_size_m * map_ref_frame_.res));
-
   for (auto& dist_map : dist_maps_) {
     cv::Mat trav_map;
     cv::bitwise_or(map_ <= t_cls, map_ == 255, trav_map);
@@ -339,10 +335,24 @@ void TravMap::buildGraph() {
   double min_v, max_v;
   cv::Point min_l, max_l;
 
-  for (int t_cls=0; t_cls<TravGraph::Edge::MAX_TERRAIN; ++t_cls) {
+  auto morph_kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(
+        params_.max_hole_fill_size_m * map_ref_frame_.res * 2 + 1,
+        params_.max_hole_fill_size_m * map_ref_frame_.res * 2 + 1));
+
+  int start_cls = 0;
+  if (params_.uniform_node_sampling) {
+    // Uniform sampling: just start at last class, which effectively
+    // ignores all other classes
+    start_cls = TravGraph::Edge::MAX_TERRAIN-1;
+  }
+
+  for (int t_cls=start_cls; t_cls<TravGraph::Edge::MAX_TERRAIN; ++t_cls) {
     int num_to_cover = cv::countNonZero(map_ <= t_cls);
     cv::Mat dist_map_masked = dist_maps_[t_cls].clone();
     dist_map_masked.setTo(0, visibility_map_ >= 0);
+
+    cv::morphologyEx(dist_map_masked, dist_map_masked, 
+        cv::MORPH_OPEN, morph_kernel);
 
     if (cv::countNonZero(dist_map_masked) < 
         params_.unvis_start_thresh * num_to_cover) continue;
@@ -432,7 +442,8 @@ std::map<int, Eigen::Vector2f> TravMap::addNodeToVisibility(const TravGraph::Nod
       }
       vis_cell = n.id;
 
-      if (cell_cls != node_cls && cell_cls != 255) {
+      // If uniform sampling, ignore raytraced classes
+      if (cell_cls < node_cls && cell_cls != 255 && !params_.uniform_node_sampling) {
         break;
       }
     }
