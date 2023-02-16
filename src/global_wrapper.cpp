@@ -107,11 +107,11 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
 
 void GlobalWrapper::initialize() {
   // Subscribers
-  aerial_map_sub_ = nh_.subscribe("aerial_map", 1, 
+  aerial_map_sub_ = nh_.subscribe("aerial_map", 5, 
       &GlobalWrapper::aerialMapCallback, this);
-  pose_sub_ = nh_.subscribe("pose", 1, &GlobalWrapper::poseCallback, this);
-  goal_sub_ = nh_.subscribe("goal_simple", 1, &GlobalWrapper::goalSimpleCallback, this);
-  reachability_sub_ = nh_.subscribe("reachability", 1, 
+  pose_sub_ = nh_.subscribe("pose", 5, &GlobalWrapper::poseCallback, this);
+  goal_sub_ = nh_.subscribe("goal_simple", 5, &GlobalWrapper::goalSimpleCallback, this);
+  reachability_sub_ = nh_.subscribe("reachability", 5, 
       &GlobalWrapper::reachabilityCallback, this);
 
   std::istringstream robots(robot_list_);
@@ -120,7 +120,7 @@ void GlobalWrapper::initialize() {
   while (std::getline(robots, robot, ',')) {
     if (robot == this_robot_) continue;
     other_robot_reachability_subs_.push_back(nh_.subscribe<LocalReachabilityArray>(
-          "/" + robot + "/spomp_global/reachability_history", 1, 
+          "/" + robot + "/spomp_global/reachability_history", 5, 
           std::bind(&GlobalWrapper::otherReachabilityCallback, this, id, std::placeholders::_1)));
     ++id;
   }

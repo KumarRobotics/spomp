@@ -115,8 +115,7 @@ void MapperWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
   pano_pose.affine() = 
     Eigen::Map<const Eigen::Matrix<double, 3, 4, Eigen::RowMajor>>(&info_msg->P[0]);
 
-  auto pano = cv_bridge::toCvShare(
-      img_msg, sensor_msgs::image_encodings::TYPE_16UC3);
+  auto pano = cv_bridge::toCvShare(img_msg);
   std::vector<cv::Mat> channels;
   channels.resize(pano->image.channels());
   cv::split(pano->image, channels);
@@ -128,8 +127,8 @@ void MapperWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
   mapper_.addKeyframe({info_msg->header.stamp.toNSec(), 
                        pano_pose,
                        rescaled_depth,
-                       channels[1],
-                       cv::Mat()});
+                       channels[1], /* intensity */
+                       cv::Mat() /* semantics (empty for now) */});
 }
 
 void MapperWrapper::globalEstCallback(
