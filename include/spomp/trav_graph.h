@@ -68,7 +68,7 @@ class TravGraph {
       Edge() = default;
 
       float totalCost() {
-        return cost + ((std::pow(1000, cls)-1) * (length + 1));
+        return length * cost + ((std::pow(1000, cls)-1) * (length + 1));
       }
 
       Node* getOtherNode(const Node* n) const {
@@ -77,14 +77,19 @@ class TravGraph {
       }
 
       void incUntravCounter() {
+        if (!is_experienced) {
+          // Reset counter if not experienced.  If experienced, then want
+          // it to be even harder to mark
+          untrav_counter = std::max(0, untrav_counter);
+        }
         untrav_counter += 1;
       }
 
       void decUntravCounter() {
-        untrav_counter -= 1;
-        if (untrav_counter < 0) {
-          untrav_counter = 0;
+        if (!is_experienced) {
+          untrav_counter = std::min(0, untrav_counter);
         }
+        untrav_counter -= 1;
       }
     };
 
@@ -102,7 +107,8 @@ class TravGraph {
     //! @return pointer to inserted node
     Node* addNode(const Node& node);
 
-    void addEdge(const Edge& edge);
+    //! @return pointer to inserted edge
+    Edge* addEdge(const Edge& edge);
 
     auto& getNode(int ind) {
       return nodes_[ind];

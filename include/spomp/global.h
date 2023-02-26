@@ -37,7 +37,8 @@ class Global {
     }
 
     void updateLocalReachability(const Reachability& reachability);
-    void updateOtherLocalReachability(const Reachability& reachability);
+    void updateOtherLocalReachability(
+        const Reachability& reachability, int robot_id);
 
     //! @return The next global target waypoint, if available
     std::optional<Eigen::Vector2f> getNextWaypoint() {
@@ -65,7 +66,11 @@ class Global {
     }
 
     const auto& getReachabilityHistory() const {
-      return reachability_history_;
+      return map_.getReachabilityHistory();
+    }
+
+    bool haveReachabilityForRobotAtStamp(int robot_id, uint64_t stamp) const {
+      return map_.haveReachabilityForRobotAtStamp(robot_id, stamp);
     }
 
   private:
@@ -74,8 +79,6 @@ class Global {
      *********************************************************/
     TravMap map_;
     WaypointManager waypoint_manager_;
-
-    std::vector<Reachability> reachability_history_;
 
     float old_cost_{0};
 };

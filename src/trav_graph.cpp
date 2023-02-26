@@ -60,6 +60,11 @@ std::list<TravGraph::Node*> TravGraph::getPath(
     // We have found a path
     path.push_front(end_n);
     while (path.front() != start_n) {
+      if (path.front()->best_prev_edge->cls > Edge::MAX_TERRAIN) {
+        // We have a bad edge
+        path = {};
+        break;
+      }
       path.push_front(path.front()->best_prev_edge->getOtherNode(path.front()));
     }
   }
@@ -76,6 +81,9 @@ float TravGraph::getPathCost(const std::list<Node*>& path) {
     if (!last_node) {
       last_node = node;
       continue;
+    }
+    if (node->getEdgeToNode(last_node)->cls > Edge::MAX_TERRAIN) {
+      return std::numeric_limits<float>::max();
     }
     cost += node->getEdgeToNode(last_node)->totalCost();
     last_node = node;
@@ -122,28 +130,33 @@ bool TravGraph::updateEdgeFromReachability(TravGraph::Edge& edge,
   }
 
   bool did_map_change = false;
-  if (!edge.is_experienced) {
-    if (edge_exp == Reachability::NOT_TRAV) {
+  if (edge_exp == Reachability::TRAV) {
+    if (edge.is_experienced) {
+      edge.untrav_counter = -params_.num_untrav_before_mark;
+    } else {
       did_map_change = true;
-      // Unreachable cost
-      if (edge.cls == Edge::MAX_TERRAIN + 1) {
-        // Requires two markings in a row to be locked in
-        edge.is_experienced = true;
-      }
-      edge.incUntravCounter();
-      if (edge.untrav_counter >= params_.num_untrav_before_mark) {
-        // 2 strikes and you're out
-        edge.cls = Edge::MAX_TERRAIN + 1;
-      }
-    } else if (edge_exp == Reachability::TRAV) {
-      did_map_change = true;
-      if (edge.cls == 0) {
-        // Requires two markings in a row to be locked in
+      edge.decUntravCounter();
+      if (edge.untrav_counter <= -params_.num_untrav_before_mark) {
+        // Requires multiple markings in a row to be locked in
         edge.is_experienced = true;
       }
       edge.cls = 0;
-      edge.cost = 0;
-      edge.untrav_counter = 0;
+      // Don't want 0 cost so length still matters
+      // Just want very small number
+      edge.cost = -std::log(0.9999);
+    }
+  } else if (edge_exp == Reachability::NOT_TRAV) {
+    // Want to be able to mark untrav even if marked as experienced
+    if (edge.cls == Edge::MAX_TERRAIN + 1) {
+      // Requires two markings in a row to be locked in
+      edge.is_experienced = true;
+    }
+    edge.incUntravCounter();
+    if (edge.untrav_counter >= params_.num_untrav_before_mark) {
+      // enough strikes that you're out
+      did_map_change = true;
+      // Unreachable cost
+      edge.cls = Edge::MAX_TERRAIN + 1;
     }
   }
 
@@ -172,15 +185,20 @@ TravGraph::Node* TravGraph::addNode(const Node& node) {
   return &(it->second);
 }
 
-void TravGraph::addEdge(const Edge& edge) {
-  if (edge.node1 && edge.node2) {
+TravGraph::Edge* TravGraph::addEdge(const Edge& edge) {
+  // Verify that endpoints are valid and edge does not already exist
+  if (edge.node1 && edge.node2 && 
+      !(edge.node1->getEdgeToNode(edge.node2))) 
+  {
     edges_.push_back(edge);
 
     // Add edge to nodes
     Edge* edge_ptr = &edges_.back();
     edge.node1->edges.push_back(edge_ptr);
     edge.node2->edges.push_back(edge_ptr);
+    return edge_ptr;
   }
+  return nullptr;
 }
 
 void TravGraph::reset() {

@@ -17,6 +17,8 @@ bool Global::setGoal(const Eigen::Vector3f& goal) {
   auto path = map_.getPath(*pos, goal.head<2>());
   if (path.size() < 1) {
     // Cannot find path
+    std::cout << "\033[31m" << "[ERROR] Could not find valid path" 
+      << "\033[0m" << std::endl;
     return false;
   }
 
@@ -25,12 +27,12 @@ bool Global::setGoal(const Eigen::Vector3f& goal) {
 }
 
 void Global::updateLocalReachability(const Reachability& reachability) {
-  reachability_history_.push_back(reachability);
-
-  updateOtherLocalReachability(reachability);
+  updateOtherLocalReachability(reachability, 0);
 }
 
-void Global::updateOtherLocalReachability(const Reachability& reachability) {
+void Global::updateOtherLocalReachability(
+    const Reachability& reachability, int robot_id) 
+{
   const auto& cur_path = waypoint_manager_.getPath();
   auto cur_edge = waypoint_manager_.getCurEdge();
   auto cur_node = waypoint_manager_.getNextWaypoint();
@@ -44,7 +46,7 @@ void Global::updateOtherLocalReachability(const Reachability& reachability) {
   }
   float old_cost = map_.getPathCost(cur_path);
 
-  map_.updateLocalReachability(reachability);
+  map_.updateLocalReachability(reachability, robot_id);
 
   // The rest is only relevant if there is an active global path
   if (!waypoint_manager_.havePath()) return;
@@ -57,14 +59,19 @@ void Global::updateOtherLocalReachability(const Reachability& reachability) {
   }
   float new_cost = map_.getPathCost(cur_path);
 
-  if (new_cost > old_cost && last_node) {
+  if ((new_cost > old_cost + 2 || 
+       new_cost > std::pow(1000, TravGraph::Edge::MAX_TERRAIN)-1) && 
+      last_node) 
+  {
     // We get the last waypoint because we want to replan including the current
     // edge, in case the current edge changed traversability
 
     // Replan
     auto new_path = map_.getPath(*last_node, *waypoint_manager_.getPath().back());
     if (new_path.size() < 1) {
-      // No path found
+      // Cannot find path
+      std::cout << "\033[31m" << "[ERROR] Could not find valid path" 
+        << "\033[0m" << std::endl;
       cancel();
     } else {
       waypoint_manager_.setPath(new_path);

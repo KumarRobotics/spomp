@@ -19,9 +19,12 @@ class TravMap {
       bool no_max_terrain_in_graph = true;
       float max_hole_fill_size_m = 1;
       float vis_dist_m = 10;
-      float unvis_start_thresh = 0.1;
-      float unvis_stop_thresh = 0.01;
+      float unvis_start_thresh = 10;
+      float unvis_stop_thresh = 2;
       bool prune = true;
+      float max_prune_edge_dist_m = 20;
+      // Not set directly
+      int num_robots = 1;
     };
     TravMap(const Params& tm_p, const TravGraph::Params& tg_p, 
         const AerialMapInfer::Params& am_p, const MLPModel::Params& mlp_p);
@@ -37,7 +40,7 @@ class TravMap {
     }
     //! @return True if graph changed
     // May want to also flag if aerial map changes
-    bool updateLocalReachability(const Reachability& reachability);
+    bool updateLocalReachability(const Reachability& reachability, int robot_id = 0);
     bool updateEdgeFromReachability(TravGraph::Edge& edge, 
         const TravGraph::Node& start_node, const Reachability& reachability,
         std::optional<Eigen::Vector2f> start_pos = {}) {
@@ -57,6 +60,18 @@ class TravMap {
 
     const cv::Mat getAerialMapTrav() {
       return aerial_map_->viz();
+    }
+
+    const auto& getReachabilityHistory() const {
+      return reach_hist_[0];
+    }
+
+    bool haveReachabilityForRobotAtStamp(int robot_id, uint64_t stamp) const {
+      if (robot_id < reach_hist_.size()) {
+        return reach_hist_[robot_id].count(stamp) > 0;
+      } else {
+        return false;
+      }
     }
 
   private:
@@ -79,6 +94,7 @@ class TravMap {
      * @param t_cls require that intermediate edges be this class or better
      */
     TravGraph::Node* addNode(const Eigen::Vector2f& pos, int t_cls);
+    void addEdge(const TravGraph::Edge& edge);
     //! @return set of neighboring nodes
     std::map<int, Eigen::Vector2f> addNodeToVisibility(const TravGraph::Node& n);
 
@@ -101,6 +117,8 @@ class TravMap {
     TravGraph graph_;
     // This has to be a pointer because AerialMap is a virtual interface class
     std::unique_ptr<AerialMap> aerial_map_;
+
+    std::vector<std::unordered_map<uint64_t, Reachability>> reach_hist_;
 
     Timer* compute_dist_maps_t_;
     Timer* reweight_graph_t_;

@@ -68,8 +68,8 @@ Reachability::EdgeExperience Reachability::analyzeEdge(const Eigen::Vector2f& st
 
     Eigen::Vector2f t = A.householderQr().solve(b);
     // Householder QR will always return something, but have to check whether solution
-    // is correct as well as whether intersection point is on line segs
-    if ((t.array() >= 0).all() && (t.array() <= 1).all() && b.isApprox(A * t)) {
+    // is correct.  Also check if crossing is between endpts
+    if (b.isApprox(A * t) && (t.array() >= 0).all() && (t.array() <= 1).all()) {
       // We have a crossing
       Eigen::Vector2f cross_pt_polar = cart2polar(pt1 + (pt2 - pt1)*t[0]);
       if (std::isnan(crossing_az)) {

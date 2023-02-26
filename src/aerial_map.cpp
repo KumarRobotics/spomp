@@ -58,7 +58,7 @@ AerialMap::EdgeInfo AerialMapPrior::traceEdge(const Eigen::Vector2f& n1,
 
   // We can scale cost however
   // Ideally, want it in range (0, 1)
-  return {worst_cls, (length + std::min<float>(10*cost, 100)*length)/50};
+  return {worst_cls, (1 + std::min<float>(10*cost, 100))/50};
 }
 
 /*********************************************************
@@ -211,11 +211,10 @@ AerialMap::EdgeInfo AerialMapInfer::traceEdge(const Eigen::Vector2f& n1,
     // If everything is unknown, just use a small cost weighted by distance
     // Make small cost so that when we have real costs the cost will
     // increase, forcing a path recomputation
-    total_neg_log_prob = 0.001 * dist / map_ref_frame_.res;
+    total_neg_log_prob = 0.001 / map_ref_frame_.res;
   } else {
-    // Scale by unknown.  Otherwise if we have a mostly unknown edge,
-    // it will have disproportionally low cost
-    total_neg_log_prob *= (num_valid + num_invalid)/num_valid;
+    // Essentially average over the known cells
+    total_neg_log_prob /= (num_valid/map_ref_frame_.res);
   }
 
   return {0, total_neg_log_prob};

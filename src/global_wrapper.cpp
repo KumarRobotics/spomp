@@ -11,7 +11,7 @@ namespace spomp {
 
 std::string GlobalWrapper::odom_frame_{"odom"};
 std::string GlobalWrapper::map_frame_{"map"};
-std::string GlobalWrapper::robot_list_{"robot"};
+std::vector<std::string> GlobalWrapper::other_robot_list_{};
 std::string GlobalWrapper::this_robot_{"robot"};
 
 GlobalWrapper::GlobalWrapper(ros::NodeHandle& nh) : 
@@ -42,8 +42,18 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   WaypointManager::Params wm_params{};
 
   nh.getParam("world_config_path", tm_params.world_config_path);
-  nh.getParam("robot_list", robot_list_);
+  std::string robot_list_str;
+  nh.getParam("robot_list", robot_list_str);
   nh.getParam("this_robot", this_robot_);
+
+  // Parse robot list
+  std::istringstream robots(robot_list_str);
+  std::string robot;
+  while (std::getline(robots, robot, ',')) {
+    if (robot == this_robot_) continue;
+    other_robot_list_.push_back(robot);
+  }
+  tm_params.num_robots = other_robot_list_.size() + 1;
 
   nh.getParam("TM_learn_trav", tm_params.learn_trav);
   nh.getParam("TM_uniform_node_sampling", tm_params.uniform_node_sampling);
@@ -53,6 +63,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   nh.getParam("TM_unvis_start_thresh", tm_params.unvis_start_thresh);
   nh.getParam("TM_unvis_stop_thresh", tm_params.unvis_stop_thresh);
   nh.getParam("TM_prune", tm_params.prune);
+  nh.getParam("TM_max_prune_edge_dist_m", tm_params.max_prune_edge_dist_m);
 
   nh.getParam("TG_reach_node_max_dist_m", tg_params.reach_node_max_dist_m);
   nh.getParam("TG_trav_window_rad", tg_params.trav_window_rad);
@@ -74,7 +85,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   ROS_INFO_STREAM("\033[32m" << "[SPOMP-Global]" << endl << "[ROS] ======== Configuration ========" << 
     endl << left << 
     setw(width) << "[ROS] world_config_path: " << tm_params.world_config_path << endl <<
-    setw(width) << "[ROS] robot_list: " << robot_list_ << endl <<
+    setw(width) << "[ROS] robot_list: " << robot_list_str << endl <<
     setw(width) << "[ROS] this_robot: " << this_robot_ << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] TM_learn_trav: " << tm_params.learn_trav << endl <<
@@ -85,6 +96,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
     setw(width) << "[ROS] TM_unvis_start_thresh: " << tm_params.unvis_start_thresh << endl <<
     setw(width) << "[ROS] TM_unvis_stop_thresh: " << tm_params.unvis_stop_thresh << endl <<
     setw(width) << "[ROS] TM_prune: " << tm_params.prune << endl <<
+    setw(width) << "[ROS] TM_max_prune_edge_dist_m: " << tm_params.max_prune_edge_dist_m << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] AM_inference_thread_period_ms: " << am_params.inference_thread_period_ms << endl <<
     setw(width) << "[ROS] AM_trav_thresh: " << am_params.trav_thresh << endl <<
@@ -114,17 +126,14 @@ void GlobalWrapper::initialize() {
   reachability_sub_ = nh_.subscribe("reachability", 5, 
       &GlobalWrapper::reachabilityCallback, this);
 
-  std::istringstream robots(robot_list_);
-  std::string robot;
-  int id = 0;
-  while (std::getline(robots, robot, ',')) {
-    if (robot == this_robot_) continue;
+  // Start at 1 since this robot is 0
+  int id = 1;
+  for (const auto& robot : other_robot_list_) {
     other_robot_reachability_subs_.push_back(nh_.subscribe<LocalReachabilityArray>(
           "/" + robot + "/spomp_global/reachability_history", 5, 
           std::bind(&GlobalWrapper::otherReachabilityCallback, this, id, std::placeholders::_1)));
     ++id;
   }
-  other_reachability_list_.resize(id);
 
   global_navigate_as_.registerGoalCallback(
       std::bind(&GlobalWrapper::globalNavigateGoalCallback, this));
@@ -223,12 +232,11 @@ void GlobalWrapper::otherReachabilityCallback(int robot_id,
   bool updates_occurred = false;
   for (const auto& reach : reachability_msg->reachabilities) {
     uint64_t stamp = reach.reachability.header.stamp.toNSec();
-    if (other_reachability_list_[robot_id].count(stamp) == 0) {
+    if (!global_.haveReachabilityForRobotAtStamp(robot_id, stamp)) {
       // We haven't seen this reachability scan before
       Reachability reachability = ConvertFromROS(reach.reachability);
       reachability.setPose(ROS2Eigen<float>(reach.pose));
-      global_.updateOtherLocalReachability(reachability);
-      other_reachability_list_[robot_id].insert(stamp);
+      global_.updateOtherLocalReachability(reachability, robot_id);
       updates_occurred = true;
     }
   }
@@ -307,10 +315,10 @@ void GlobalWrapper::publishReachabilityHistory() {
 
   LocalReachabilityArray lra_msg;
   lra_msg.reachabilities.reserve(reach_hist.size());
-  for (const auto& reachability : reach_hist) {
+  for (const auto& [stamp, reach] : reach_hist) {
     LocalReachability lr_msg; 
-    lr_msg.reachability = Convert2ROS(reachability);
-    lr_msg.pose = Eigen2ROS2D(reachability.getPose());
+    lr_msg.reachability = Convert2ROS(reach);
+    lr_msg.pose = Eigen2ROS2D(reach.getPose());
     lra_msg.reachabilities.push_back(lr_msg);
   }
 
@@ -343,7 +351,7 @@ void GlobalWrapper::visualizeGraph(const ros::Time& stamp) {
 
     std_msgs::ColorRGBA color;
     color.a = 1;
-    float color_mag = std::min<float>(1./edge.cost, 1);
+    float color_mag = std::min<float>(1./(edge.cost*edge.length), 1);
     if (edge.cls == 0) {
       if (edge.is_experienced) {
         color.g = color_mag;
@@ -363,7 +371,7 @@ void GlobalWrapper::visualizeGraph(const ros::Time& stamp) {
 
     if (edge.is_experienced && edge.cls > 0) {
       // Known bad
-      color.r = color_mag;
+      color.r = 1;
     }
     // Otherwise leave black
 

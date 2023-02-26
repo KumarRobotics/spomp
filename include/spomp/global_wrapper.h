@@ -77,13 +77,11 @@ class GlobalWrapper {
     Eigen::Vector2f last_goal_{0, 0};
     bool using_action_server_{false};
 
-    std::vector<std::set<uint64_t>> other_reachability_list_{};
-
     // Config related
     // Static because read in static functions
     static std::string odom_frame_;
     static std::string map_frame_;
-    static std::string robot_list_;
+    static std::vector<std::string> other_robot_list_;
     static std::string this_robot_;
 };
 
