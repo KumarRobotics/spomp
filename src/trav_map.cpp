@@ -465,6 +465,21 @@ std::map<int, Eigen::Vector2f> TravMap::addNodeToVisibility(const TravGraph::Nod
   return overlapping_nodes;
 }
 
+void TravMap::resetGraphAroundPoint(const Eigen::Vector2f& pt) {
+  auto nodes = graph_.getNodesNear(pt, params_.recover_reset_dist_m); 
+
+  for (auto& node : nodes) {
+    for (auto& edge : node->edges) {
+      // Only reweight if we don't already have first-hand experience
+      auto edge_info = aerial_map_->traceEdge(edge->node1->pos, edge->node2->pos);
+      edge->cls = edge_info.cls;
+      edge->cost = edge_info.cost;
+      edge->is_experienced = false;
+      edge->untrav_counter = 0;
+    }
+  }
+}
+
 cv::Mat TravMap::viz() const {
   cv::Mat viz;
   if (map_.empty()) {

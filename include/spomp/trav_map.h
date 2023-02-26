@@ -23,6 +23,7 @@ class TravMap {
       float unvis_stop_thresh = 2;
       bool prune = true;
       float max_prune_edge_dist_m = 20;
+      float recover_reset_dist_m = 10;
       // Not set directly
       int num_robots = 1;
     };
@@ -46,6 +47,8 @@ class TravMap {
         std::optional<Eigen::Vector2f> start_pos = {}) {
       return graph_.updateEdgeFromReachability(edge, start_node, reachability, start_pos);
     }
+
+    void resetGraphAroundPoint(const Eigen::Vector2f& pt);
 
     cv::Mat viz() const;
     cv::Mat viz_visibility() const;

@@ -15,6 +15,8 @@
   <arg name="TM_unvis_start_thresh" default="0.1"/>
   <arg name="TM_unvis_stop_thresh" default="0.01"/>
   <arg name="TM_prune" default="True"/>
+  <arg name="TM_max_prune_edge_dist_m" default="20"/>
+  <arg name="TM_recover_reset_dist_m" default="10"/>
 
   <arg name="TG_reach_node_max_dist_m" default="4"/>
   <arg name="TG_trav_window_rad" default="0.1"/>
@@ -51,6 +53,8 @@
     <param name="TM_unvis_start_thresh" value="$(arg TM_unvis_start_thresh)"/>
     <param name="TM_unvis_stop_thresh" value="$(arg TM_unvis_stop_thresh)"/>
     <param name="TM_prune" value="$(arg TM_prune)"/>
+    <param name="TM_max_prune_edge_dist_m" value="$(arg TM_max_prune_edge_dist_m)"/>
+    <param name="TM_recover_reset_dist_m" value="$(arg TM_recover_reset_dist_m)"/>
 
     <param name="TG_reach_node_max_dist_m" value="$(arg TG_reach_node_max_dist_m)"/>
     <param name="TG_trav_window_rad" value="$(arg TG_trav_window_rad)"/>

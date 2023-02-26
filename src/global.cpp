@@ -17,7 +17,7 @@ bool Global::setGoal(const Eigen::Vector3f& goal) {
   auto path = map_.getPath(*pos, goal.head<2>());
   if (path.size() < 1) {
     // Cannot find path
-    std::cout << "\033[31m" << "[ERROR] Could not find valid path" 
+    std::cout << "\033[31m" << "[SPOMP-Global] [ERROR] Could not find valid path" 
       << "\033[0m" << std::endl;
     return false;
   }
@@ -69,10 +69,21 @@ void Global::updateOtherLocalReachability(
     // Replan
     auto new_path = map_.getPath(*last_node, *waypoint_manager_.getPath().back());
     if (new_path.size() < 1) {
-      // Cannot find path
-      std::cout << "\033[31m" << "[ERROR] Could not find valid path" 
+      std::cout << "\033[31m" << "[SPOMP-Global] Attemping to reset local graph" 
         << "\033[0m" << std::endl;
-      cancel();
+      if (waypoint_manager_.getPos()) {
+        map_.resetGraphAroundPoint(*waypoint_manager_.getPos());
+        new_path = map_.getPath(*last_node, *waypoint_manager_.getPath().back());
+      }
+
+      if (new_path.size() < 1) {
+        // Cannot find path
+        std::cout << "\033[31m" << "[SPOMP-Global] [ERROR] Could not find valid path" 
+          << "\033[0m" << std::endl;
+        cancel();
+      } else {
+        waypoint_manager_.setPath(new_path);
+      }
     } else {
       waypoint_manager_.setPath(new_path);
       waypoint_manager_.advancePlan();

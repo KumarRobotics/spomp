@@ -64,6 +64,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   nh.getParam("TM_unvis_stop_thresh", tm_params.unvis_stop_thresh);
   nh.getParam("TM_prune", tm_params.prune);
   nh.getParam("TM_max_prune_edge_dist_m", tm_params.max_prune_edge_dist_m);
+  nh.getParam("TM_recover_reset_dist_m", tm_params.recover_reset_dist_m);
 
   nh.getParam("TG_reach_node_max_dist_m", tg_params.reach_node_max_dist_m);
   nh.getParam("TG_trav_window_rad", tg_params.trav_window_rad);
@@ -97,6 +98,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
     setw(width) << "[ROS] TM_unvis_stop_thresh: " << tm_params.unvis_stop_thresh << endl <<
     setw(width) << "[ROS] TM_prune: " << tm_params.prune << endl <<
     setw(width) << "[ROS] TM_max_prune_edge_dist_m: " << tm_params.max_prune_edge_dist_m << endl <<
+    setw(width) << "[ROS] TM_recover_reset_dist_m: " << tm_params.recover_reset_dist_m << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] AM_inference_thread_period_ms: " << am_params.inference_thread_period_ms << endl <<
     setw(width) << "[ROS] AM_trav_thresh: " << am_params.trav_thresh << endl <<
