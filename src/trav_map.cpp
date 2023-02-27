@@ -188,7 +188,12 @@ std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,
 
 bool TravMap::updateLocalReachability(const Reachability& reachability, int robot_id) {
   if (robot_id < reach_hist_.size()) {
-    reach_hist_[robot_id].insert({reachability.getStamp(), reachability});
+    if (reach_hist_[robot_id].size() == 0 || 
+        (reach_hist_[robot_id].cbegin()->second.getPose().translation() - 
+         reachability.getPose().translation()).norm() > 2) 
+    {
+      reach_hist_[robot_id].insert({reachability.getStamp(), reachability});
+    }
   }
   aerial_map_->updateLocalReachability(reachability);
   if (aerial_map_->haveNewTrav()) {
