@@ -35,6 +35,7 @@ GlobalWrapper::GlobalWrapper(ros::NodeHandle& nh) :
 }
 
 Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
+  Global::Params g_params{};
   TravMap::Params tm_params{};
   TravGraph::Params tg_params{};
   AerialMapInfer::Params am_params{};
@@ -54,6 +55,9 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
     other_robot_list_.push_back(robot);
   }
   tm_params.num_robots = other_robot_list_.size() + 1;
+
+  nh.getParam("G_max_num_recovery_reset", g_params.max_num_recovery_reset);
+  nh.getParam("G_timeout_duration_s_per_m", g_params.timeout_duration_s_per_m);
 
   nh.getParam("TM_learn_trav", tm_params.learn_trav);
   nh.getParam("TM_uniform_node_sampling", tm_params.uniform_node_sampling);
@@ -80,6 +84,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   nh.getParam("MLP_regularization", mlp_params.regularization);
 
   nh.getParam("WM_waypoint_thresh_m", wm_params.waypoint_thresh_m);
+  nh.getParam("WM_shortcut_thresh_m", wm_params.shortcut_thresh_m);
 
   constexpr int width = 30;
   using namespace std;
@@ -88,6 +93,9 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
     setw(width) << "[ROS] world_config_path: " << tm_params.world_config_path << endl <<
     setw(width) << "[ROS] robot_list: " << robot_list_str << endl <<
     setw(width) << "[ROS] this_robot: " << this_robot_ << endl <<
+    "[ROS] ===============================" << endl <<
+    setw(width) << "[ROS] G_max_num_recovery_reset: " << g_params.max_num_recovery_reset << endl <<
+    setw(width) << "[ROS] G_timeout_duration_s_per_m: " << g_params.timeout_duration_s_per_m << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] TM_learn_trav: " << tm_params.learn_trav << endl <<
     setw(width) << "[ROS] TM_uniform_node_sampling: " << tm_params.uniform_node_sampling << endl <<
@@ -114,9 +122,10 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
     setw(width) << "[ROS] TG_num_untrav_before_mark: " << tg_params.num_untrav_before_mark << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] WM_waypoint_thresh_m: " << wm_params.waypoint_thresh_m << endl <<
+    setw(width) << "[ROS] WM_shortcut_thresh_m: " << wm_params.shortcut_thresh_m << endl <<
     "[ROS] ====== End Configuration ======" << "\033[0m");
 
-  return Global(tm_params, tg_params, am_params, mlp_params, wm_params);
+  return Global(g_params, tm_params, tg_params, am_params, mlp_params, wm_params);
 }
 
 void GlobalWrapper::initialize() {
@@ -191,6 +200,7 @@ void GlobalWrapper::poseCallback(const geometry_msgs::PoseStamped::ConstPtr& pos
   publishLocalGoal(pose_msg->header.stamp);
 
   if (path_complete && using_action_server_) {
+    timeout_timer_.stop();
     spomp::GlobalNavigateResult result;
     result.status = spomp::GlobalNavigateResult::SUCCESS;
     global_navigate_as_.setSucceeded(result);
@@ -214,13 +224,15 @@ void GlobalWrapper::reachabilityCallback(
         "map", reachability_msg->header.frame_id, reachability_msg->header.stamp, 
         ros::Duration(0.01));
   } catch (tf2::TransformException& ex) {
-    ROS_ERROR_STREAM("Cannot get reachability pano pose: " << ex.what());
+    ROS_ERROR_STREAM("[SPOMP-Global] Cannot get reachability pano pose: " << ex.what());
     return;
   }
   Reachability reachability = ConvertFromROS(*reachability_msg);
   reachability.setPose(pose32pose2(ROS2Eigen<float>(reach_pose_msg)));
 
-  global_.updateLocalReachability(reachability);
+  if (!global_.updateLocalReachability(reachability)) {
+    globalNavigateSetFailed();
+  }
   visualizePath(reachability_msg->header.stamp);
   visualizeGraph(reachability_msg->header.stamp);
   visualizeAerialMap(reachability_msg->header.stamp);
@@ -238,7 +250,10 @@ void GlobalWrapper::otherReachabilityCallback(int robot_id,
       // We haven't seen this reachability scan before
       Reachability reachability = ConvertFromROS(reach.reachability);
       reachability.setPose(ROS2Eigen<float>(reach.pose));
-      global_.updateOtherLocalReachability(reachability, robot_id);
+
+      if (!global_.updateOtherLocalReachability(reachability, robot_id)) {
+        globalNavigateSetFailed();
+      }
       updates_occurred = true;
     }
   }
@@ -246,6 +261,18 @@ void GlobalWrapper::otherReachabilityCallback(int robot_id,
   if (updates_occurred) {
     visualizePath(ros::Time::now());
     visualizeGraph(ros::Time::now());
+  }
+}
+
+void GlobalWrapper::timeoutTimerCallback(const ros::TimerEvent& event) {
+  global_.cancel();
+  cancelLocalPlanner();
+  visualizePath(ros::Time::now());
+  if (using_action_server_) {
+    timeout_timer_.stop();
+    spomp::GlobalNavigateResult result;
+    result.status = spomp::GlobalNavigateResult::TIMEOUT;
+    global_navigate_as_.setAborted(result);
   }
 }
 
@@ -259,15 +286,37 @@ void GlobalWrapper::globalNavigateGoalCallback() {
     spomp::GlobalNavigateResult result;
     result.status = spomp::GlobalNavigateResult::NO_PATH;
     global_navigate_as_.setAborted(result);
+  } else {
+    // Start timer
+    float duration = global_.getTimeoutDuration();
+    if (duration > 0) {
+      timeout_timer_ = nh_.createTimer(ros::Duration(duration), 
+          &GlobalWrapper::timeoutTimerCallback, this, true);
+    }
   }
 }
 
 void GlobalWrapper::globalNavigatePreemptCallback() {
   // Stop was commanded
   global_.cancel();
+  cancelLocalPlanner();
+  visualizePath(ros::Time::now());
+  timeout_timer_.stop();
   spomp::GlobalNavigateResult result;
   result.status = spomp::GlobalNavigateResult::CANCELLED;
   global_navigate_as_.setPreempted(result);
+}
+
+void GlobalWrapper::globalNavigateSetFailed() {
+  global_.cancel();
+  cancelLocalPlanner();
+  visualizePath(ros::Time::now());
+  if (using_action_server_) {
+    timeout_timer_.stop();
+    spomp::GlobalNavigateResult result;
+    result.status = spomp::GlobalNavigateResult::FAILED;
+    global_navigate_as_.setAborted(result);
+  }
 }
 
 // Shared callback for action and simple interfaces
@@ -310,6 +359,20 @@ void GlobalWrapper::publishLocalGoal(const ros::Time& stamp) {
 
     last_goal_ = *cur_goal;
   }
+}
+
+void GlobalWrapper::cancelLocalPlanner() {
+  auto pos = global_.getPos();
+  if (!pos) return;
+
+  // Send goal of current pose to effectively cancel
+  geometry_msgs::PoseStamped local_goal_msg;
+  local_goal_msg.header.stamp = ros::Time::now();
+  local_goal_msg.header.frame_id = map_frame_;
+  local_goal_msg.pose.position.x = (*pos)[0];
+  local_goal_msg.pose.position.y = (*pos)[1];
+  local_goal_msg.pose.orientation.w = 1;
+  local_goal_pub_.publish(local_goal_msg);
 }
 
 void GlobalWrapper::publishReachabilityHistory() {

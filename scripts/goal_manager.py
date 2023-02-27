@@ -2,12 +2,12 @@
 import threading
 import numpy as np
 import rospy
-import tf2_ros
-import tf2_geometry_msgs
+#import tf2_ros
+#import tf2_geometry_msgs
 import actionlib
 from visualization_msgs.msg import Marker
 from std_msgs.msg import Bool, ColorRGBA
-from geometry_msgs.msg import PoseArray, Pose, PointStamped, PoseStamped, Point
+from geometry_msgs.msg import PoseArray, Pose, PointStamped, PoseStamped, Point, PoseWithCovarianceStamped
 from spomp.msg import GlobalNavigateAction, GlobalNavigateGoal, GlobalNavigateResult
 from nav_msgs.msg import Path
 from functools import partial
@@ -26,18 +26,18 @@ class GoalManager:
         self.current_loc_ = None
         self.lock_ = threading.Lock()
 
-        self.tf_buffer_ = tf2_ros.Buffer()
-        self.tf_listener_ = tf2_ros.TransformListener(self.tf_buffer_)
+        #self.tf_buffer_ = tf2_ros.Buffer()
+        #self.tf_listener_ = tf2_ros.TransformListener(self.tf_buffer_)
 
         self.min_goal_dist_m_ = rospy.get_param("~min_goal_dist_m", default=5)
 
-        self.add_goal_point_sub_ = rospy.Subscriber("~add_goal_point", PointStamped, 
+        self.add_goal_point_sub_ = rospy.Subscriber("~add_goal_point", PoseWithCovarianceStamped, 
                 self.add_goal_point_cb)
         self.target_goals_sub_ = rospy.Subscriber("~target_goals", PoseArray, 
                 self.target_goals_cb)
         self.navigate_status_sub_ = rospy.Subscriber("~navigate_status", Bool, 
                 self.navigate_status_cb)
-        self.pose_sub_ = rospy.Subscriber("~pose", PoseStamped, self.pose_cb)
+        self.pose_sub_ = rospy.Subscriber("~pose", PoseWithCovarianceStamped, self.pose_cb)
 
         # Subscribers for goals of other robots
         robots = rospy.get_param("~robot_list").split(',')
@@ -57,7 +57,7 @@ class GoalManager:
         self.claimed_goals_msg_ = PoseArray()
         self.claimed_goals_pub_ = rospy.Publisher("~claimed_goals", PoseArray, queue_size=1)
         self.goal_viz_pub_ = rospy.Publisher("~goal_viz", Marker, queue_size=1)
-        self.navigate_client_ = actionlib.SimpleActionClient('/spomp_global/navigate', GlobalNavigateAction)
+        self.navigate_client_ = actionlib.SimpleActionClient('spomp_global/navigate', GlobalNavigateAction)
 
         rospy.loginfo("Waiting for spomp action server...")
         self.navigate_client_.wait_for_server()
@@ -108,13 +108,14 @@ class GoalManager:
 
     def add_goal_point_cb(self, goal_msg):
         try:
-            trans_goal = self.tf_buffer_.transform(goal_msg, "map")
+            trans_goal = goal_msg
+            #trans_goal = self.tf_buffer_.transform(goal_msg, "map")
         except Exception as ex:
             rospy.logwarn(f"Cannot transform goals: {ex}")
             return
         self.lock_.acquire()
 
-        goal_pt = np.array([trans_goal.point.x, trans_goal.point.y])
+        goal_pt = np.array([trans_goal.pose.pose.position.x, trans_goal.pose.pose.position.y])
 
         # This is the simple interface, so do allow to manually add any goal
         self.goal_list_ = np.vstack([self.goal_list_, goal_pt])
@@ -129,7 +130,8 @@ class GoalManager:
             try:
                 # Have to transform a PoseStamped, not a PoseArray
                 goal_msg.pose = goal_pose
-                trans_goal = self.tf_buffer_.transform(goal_msg, "map")
+                trans_goal = goal_msg
+                #trans_goal = self.tf_buffer_.transform(goal_msg, "map")
                 goal_pt = np.array([trans_goal.pose.position.x, trans_goal.pose.position.y])
 
                 if self.goal_list_.shape[0] > 0:
@@ -148,11 +150,13 @@ class GoalManager:
         self.lock_.release()
 
     def pose_cb(self, pose_msg):
-        try:
-            trans_pose = self.tf_buffer_.transform(pose_msg, "map")
-        except Exception as ex:
-            rospy.logwarn(f"Cannot transform pose: {ex}")
-            return
+        trans_pose = pose_msg.pose
+        #try:
+        #    trans_pose = pose_msg
+        #    #trans_pose = self.tf_buffer_.transform(pose_msg, "map")
+        #except Exception as ex:
+        #    rospy.logwarn(f"Cannot transform pose: {ex}")
+        #    return
         self.lock_.acquire()
 
         self.current_loc_ = np.array([trans_pose.pose.position.x,
@@ -206,10 +210,11 @@ class GoalManager:
                         cur_goal_msg.goal.pose.position.y = self.start_loc_[1]
                         cur_goal_msg.goal.pose.orientation.w = 1
                         # don't send with callback, since we don't care about status
-                        self.navigate_client_.send_goal(cur_goal_msg)
+                        self.navigate_client_.send_goal(cur_goal_msg, done_cb=self.navigate_status_cb)
 
                 # no other goals available, so let's try failed ones again
-                self.failed_goals_ = np.zeros((0, 2))
+                if not self.rtls_:
+                    self.failed_goals_ = np.zeros((0, 2))
         self.visualize()
         self.lock_.release()
 
@@ -239,17 +244,25 @@ class GoalManager:
 
     def navigate_status_cb(self, status_msg, result_msg):
         self.lock_.acquire()
-        if result_msg.status == GlobalNavigateResult.SUCCESS:
-            self.rtls_ = False
+        self.rtls_ = False
 
         if self.current_goal_ is not None:
             # Add to visited targets
             if result_msg.status == GlobalNavigateResult.SUCCESS:
                 self.visited_goals_ = np.vstack([self.visited_goals_, self.current_goal_[None,:]])
 
-            if result_msg.status == GlobalNavigateResult.TIMEOUT or \
+            if result_msg.status == GlobalNavigateResult.FAILED or \
+               result_msg.status == GlobalNavigateResult.TIMEOUT or \
                result_msg.status == GlobalNavigateResult.NO_PATH:
-                rospy.logerr("Failed to get to goal")
+                reason = "other"
+                if result_msg.status == GlobalNavigateResult.FAILED:
+                    reason = "failed"
+                elif result_msg.status == GlobalNavigateResult.TIMEOUT:
+                    reason = "timeout"
+                elif result_msg.status == GlobalNavigateResult.NO_PATH:
+                    reason = "no_path"
+                rospy.logerr(f"Failed to get to goal: {reason}")
+
                 # did not get to goal successfully
                 self.failed_goals_ = np.vstack([self.failed_goals_, self.current_goal_[None,:]])
                 self.claimed_goals_msg_.header.stamp = rospy.Time.now()

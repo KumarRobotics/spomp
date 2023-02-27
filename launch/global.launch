@@ -7,6 +7,9 @@
   <arg name="this_robot" default="robot"/>
   <arg name="aerial_map_ns" default="titan"/>
 
+  <arg name="G_max_num_recovery_reset" default="1"/>
+  <arg name="G_timeout_duration_s_per_m" default="3"/>
+
   <arg name="TM_learn_trav" default="False"/>
   <arg name="TM_uniform_node_sampling" default="False"/>
   <arg name="TM_no_max_terrain_in_graph" default="True"/>
@@ -32,6 +35,7 @@
   <arg name="MLP_regularization" default="0.01"/>
 
   <arg name="WM_waypoint_thresh_m" default="2.5"/>
+  <arg name="WM_shortcut_thresh_m" default="0.5"/>
 
   <node pkg="spomp" type="node_global" name="spomp_global" output="$(arg output)">
     <!-- Remappings -->
@@ -44,6 +48,9 @@
     <param name="world_config_path" value="$(arg world_config_path)"/>
     <param name="robot_list" value="$(arg robot_list)"/>
     <param name="this_robot" value="$(arg this_robot)"/>
+
+    <param name="G_max_num_recovery_reset" value="$(arg G_max_num_recovery_reset)"/>
+    <param name="G_timeout_duration_s_per_m" value="$(arg G_timeout_duration_s_per_m)"/>
 
     <param name="TM_learn_trav" value="$(arg TM_learn_trav)"/>
     <param name="TM_uniform_node_sampling" value="$(arg TM_uniform_node_sampling)"/>
@@ -70,5 +77,6 @@
     <param name="MLP_regularization" value="$(arg MLP_regularization)"/>
 
     <param name="WM_waypoint_thresh_m" value="$(arg WM_waypoint_thresh_m)"/>
+    <param name="WM_shortcut_thresh_m" value="$(arg WM_shortcut_thresh_m)"/>
   </node>
 </launch>

@@ -19,6 +19,7 @@ bool WaypointManager::setState(const Eigen::Vector2f& pos) {
     return false;
   }
 
+  checkForShortcuts(pos);
   // Check if we are within threshold of end
   if ((*robot_pos_ - (*next_node_)->pos).norm() < params_.waypoint_thresh_m) {
     if (cur_edge_) {
@@ -29,6 +30,30 @@ bool WaypointManager::setState(const Eigen::Vector2f& pos) {
     return advancePlan();
   }
   return false;
+}
+
+void WaypointManager::checkForShortcuts(const Eigen::Vector2f& pos) {
+  const TravGraph::Node* last_node = nullptr;
+  for (auto node_it=next_node_; node_it!=path_.end(); ++node_it) {
+    if (!last_node) {
+      last_node = *node_it;
+      continue;
+    }
+    auto edge = (*node_it)->getEdgeToNode(last_node);
+    if (!edge) break;
+
+    Eigen::Vector2f seg = edge->node2->pos - edge->node1->pos;
+    Eigen::Vector2f pt_vec = pos - edge->node1->pos;
+    float proj_mag = seg.normalized().dot(pt_vec);
+    if (proj_mag >= 0 && proj_mag <= seg.norm()) {
+      // We are between the line seg endpoints
+      float dist = pt_vec.norm() - proj_mag;
+      if (dist < params_.shortcut_thresh_m) {
+        next_node_ = node_it;
+        cur_edge_ = edge;
+      }
+    }
+  }
 }
 
 bool WaypointManager::advancePlan() {

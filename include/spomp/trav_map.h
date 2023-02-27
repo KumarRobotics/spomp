@@ -36,8 +36,11 @@ class TravMap {
         const Eigen::Vector2f& end_p);
     std::list<TravGraph::Node*> getPath(TravGraph::Node& start_n,
         TravGraph::Node& end_n);
-    float getPathCost(const std::list<TravGraph::Node*>& path) {
+    float getPathCost(const std::list<TravGraph::Node*>& path) const {
       return graph_.getPathCost(path);
+    }
+    float getPathLength(const std::list<TravGraph::Node*>& path) const {
+      return graph_.getPathLength(path);
     }
     //! @return True if graph changed
     // May want to also flag if aerial map changes

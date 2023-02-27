@@ -389,7 +389,7 @@ void LocalWrapper::visualizeGoals(const ros::Time& stamp) {
       marker.ns = "global_goal";
       marker.type = visualization_msgs::Marker::SPHERE;
       marker.action = visualization_msgs::Marker::ADD;
-      marker.scale.x = marker.scale.y = marker.scale.z = 0.5;
+      marker.scale.x = marker.scale.y = marker.scale.z = 3;
       marker.pose.orientation.w = 1;
       marker.color.a = 1;
       marker.color.r = 1;
@@ -405,7 +405,7 @@ void LocalWrapper::visualizeGoals(const ros::Time& stamp) {
       marker.ns = "local_goal";
       marker.type = visualization_msgs::Marker::SPHERE;
       marker.action = visualization_msgs::Marker::ADD;
-      marker.scale.x = marker.scale.y = marker.scale.z = 0.5;
+      marker.scale.x = marker.scale.y = marker.scale.z = 2;
       marker.pose.orientation.w = 1;
       marker.color.a = 1;
       marker.color.g = 1;

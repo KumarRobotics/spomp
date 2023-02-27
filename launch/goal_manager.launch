@@ -2,17 +2,19 @@
 <launch>
   <arg name="find_obj" default="False"/>
   <arg name="robot_list" default="europa,callisto,io"/>
+  <arg name="this_robot" default="europa"/>
+  <arg name="output" default="screen"/>
 
-  <node pkg="spomp" type="goal_manager.py" name="goal_manager" output="screen">
+  <node pkg="spomp" type="goal_manager.py" name="goal_manager" output="$(arg output)">
     <!-- Remappings -->
-    <remap from="~add_goal_point" to="/clicked_point"/>
-    <remap from="~pose" to="/os_node/llol_odom/pose"/>
+    <remap from="~add_goal_point" to="/initialpose"/>
+    <remap from="~pose" to="spomp_mapper/global_est"/>
     <remap from="~target_goals" to="/groundstation/target_goals"/>
 
     <!-- Params -->
     <param name="~robot_list" value="$(arg robot_list)"/>
-    <param name="~this_robot" value="$(env ROBOT_NAME)"/>
+    <param name="~this_robot" value="$(arg this_robot)"/>
   </node>
 
-  <node pkg="spomp" type="find_object_goal_gen.py" name="find_object_goal_gen" output="screen" if="$(arg find_obj)"/>
+  <node pkg="spomp" type="find_object_goal_gen.py" name="find_object_goal_gen" output="$(arg output)" if="$(arg find_obj)"/>
 </launch>

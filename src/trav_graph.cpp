@@ -73,16 +73,17 @@ std::list<TravGraph::Node*> TravGraph::getPath(
   return path;
 }
 
-float TravGraph::getPathCost(const std::list<Node*>& path) {
+float TravGraph::getPathCost(const std::list<Node*>& path) const {
   float cost = 0;
 
   const Node* last_node = nullptr;
   for (const auto& node : path) {
-    if (!last_node) {
+    if (!last_node || last_node == node) {
       last_node = node;
       continue;
     }
-    if (node->getEdgeToNode(last_node)->cls > Edge::MAX_TERRAIN) {
+    auto edge = node->getEdgeToNode(last_node);
+    if (!edge || edge->cls > Edge::MAX_TERRAIN) {
       return std::numeric_limits<float>::max();
     }
     cost += node->getEdgeToNode(last_node)->totalCost();
@@ -90,6 +91,27 @@ float TravGraph::getPathCost(const std::list<Node*>& path) {
   }
 
   return cost;
+}
+
+float TravGraph::getPathLength(const std::list<Node*>& path) const {
+  float length = 0;
+
+  const Node* last_node = nullptr;
+  for (const auto& node : path) {
+    if (!last_node || last_node == node) {
+      last_node = node;
+      continue;
+    }
+    auto edge = node->getEdgeToNode(last_node);
+    if (edge) {
+      length += edge->length;
+    } else {
+      return std::numeric_limits<float>::max();
+    }
+    last_node = node;
+  }
+
+  return length;
 }
 
 bool TravGraph::updateLocalReachability(const Reachability& reachability)

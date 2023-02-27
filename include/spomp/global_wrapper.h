@@ -33,10 +33,13 @@ class GlobalWrapper {
     void otherReachabilityCallback(int robot_id, 
         const LocalReachabilityArray::ConstPtr& reachability_msg);
     bool setGoal(const geometry_msgs::PoseStamped& goal_msg);
+    void timeoutTimerCallback(const ros::TimerEvent& event);
     void globalNavigateGoalCallback();
     void globalNavigatePreemptCallback();
+    void globalNavigateSetFailed();
 
     void publishLocalGoal(const ros::Time& stamp);
+    void cancelLocalPlanner();
     void publishReachabilityHistory();
     void visualizeGraph(const ros::Time& stamp);
     void visualizePath(const ros::Time& stamp);
@@ -65,6 +68,9 @@ class GlobalWrapper {
     ros::Subscriber goal_sub_;
     ros::Subscriber reachability_sub_;
     std::vector<ros::Subscriber> other_robot_reachability_subs_;
+
+    // Timers
+    ros::Timer timeout_timer_;
     
     // Action server
     actionlib::SimpleActionServer<spomp::GlobalNavigateAction> global_navigate_as_;

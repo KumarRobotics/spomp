@@ -96,7 +96,8 @@ class TravGraph {
     //! Djikstra shortest-path solver
     std::list<Node*> getPath(Node* const start_n, Node* const end_n);
 
-    float getPathCost(const std::list<Node*>& path);
+    float getPathCost(const std::list<Node*>& path) const;
+    float getPathLength(const std::list<Node*>& path) const;
 
     //! @return True if map changed
     bool updateLocalReachability(const Reachability& reachability);

@@ -2,10 +2,13 @@
 
 namespace spomp {
 
-Global::Global(const TravMap::Params& tm_p, const TravGraph::Params& tg_p, 
-    const AerialMapInfer::Params& am_p, const MLPModel::Params& mlp_p,
-    const WaypointManager::Params& wm_p) : 
-  map_(tm_p, tg_p, am_p, mlp_p), waypoint_manager_(wm_p) {}
+Global::Global(const Params& g_p, 
+               const TravMap::Params& tm_p, 
+               const TravGraph::Params& tg_p, 
+               const AerialMapInfer::Params& am_p, 
+               const MLPModel::Params& mlp_p,
+               const WaypointManager::Params& wm_p) : 
+  params_(g_p), map_(tm_p, tg_p, am_p, mlp_p), waypoint_manager_(wm_p) {}
 
 bool Global::setGoal(const Eigen::Vector3f& goal) {
   auto pos = waypoint_manager_.getPos();
@@ -14,6 +17,7 @@ bool Global::setGoal(const Eigen::Vector3f& goal) {
     return false;
   }
 
+  num_recovery_reset_ = 0;
   auto path = map_.getPath(*pos, goal.head<2>());
   if (path.size() < 1) {
     // Cannot find path
@@ -26,11 +30,11 @@ bool Global::setGoal(const Eigen::Vector3f& goal) {
   return true;
 }
 
-void Global::updateLocalReachability(const Reachability& reachability) {
-  updateOtherLocalReachability(reachability, 0);
+bool Global::updateLocalReachability(const Reachability& reachability) {
+  return updateOtherLocalReachability(reachability, 0);
 }
 
-void Global::updateOtherLocalReachability(
+bool Global::updateOtherLocalReachability(
     const Reachability& reachability, int robot_id) 
 {
   const auto& cur_path = waypoint_manager_.getPath();
@@ -49,7 +53,9 @@ void Global::updateOtherLocalReachability(
   map_.updateLocalReachability(reachability, robot_id);
 
   // The rest is only relevant if there is an active global path
-  if (!waypoint_manager_.havePath()) return;
+  // Returning true is a bit weird here, but is essentially because the plan
+  // did not fail, we just do not have a plan at the moment
+  if (!waypoint_manager_.havePath()) return true;
 
   if (cur_edge && cur_edge->cls == last_cur_edge_cls) {
     // Check this edge on the basis of checking traversability from current position
@@ -73,14 +79,16 @@ void Global::updateOtherLocalReachability(
         << "\033[0m" << std::endl;
       if (waypoint_manager_.getPos()) {
         map_.resetGraphAroundPoint(*waypoint_manager_.getPos());
+        ++num_recovery_reset_;
         new_path = map_.getPath(*last_node, *waypoint_manager_.getPath().back());
       }
 
-      if (new_path.size() < 1) {
+      if (new_path.size() < 1 || num_recovery_reset_ > params_.max_num_recovery_reset) {
         // Cannot find path
         std::cout << "\033[31m" << "[SPOMP-Global] [ERROR] Could not find valid path" 
           << "\033[0m" << std::endl;
         cancel();
+        return false;
       } else {
         waypoint_manager_.setPath(new_path);
       }
@@ -94,6 +102,8 @@ void Global::updateOtherLocalReachability(
       }
     }
   }
+
+  return true;
 }
 
 } // namespace spomp

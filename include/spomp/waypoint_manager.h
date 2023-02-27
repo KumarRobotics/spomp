@@ -8,6 +8,7 @@ class WaypointManager {
   public:
     struct Params {
       float waypoint_thresh_m = 2;
+      float shortcut_thresh_m = 0.5;
     };
     WaypointManager(const Params& p);
 
@@ -32,6 +33,8 @@ class WaypointManager {
       return cur_edge_;
     }
 
+    float getPathLength() const;
+
     bool havePath() const {
       return path_.size() > 0;
     }
@@ -41,6 +44,11 @@ class WaypointManager {
     }
 
   private:
+    /*********************************************************
+     * LOCAL FUNCTIONS
+     *********************************************************/
+    void checkForShortcuts(const Eigen::Vector2f& pos);
+
     /*********************************************************
      * LOCAL CONSTANTS
      *********************************************************/
