@@ -63,7 +63,8 @@ class GoalManager:
         self.navigate_client_.wait_for_server()
         rospy.loginfo("Action server found")
 
-        self.check_for_new_goal_timer_ = rospy.Timer(rospy.Duration(5), self.check_for_new_goal)
+        # offset frequencies to reduce chance of collision
+        self.check_for_new_goal_timer_ = rospy.Timer(rospy.Duration(5 + 5*this_priority), self.check_for_new_goal)
     
     def other_robot_cb(self, goals, take_pri, robot):
         self.lock_.acquire()

@@ -39,7 +39,7 @@
 
   <node pkg="spomp" type="node_global" name="spomp_global" output="$(arg output)">
     <!-- Remappings -->
-    <remap from="~aerial_map" to="/$(arg aerial_map_ns)/asoom/map"/>
+    <remap from="~aerial_map" to="$(arg aerial_map_ns)/asoom/map"/>
     <remap from="~goal_simple" to="/move_base_simple/goal"/>
     <remap from="~pose" to="os_node/rofl_odom/pose"/>
     <remap from="~reachability" to="spomp_local/reachability"/>

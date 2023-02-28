@@ -141,7 +141,7 @@ void GlobalWrapper::initialize() {
   int id = 1;
   for (const auto& robot : other_robot_list_) {
     other_robot_reachability_subs_.push_back(nh_.subscribe<LocalReachabilityArray>(
-          "/" + robot + "/spomp_global/reachability_history", 5, 
+          "/" + this_robot_ + "/" + robot + "/spomp_global/reachability_history", 5, 
           std::bind(&GlobalWrapper::otherReachabilityCallback, this, id, std::placeholders::_1)));
     ++id;
   }
@@ -236,7 +236,7 @@ void GlobalWrapper::reachabilityCallback(
   visualizePath(reachability_msg->header.stamp);
   visualizeGraph(reachability_msg->header.stamp);
   visualizeAerialMap(reachability_msg->header.stamp);
-  publishReachabilityHistory();
+  publishReachabilityHistory(reachability_msg->header.stamp);
   printTimings();
 }
 
@@ -375,10 +375,12 @@ void GlobalWrapper::cancelLocalPlanner() {
   local_goal_pub_.publish(local_goal_msg);
 }
 
-void GlobalWrapper::publishReachabilityHistory() {
+void GlobalWrapper::publishReachabilityHistory(const ros::Time& stamp) {
   const auto& reach_hist = global_.getReachabilityHistory();
 
   LocalReachabilityArray lra_msg;
+  lra_msg.header.stamp = stamp;
+  lra_msg.header.frame_id = map_frame_;
   lra_msg.reachabilities.reserve(reach_hist.size());
   for (const auto& [stamp, reach] : reach_hist) {
     LocalReachability lr_msg; 

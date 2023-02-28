@@ -40,19 +40,20 @@ void WaypointManager::checkForShortcuts(const Eigen::Vector2f& pos) {
       continue;
     }
     auto edge = (*node_it)->getEdgeToNode(last_node);
-    if (!edge) break;
+    if (!edge) continue;
 
     Eigen::Vector2f seg = edge->node2->pos - edge->node1->pos;
     Eigen::Vector2f pt_vec = pos - edge->node1->pos;
     float proj_mag = seg.normalized().dot(pt_vec);
     if (proj_mag >= 0 && proj_mag <= seg.norm()) {
       // We are between the line seg endpoints
-      float dist = pt_vec.norm() - proj_mag;
-      if (dist < params_.shortcut_thresh_m) {
+      float dist_sq = std::pow(pt_vec.norm(), 2) - std::pow(proj_mag, 2);
+      if (dist_sq < std::pow(params_.shortcut_thresh_m, 2)) {
         next_node_ = node_it;
         cur_edge_ = edge;
       }
     }
+    last_node = *node_it;
   }
 }
 

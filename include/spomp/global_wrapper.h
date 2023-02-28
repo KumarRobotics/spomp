@@ -40,7 +40,7 @@ class GlobalWrapper {
 
     void publishLocalGoal(const ros::Time& stamp);
     void cancelLocalPlanner();
-    void publishReachabilityHistory();
+    void publishReachabilityHistory(const ros::Time& stamp);
     void visualizeGraph(const ros::Time& stamp);
     void visualizePath(const ros::Time& stamp);
     void visualizeAerialMap(const ros::Time& stamp);
