@@ -24,7 +24,7 @@ GlobalWrapper::GlobalWrapper(ros::NodeHandle& nh) :
 {
   // Publishers
   // Latch goal so it is received even if local planner hasn't started yet
-  local_goal_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("local_goal", 1, true);
+  local_goal_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("local_goal", 5, true);
   reachability_history_pub_ = nh_.advertise<LocalReachabilityArray>("reachability_history", 1, true);
   graph_viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("graph_viz", 1, true);
   path_viz_pub_ = nh_.advertise<nav_msgs::Path>("path_viz", 1, true);

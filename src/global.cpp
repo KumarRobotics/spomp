@@ -42,11 +42,9 @@ bool Global::updateOtherLocalReachability(
   auto cur_node = waypoint_manager_.getNextWaypoint();
   auto last_node = waypoint_manager_.getLastWaypoint();
 
-  int last_cur_edge_cls = -1;
+  TravGraph::Edge cur_edge_copy;
   if (cur_edge) {
-    // Cache current edge traversability
-    // Want to avoid redundantly checking the current edge twice
-    last_cur_edge_cls = cur_edge->cls;
+    cur_edge_copy = *cur_edge;
   }
   float old_cost = map_.getPathCost(cur_path);
 
@@ -57,7 +55,9 @@ bool Global::updateOtherLocalReachability(
   // did not fail, we just do not have a plan at the moment
   if (!waypoint_manager_.havePath()) return true;
 
-  if (cur_edge && cur_edge->cls == last_cur_edge_cls && robot_id == 0) {
+  if (cur_edge && robot_id == 0) {
+    // Reload cached edge, since we want to avoid updating twice
+    *cur_edge = cur_edge_copy;
     // Check this edge on the basis of checking traversability from current position
     // to the end of the edge
     map_.updateEdgeFromReachability(*cur_edge, *last_node, reachability, 
