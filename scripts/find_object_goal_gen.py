@@ -4,27 +4,24 @@ import rospy
 import numpy as np
 import cv2
 from collections import OrderedDict
+from grid_map_msgs.msg import GridMap
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import PointStamped, PoseArray, Pose
 
 class FindObjectGoalGen:
     def __init__(self):
-        self.map_buf_ = OrderedDict()
-        self.map_center_buf_ = OrderedDict()
         self.last_map_stamp_ = 0
         self.map_size_ = np.array([0., 0])
+        self.scale_ = 0
 
         self.scale_ = rospy.get_param("~resolution", 2)
         self.merge_dist_ = rospy.get_param("~merge_dist", 10) * self.scale_
         self.min_size_ = (rospy.get_param("~min_size", 3) * self.scale_) ** 2
         self.region_size_ = rospy.get_param("~region_size", 10) * self.scale_
 
-        self.map_sub_ = rospy.Subscriber("/titan/asoom/map_sem_img", Image, self.map_cb)
-        self.map_center_sub_ = rospy.Subscriber("/titan/asoom/map_sem_img_center", PointStamped, self.map_center_cb)
+        self.map_sub_ = rospy.Subscriber("/quadrotor/asoom/map", GridMap, self.map_cb)
         self.goal_viz_pub_ = rospy.Publisher("~goal_viz", Image, queue_size=1)
         self.target_goals_pub_ = rospy.Publisher("/groundstation/target_goals", PoseArray, queue_size=1)
-
-        self.buffer_sync_timer_ = rospy.Timer(rospy.Duration(1), self.sync_buffers)
 
     def world2img(self, world_pos):
         return ((-world_pos + self.origin_) * self.scale_ +
@@ -35,42 +32,25 @@ class FindObjectGoalGen:
                 self.map_size_/2)/self.scale_) - self.origin_)
 
     def map_cb(self, map_msg):
-        if map_msg.width < 1 or map_msg.height < 1:
+        if map_msg.info.header.stamp.to_nsec() <= self.last_map_stamp_:
             return
-        self.map_buf_[map_msg.header.stamp.to_nsec()] = map_msg
+        self.last_map_stamp_ = map_msg.info.header.stamp.to_nsec()
 
-    def map_center_cb(self, map_center_msg):
-        self.map_center_buf_[map_center_msg.header.stamp.to_nsec()] = map_center_msg
+        if map_msg.info.length_x < 1 or map_msg.info.length_y < 1:
+            return
 
-    def sync_buffers(self, timer):
-        for map_stamp in sorted(self.map_buf_, reverse=True):
-            if map_stamp <= self.last_map_stamp_:
-                break
-            if map_stamp in self.map_center_buf_:
-                sem_map = self.map_buf_[map_stamp]
-                center = self.map_center_buf_[map_stamp]
-                # compalains about read-only if not copied
-                map_img = np.frombuffer(sem_map.data, dtype=np.uint8).reshape(
-                        sem_map.height, sem_map.width, -1)
+        center = map_msg.info.pose.position
 
-                self.origin_ = np.array([center.point.x, center.point.y])
-                self.map_size_ = np.array(map_img.shape, dtype=np.float32)[:2]
+        layer_ind = map_msg.layers.index("semantics")
+        sem_layer = map_msg.data[layer_ind]
+        map_img = np.array(sem_layer.data).astype(np.uint8).reshape(
+                sem_layer.layout.dim[0].size, sem_layer.layout.dim[1].size, -1)
 
-                self.find_goals(map_img)
-                self.last_map_stamp_ = map_stamp
+        self.scale_ = 1./map_msg.info.resolution
+        self.origin_ = np.array([center.x, center.y])
+        self.map_size_ = np.array(map_img.shape, dtype=np.float32)[:2]
 
-        # Clean up buffers of old stuff
-        for s in sorted(self.map_buf_):
-            if s <= self.last_map_stamp_:
-                del self.map_buf_[s]
-            else:
-                break
-
-        for s in sorted(self.map_center_buf_):
-            if s <= self.last_map_stamp_:
-                del self.map_center_buf_[s]
-            else:
-                break
+        self.find_goals(map_img)
 
     def compute_roadmap(self, map_img):
         road_map = np.logical_or(map_img == 0, map_img == 6)
