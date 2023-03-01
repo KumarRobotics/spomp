@@ -24,6 +24,7 @@ bool WaypointManager::setState(const Eigen::Vector2f& pos) {
   if ((*robot_pos_ - (*next_node_)->pos).norm() < params_.waypoint_thresh_m) {
     if (cur_edge_) {
       // We have traversed edge successfully, very conclusively traversable
+      cur_edge_->is_locked = true;
       cur_edge_->is_experienced = true;
       cur_edge_->cls = 0;
     }

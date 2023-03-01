@@ -58,6 +58,7 @@ class TravGraph {
       float length{0};
       float cost{0};
       int cls{0};
+      bool is_locked{false};
       bool is_experienced{false};
       int untrav_counter{0};
 
@@ -78,8 +79,9 @@ class TravGraph {
       }
 
       void incUntravCounter() {
-        if (!is_experienced) {
-          // Reset counter if not experienced.  If experienced, then want
+        is_experienced = true;
+        if (!is_locked) {
+          // Reset counter if not locked.  If locked, then want
           // it to be even harder to mark
           untrav_counter = std::max(0, untrav_counter);
         }
@@ -87,7 +89,8 @@ class TravGraph {
       }
 
       void decUntravCounter() {
-        if (!is_experienced) {
+        is_experienced = true;
+        if (!is_locked) {
           untrav_counter = std::min(0, untrav_counter);
         }
         untrav_counter -= 1;

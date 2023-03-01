@@ -41,7 +41,7 @@ std::list<TravGraph::Node*> TravGraph::getPath(
     }
 
     for (const auto& edge : cur_n->edges) {
-      if (edge->is_experienced && edge->cls > Edge::MAX_TERRAIN) continue;
+      if (edge->cls >= Edge::MAX_TERRAIN) continue;
       Node* next_n = edge->getOtherNode(cur_n);
       if (next_n->visited) continue;
       float new_cost = cur_n->cost + edge->totalCost();
@@ -60,7 +60,7 @@ std::list<TravGraph::Node*> TravGraph::getPath(
     // We have found a path
     path.push_front(end_n);
     while (path.front() != start_n) {
-      if (path.front()->best_prev_edge->cls > Edge::MAX_TERRAIN) {
+      if (path.front()->best_prev_edge->cls >= Edge::MAX_TERRAIN) {
         // We have a bad edge
         path = {};
         break;
@@ -83,7 +83,7 @@ float TravGraph::getPathCost(const std::list<Node*>& path) const {
       continue;
     }
     auto edge = node->getEdgeToNode(last_node);
-    if (!edge || edge->cls > Edge::MAX_TERRAIN) {
+    if (!edge || edge->cls >= Edge::MAX_TERRAIN) {
       return std::numeric_limits<float>::max();
     }
     cost += node->getEdgeToNode(last_node)->totalCost();
@@ -153,7 +153,7 @@ bool TravGraph::updateEdgeFromReachability(TravGraph::Edge& edge,
 
   bool did_map_change = false;
   if (edge_exp == Reachability::TRAV) {
-    if (edge.is_experienced) {
+    if (edge.is_locked) {
       edge.untrav_counter = -params_.num_edge_exp_before_mark;
     } else {
       did_map_change = true;
@@ -161,7 +161,7 @@ bool TravGraph::updateEdgeFromReachability(TravGraph::Edge& edge,
       if (edge.untrav_counter <= -params_.num_edge_exp_before_mark) {
         // Requires multiple markings in a row to be locked in
         // Only lock in if was experienced by this robot
-        edge.is_experienced = !reachability.isOtherRobot();
+        edge.is_locked = !reachability.isOtherRobot();
       }
       edge.cls = 0;
       // Don't want 0 cost so length still matters
@@ -172,7 +172,7 @@ bool TravGraph::updateEdgeFromReachability(TravGraph::Edge& edge,
     // Want to be able to mark untrav even if marked as experienced
     if (edge.cls == Edge::MAX_TERRAIN) {
       // Requires two markings in a row to be locked in
-      edge.is_experienced = !reachability.isOtherRobot();
+      edge.is_locked = !reachability.isOtherRobot();
     }
     edge.incUntravCounter();
     if (edge.untrav_counter >= params_.num_edge_exp_before_mark) {
@@ -186,7 +186,7 @@ bool TravGraph::updateEdgeFromReachability(TravGraph::Edge& edge,
         ++edge.cls;
       }
     }
-  } else if (edge_exp == Reachability::UNKNOWN && !edge.is_experienced) {
+  } else if (edge_exp == Reachability::UNKNOWN && !edge.is_locked) {
     edge.untrav_counter = 0;
   }
 

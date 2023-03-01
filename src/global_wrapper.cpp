@@ -423,7 +423,7 @@ void GlobalWrapper::visualizeGraph(const ros::Time& stamp) {
 
     std_msgs::ColorRGBA color;
     color.a = 1;
-    if (edge.is_experienced) {
+    if (edge.is_locked) {
       if (edge.cls == 0) {
         color.g = 1;
       } else {

@@ -324,7 +324,7 @@ void TravMap::reweightGraph() {
 
   for (auto& edge : graph_.getEdges()) {
     // Only reweight if we don't already have first-hand experience
-    if (!edge.is_experienced && edge.untrav_counter == 0) {
+    if (!edge.is_locked && !edge.is_experienced) {
       auto edge_info = aerial_map_->traceEdge(edge.node1->pos, edge.node2->pos);
       edge.cls = edge_info.cls;
       edge.cost = edge_info.cost;
@@ -485,7 +485,7 @@ void TravMap::resetGraphAroundPoint(const Eigen::Vector2f& pt) {
       auto edge_info = aerial_map_->traceEdge(edge->node1->pos, edge->node2->pos);
       edge->cls = edge_info.cls;
       edge->cost = edge_info.cost;
-      edge->is_experienced = false;
+      edge->is_locked = false;
       edge->untrav_counter = 0;
     }
   }
@@ -517,7 +517,7 @@ cv::Mat TravMap::viz() const {
     auto node1_img_pos = map_ref_frame_.world2img(edge.node1->pos);
     auto node2_img_pos = map_ref_frame_.world2img(edge.node2->pos);
     cv::Scalar color;
-    if (edge.is_experienced) {
+    if (edge.is_locked) {
       if (edge.cls == 0) {
         color = {0, 255, 0};
       } else {
