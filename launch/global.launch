@@ -9,6 +9,7 @@
 
   <arg name="G_max_num_recovery_reset" default="1"/>
   <arg name="G_timeout_duration_s_per_m" default="3"/>
+  <arg name="G_replan_hysteresis" default="10"/>
 
   <arg name="TM_learn_trav" default="False"/>
   <arg name="TM_uniform_node_sampling" default="False"/>
@@ -24,7 +25,8 @@
   <arg name="TG_reach_node_max_dist_m" default="4"/>
   <arg name="TG_trav_window_rad" default="0.1"/>
   <arg name="TG_max_trav_discontinuity_m" default="2"/>
-  <arg name="TG_num_untrav_before_mark" default="2"/>
+  <arg name="TG_num_edge_exp_before_mark" default="2"/>
+  <arg name="TG_trav_edge_prob_trav" default="0.99"/>
 
   <arg name="AM_inference_thread_period_ms" default="10000"/>
   <arg name="AM_trav_thresh" default="3"/>
@@ -51,6 +53,7 @@
 
     <param name="G_max_num_recovery_reset" value="$(arg G_max_num_recovery_reset)"/>
     <param name="G_timeout_duration_s_per_m" value="$(arg G_timeout_duration_s_per_m)"/>
+    <param name="G_replan_hysteresis" value="$(arg G_replan_hysteresis)"/>
 
     <param name="TM_learn_trav" value="$(arg TM_learn_trav)"/>
     <param name="TM_uniform_node_sampling" value="$(arg TM_uniform_node_sampling)"/>
@@ -66,7 +69,8 @@
     <param name="TG_reach_node_max_dist_m" value="$(arg TG_reach_node_max_dist_m)"/>
     <param name="TG_trav_window_rad" value="$(arg TG_trav_window_rad)"/>
     <param name="TG_max_trav_discontinuity_m" value="$(arg TG_max_trav_discontinuity_m)"/>
-    <param name="TG_num_untrav_before_mark" value="$(arg TG_num_untrav_before_mark)"/>
+    <param name="TG_num_edge_exp_before_mark" value="$(arg TG_num_edge_exp_before_mark)"/>
+    <param name="TG_trav_edge_prob_trav" value="$(arg TG_trav_edge_prob_trav)"/>
 
     <param name="AM_inference_thread_period_ms" value="$(arg AM_inference_thread_period_ms)"/>
     <param name="AM_trav_thresh" value="$(arg AM_trav_thresh)"/>

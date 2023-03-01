@@ -288,10 +288,16 @@ std::list<TravGraph::Node*> TravMap::prunePath(
 void TravMap::computeDistMaps() {
   compute_dist_maps_t_->start();
 
+  auto morph_kernel = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(
+        params_.max_hole_fill_size_m * map_ref_frame_.res * 2 + 1,
+        params_.max_hole_fill_size_m * map_ref_frame_.res * 2 + 1));
+
   int t_cls = 0;
   for (auto& dist_map : dist_maps_) {
     cv::Mat trav_map;
+    // 1 everywhere where we want to compute distance
     cv::bitwise_or(map_ <= t_cls, map_ == 255, trav_map);
+    cv::morphologyEx(trav_map, trav_map, cv::MORPH_CLOSE, morph_kernel);
     cv::distanceTransform(trav_map, dist_map, cv::DIST_L2, cv::DIST_MASK_5);
     dist_map.setTo(0, map_ == 255);
     ++t_cls;
@@ -511,14 +517,19 @@ cv::Mat TravMap::viz() const {
     auto node1_img_pos = map_ref_frame_.world2img(edge.node1->pos);
     auto node2_img_pos = map_ref_frame_.world2img(edge.node2->pos);
     cv::Scalar color;
-    if (edge.cls == 0) {
-      color = {0, 255, 0};
-    } else if (edge.cls == 1 || edge.cls == 2) {
-      color = {255, 0, 0};
+    if (edge.is_experienced) {
+      if (edge.cls == 0) {
+        color = {0, 255, 0};
+      } else {
+        color = {0, 0, 255};
+      }
     } else {
-      color = {0, 0, 255};
+      float color_mag = std::min<float>(1./(edge.cost*edge.length), 1);
+      float hue = (static_cast<float>(edge.cls)/
+          (TravGraph::Edge::MAX_TERRAIN-1))*(1./2) + 1./2;
+      Eigen::Vector3f rgb = hsv2rgb({hue, 0.5, color_mag});
+      color = {rgb[2]*255, rgb[1]*255, rgb[0]*255};
     }
-    color /= edge.cost;
     cv::line(viz, cv::Point(node1_img_pos[0], node1_img_pos[1]),
              cv::Point(node2_img_pos[0], node2_img_pos[1]), color);
   }

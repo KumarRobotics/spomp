@@ -11,6 +11,7 @@ class Global {
     struct Params {
       int max_num_recovery_reset = 1;
       float timeout_duration_s_per_m = 3;
+      float replan_hysteresis = 10;
     };
     Global(const Params& g_p, 
            const TravMap::Params& tm_p, 

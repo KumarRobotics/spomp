@@ -58,6 +58,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
 
   nh.getParam("G_max_num_recovery_reset", g_params.max_num_recovery_reset);
   nh.getParam("G_timeout_duration_s_per_m", g_params.timeout_duration_s_per_m);
+  nh.getParam("G_replan_hysteresis", g_params.replan_hysteresis);
 
   nh.getParam("TM_learn_trav", tm_params.learn_trav);
   nh.getParam("TM_uniform_node_sampling", tm_params.uniform_node_sampling);
@@ -73,7 +74,8 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   nh.getParam("TG_reach_node_max_dist_m", tg_params.reach_node_max_dist_m);
   nh.getParam("TG_trav_window_rad", tg_params.trav_window_rad);
   nh.getParam("TG_max_trav_discontinuity_m", tg_params.max_trav_discontinuity_m);
-  nh.getParam("TG_num_untrav_before_mark", tg_params.num_untrav_before_mark);
+  nh.getParam("TG_num_edge_exp_before_mark", tg_params.num_edge_exp_before_mark);
+  nh.getParam("TG_trav_edge_prob_trav", tg_params.trav_edge_prob_trav);
 
   nh.getParam("AM_inference_thread_period_ms", am_params.inference_thread_period_ms);
   nh.getParam("AM_trav_thresh", am_params.trav_thresh);
@@ -96,6 +98,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] G_max_num_recovery_reset: " << g_params.max_num_recovery_reset << endl <<
     setw(width) << "[ROS] G_timeout_duration_s_per_m: " << g_params.timeout_duration_s_per_m << endl <<
+    setw(width) << "[ROS] G_replan_hysteresis: " << g_params.replan_hysteresis << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] TM_learn_trav: " << tm_params.learn_trav << endl <<
     setw(width) << "[ROS] TM_uniform_node_sampling: " << tm_params.uniform_node_sampling << endl <<
@@ -119,7 +122,8 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
     setw(width) << "[ROS] TG_reach_node_max_dist_m: " << tg_params.reach_node_max_dist_m << endl <<
     setw(width) << "[ROS] TG_trav_window_rad: " << tg_params.trav_window_rad << endl <<
     setw(width) << "[ROS] TG_max_trav_discontinuity_m: " << tg_params.max_trav_discontinuity_m << endl <<
-    setw(width) << "[ROS] TG_num_untrav_before_mark: " << tg_params.num_untrav_before_mark << endl <<
+    setw(width) << "[ROS] TG_num_edge_exp_before_mark: " << tg_params.num_edge_exp_before_mark << endl <<
+    setw(width) << "[ROS] TG_trav_edge_prob_trav: " << tg_params.trav_edge_prob_trav << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] WM_waypoint_thresh_m: " << wm_params.waypoint_thresh_m << endl <<
     setw(width) << "[ROS] WM_shortcut_thresh_m: " << wm_params.shortcut_thresh_m << endl <<
@@ -249,6 +253,7 @@ void GlobalWrapper::otherReachabilityCallback(int robot_id,
     if (!global_.haveReachabilityForRobotAtStamp(robot_id, stamp)) {
       // We haven't seen this reachability scan before
       Reachability reachability = ConvertFromROS(reach.reachability);
+      reachability.setIsOtherRobot();
       reachability.setPose(ROS2Eigen<float>(reach.pose));
 
       if (!global_.updateOtherLocalReachability(reachability, robot_id)) {
@@ -418,29 +423,21 @@ void GlobalWrapper::visualizeGraph(const ros::Time& stamp) {
 
     std_msgs::ColorRGBA color;
     color.a = 1;
-    float color_mag = std::min<float>(1./(edge.cost*edge.length), 1);
-    if (edge.cls == 0) {
-      if (edge.is_experienced) {
-        color.g = color_mag;
+    if (edge.is_experienced) {
+      if (edge.cls == 0) {
+        color.g = 1;
       } else {
-        color.g = color_mag;
-        color.r = color_mag;
+        color.r = 1;
       }
-    } else if (edge.cls == 1) {
-      color.g = color_mag;
-      color.b = color_mag;
-    } else if (edge.cls == 2) {
-      color.b = color_mag;
-    } else if (edge.cls == 3) {
-      color.r = color_mag;
-      color.b = color_mag;
+    } else {
+      float color_mag = std::min<float>(1./(edge.cost*edge.length), 1);
+      float hue = (static_cast<float>(edge.cls)/
+          (TravGraph::Edge::MAX_TERRAIN-1))*(1./2) + 1./2;
+      Eigen::Vector3f rgb = hsv2rgb({hue, 0.5, color_mag});
+      color.r = rgb[0];
+      color.g = rgb[1];
+      color.b = rgb[2];
     }
-
-    if (edge.is_experienced && edge.cls > 0) {
-      // Known bad
-      color.r = 1;
-    }
-    // Otherwise leave black
 
     // Do twice to handle both endpts
     edge_viz.colors.push_back(color);

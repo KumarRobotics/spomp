@@ -19,7 +19,8 @@ class TravGraph {
       float reach_node_max_dist_m = 4;
       float trav_window_rad = 0.3;
       float max_trav_discontinuity_m = 2;
-      int num_untrav_before_mark = 2;
+      int num_edge_exp_before_mark = 2;
+      float trav_edge_prob_trav = 0.99;
     };
     TravGraph(const Params& p);
 

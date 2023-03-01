@@ -76,7 +76,7 @@ class TravMap {
       if (robot_id < reach_hist_.size()) {
         return reach_hist_[robot_id].count(stamp) > 0;
       } else {
-        return false;
+        return true;
       }
     }
 

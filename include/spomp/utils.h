@@ -32,6 +32,44 @@ inline Eigen::Vector2f polar2cart(const Eigen::Vector2f& pol) {
   return {pol[0] * cos(pol[1]), pol[0] * sin(pol[1])};
 }
 
+// All values in [0, 1]
+inline Eigen::Vector3f hsv2rgb(const Eigen::Vector3f& hsv) {
+  // https://www.had2know.org/technology/hsv-rgb-conversion-formula-calculator.html
+  Eigen::Vector3f rgb;
+
+  float M = hsv[2];
+  float m = M * (1 - hsv[1]);
+  float z = (M - m) * (1 - std::abs(fmod(hsv[0] * 6, 2) - 1));
+
+  if (hsv[0] < 1./6) {
+    rgb[0] = M;
+    rgb[1] = z + m;
+    rgb[2] = m;
+  } else if (hsv[0] < 2./6) {
+    rgb[0] = z + m;
+    rgb[1] = M;
+    rgb[2] = m;
+  } else if (hsv[0] < 3./6) {
+    rgb[0] = m;
+    rgb[1] = M;
+    rgb[2] = z + m;
+  } else if (hsv[0] < 4./6) {
+    rgb[0] = m;
+    rgb[1] = z + m;
+    rgb[2] = M;
+  } else if (hsv[0] < 5./6) {
+    rgb[0] = z + m;
+    rgb[1] = m;
+    rgb[2] = M;
+  } else {
+    rgb[0] = M;
+    rgb[1] = m;
+    rgb[2] = z + m;
+  }
+
+  return rgb;
+}
+
 template <typename T>
 inline auto pose22pose3(const Eigen::Transform<T, 2, Eigen::Isometry>& pose_2) {
   using Isometry3T = Eigen::Transform<T, 3, Eigen::Isometry>;

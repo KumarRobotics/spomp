@@ -57,7 +57,7 @@ bool Global::updateOtherLocalReachability(
   // did not fail, we just do not have a plan at the moment
   if (!waypoint_manager_.havePath()) return true;
 
-  if (cur_edge && cur_edge->cls == last_cur_edge_cls) {
+  if (cur_edge && cur_edge->cls == last_cur_edge_cls && robot_id == 0) {
     // Check this edge on the basis of checking traversability from current position
     // to the end of the edge
     map_.updateEdgeFromReachability(*cur_edge, *last_node, reachability, 
@@ -65,7 +65,7 @@ bool Global::updateOtherLocalReachability(
   }
   float new_cost = map_.getPathCost(cur_path);
 
-  if ((new_cost > old_cost + 2 || 
+  if ((new_cost > old_cost + params_.replan_hysteresis || 
        new_cost > std::pow(1000, TravGraph::Edge::MAX_TERRAIN)-1) && 
       last_node) 
   {

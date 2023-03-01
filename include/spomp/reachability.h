@@ -66,6 +66,9 @@ class Reachability {
     uint64_t getStamp() const {
       return stamp_;
     }
+    bool isOtherRobot() const {
+      return is_other_robot_;
+    }
     void setPose(const Eigen::Isometry2f& pose) {
       pose_ = pose;
     }
@@ -75,9 +78,13 @@ class Reachability {
     void setIsObs(const Eigen::VectorXi& is_obs) {
       is_obs_ = is_obs;
     }
+    void setIsOtherRobot() {
+      is_other_robot_ = true;
+    }
 
   private:
     uint64_t stamp_{};
+    bool is_other_robot_{false};
     Eigen::VectorXf scan_{};
     Eigen::VectorXi is_obs_{};
     AngularProj proj_{};
