@@ -8,7 +8,7 @@
   <node pkg="spomp" type="goal_manager.py" name="goal_manager" output="$(arg output)">
     <!-- Remappings -->
     <remap from="~add_goal_point" to="/initialpose"/>
-    <remap from="~pose" to="spomp_mapper/global_est"/>
+    <remap from="~pose" to="top_down_render/pose_est"/>
     <remap from="~target_goals" to="/groundstation/target_goals"/>
 
     <!-- Params -->

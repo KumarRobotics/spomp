@@ -34,6 +34,7 @@
     <remap from="~pano/camera_info" to="os_node/rofl_odom/pano/camera_info"/>
     <remap from="~pano/sem" to="os_node/segmented_image"/>
     <remap from="~pose" to="os_node/rofl_odom/pose"/>
+    <remap from="~global_est" to="top_down_render/pose_est"/>
 
     <!-- Params -->
     <param name="world_config_path" value="$(arg world_config_path)"/>
