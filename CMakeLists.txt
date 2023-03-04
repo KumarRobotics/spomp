@@ -80,6 +80,8 @@ add_message_files(
   LocalReachability.msg
   LocalReachabilityArray.msg
   TraversabilityGraph.msg
+  ClaimedGoal.msg
+  ClaimedGoalArray.msg
 )
 
 ## Generate services in the 'srv' folder

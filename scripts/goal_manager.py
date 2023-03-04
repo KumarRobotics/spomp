@@ -8,7 +8,7 @@ import actionlib
 from visualization_msgs.msg import Marker
 from std_msgs.msg import Bool, ColorRGBA
 from geometry_msgs.msg import PoseArray, Pose, PointStamped, PoseStamped, Point, PoseWithCovarianceStamped
-from spomp.msg import GlobalNavigateAction, GlobalNavigateGoal, GlobalNavigateResult
+from spomp.msg import GlobalNavigateAction, GlobalNavigateGoal, GlobalNavigateResult, ClaimedGoal, ClaimedGoalArray
 from nav_msgs.msg import Path
 from functools import partial
 
@@ -52,10 +52,10 @@ class GoalManager:
                 self.last_stamp_other_[robot] = 0
                 self.other_claimed_goals_[robot] = np.zeros((0, 2))
                 bound_cb = partial(self.other_robot_cb, take_pri=int(priority) > this_priority, robot=robot)
-                self.other_robot_subs_.append(rospy.Subscriber(robot+"/goal_manager/claimed_goals", PoseArray, bound_cb))
+                self.other_robot_subs_.append(rospy.Subscriber(robot+"/goal_manager/claimed_goals", ClaimedGoalArray, bound_cb))
 
-        self.claimed_goals_msg_ = PoseArray()
-        self.claimed_goals_pub_ = rospy.Publisher("~claimed_goals", PoseArray, queue_size=1)
+        self.claimed_goals_msg_ = ClaimedGoalArray()
+        self.claimed_goals_pub_ = rospy.Publisher("~claimed_goals", ClaimedGoalArray, queue_size=1)
         self.goal_viz_pub_ = rospy.Publisher("~goal_viz", Marker, queue_size=1)
         self.navigate_client_ = actionlib.SimpleActionClient('spomp_global/navigate', GlobalNavigateAction)
 
@@ -64,7 +64,7 @@ class GoalManager:
         rospy.loginfo("Action server found")
 
         # offset frequencies to reduce chance of collision
-        self.check_for_new_goal_timer_ = rospy.Timer(rospy.Duration(5 + 5*this_priority), self.check_for_new_goal)
+        self.check_for_new_goal_timer_ = rospy.Timer(rospy.Duration(5 + 1*this_priority), self.check_for_new_goal)
     
     def other_robot_cb(self, goals, take_pri, robot):
         self.lock_.acquire()
@@ -77,13 +77,14 @@ class GoalManager:
         self.last_stamp_other_[robot] = goals.header.stamp.to_nsec()
         preempted = False
         self.other_claimed_goals_[robot] = np.zeros((0, 2))
-        for pose in goals.poses:
-            goal_pt = np.array([pose.position.x, pose.position.y])
+        for goal in goals.goals:
+            goal_pt = np.array([goal.position.x, goal.position.y])
             self.other_claimed_goals_[robot] = np.vstack([self.other_claimed_goals_[robot], goal_pt])
             if self.in_progress_ and self.current_goal_ is not None:
                 dist = np.linalg.norm(self.current_goal_ - goal_pt)
                 rospy.loginfo(dist)
-                if dist < self.min_goal_dist_m_ and not take_pri:
+                if (dist < self.min_goal_dist_m_ and not take_pri) or goal.status == ClaimedGoal.VISITED:
+                    # preempt if we are not priority, or if goal has already been visited
                     rospy.loginfo("Preempted")
                     preempted = True
                 else:
@@ -92,8 +93,8 @@ class GoalManager:
 
         if preempted:
             # report not successful, but only transmit if new goal found
-            if len(self.claimed_goals_msg_.poses) > 0:
-                self.claimed_goals_msg_.poses.pop()
+            if len(self.claimed_goals_msg_.goals) > 0:
+                self.claimed_goals_msg_.goals.pop()
 
             rospy.loginfo("Other robot with higher priority has goal")
             # preempt
@@ -183,18 +184,19 @@ class GoalManager:
                 self.in_progress_ = True
 
                 # going to goal
-                goal_pose = Pose()
+                goal_pose = ClaimedGoal()
                 goal_pose.position.x = selected_goal[0]
                 goal_pose.position.y = selected_goal[1]
-                goal_pose.orientation.w = 1
+                goal_pose.status = ClaimedGoal.IN_PROGRESS
                 self.claimed_goals_msg_.header.stamp = rospy.Time.now()
                 self.claimed_goals_msg_.header.frame_id = "map"
-                self.claimed_goals_msg_.poses.append(goal_pose)
+                self.claimed_goals_msg_.goals.append(goal_pose)
                 self.claimed_goals_pub_.publish(self.claimed_goals_msg_)
 
                 cur_goal_msg = GlobalNavigateGoal()
                 cur_goal_msg.goal.header = self.claimed_goals_msg_.header
-                cur_goal_msg.goal.pose = goal_pose
+                cur_goal_msg.goal.pose.position = goal_pose.position
+                cur_goal_msg.goal.pose.orientation.w = 1
                 self.navigate_client_.send_goal(cur_goal_msg, done_cb=self.navigate_status_cb)
             else:
                 rospy.logwarn("Cannot find any path to goals")
@@ -249,10 +251,18 @@ class GoalManager:
 
         if self.current_goal_ is not None:
             # Add to visited targets
+            self.claimed_goals_msg_.header.stamp = rospy.Time.now()
+            # This is a somewhat hacky fix.  In simulation, rostime is discretized, and so 
+            # when we call out for a new path and it can't be found, the time is the same.
+            # Add a little time here to guarantee the stamp is later
+            self.claimed_goals_msg_.header.stamp.nsecs += 1
             if result_msg.status == GlobalNavigateResult.SUCCESS:
                 self.visited_goals_ = np.vstack([self.visited_goals_, self.current_goal_[None,:]])
 
-            if result_msg.status == GlobalNavigateResult.FAILED or \
+                if len(self.claimed_goals_msg_.goals) > 0:
+                    self.claimed_goals_msg_.goals[-1].status = ClaimedGoal.VISITED
+                self.claimed_goals_pub_.publish(self.claimed_goals_msg_)
+            elif result_msg.status == GlobalNavigateResult.FAILED or \
                result_msg.status == GlobalNavigateResult.TIMEOUT or \
                result_msg.status == GlobalNavigateResult.NO_PATH:
                 reason = "other"
@@ -266,9 +276,8 @@ class GoalManager:
 
                 # did not get to goal successfully
                 self.failed_goals_ = np.vstack([self.failed_goals_, self.current_goal_[None,:]])
-                self.claimed_goals_msg_.header.stamp = rospy.Time.now()
-                if len(self.claimed_goals_msg_.poses) > 0:
-                    self.claimed_goals_msg_.poses.pop()
+                if len(self.claimed_goals_msg_.goals) > 0:
+                    self.claimed_goals_msg_.goals.pop()
                 self.claimed_goals_pub_.publish(self.claimed_goals_msg_)
 
             self.current_goal_ = None
