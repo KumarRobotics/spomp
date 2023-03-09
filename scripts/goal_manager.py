@@ -83,7 +83,7 @@ class GoalManager:
             if self.in_progress_ and self.current_goal_ is not None:
                 dist = np.linalg.norm(self.current_goal_ - goal_pt)
                 rospy.loginfo(dist)
-                if (dist < self.min_goal_dist_m_ and not take_pri) or goal.status == ClaimedGoal.VISITED:
+                if dist < self.min_goal_dist_m_ and (not take_pri or goal.status == ClaimedGoal.VISITED):
                     # preempt if we are not priority, or if goal has already been visited
                     rospy.loginfo("Preempted")
                     preempted = True
@@ -92,9 +92,11 @@ class GoalManager:
         rospy.loginfo(self.other_claimed_goals_)
 
         if preempted:
-            # report not successful, but only transmit if new goal found
+            # report not successful
+            self.claimed_goals_msg_.header.stamp = rospy.Time.now()
             if len(self.claimed_goals_msg_.goals) > 0:
                 self.claimed_goals_msg_.goals.pop()
+            self.claimed_goals_pub_.publish(self.claimed_goals_msg_)
 
             rospy.loginfo("Other robot with higher priority has goal")
             # preempt
@@ -189,6 +191,7 @@ class GoalManager:
                 goal_pose.position.y = selected_goal[1]
                 goal_pose.status = ClaimedGoal.IN_PROGRESS
                 self.claimed_goals_msg_.header.stamp = rospy.Time.now()
+                self.claimed_goals_msg_.header.stamp.nsecs += 1
                 self.claimed_goals_msg_.header.frame_id = "map"
                 self.claimed_goals_msg_.goals.append(goal_pose)
                 self.claimed_goals_pub_.publish(self.claimed_goals_msg_)
@@ -255,7 +258,7 @@ class GoalManager:
             # This is a somewhat hacky fix.  In simulation, rostime is discretized, and so 
             # when we call out for a new path and it can't be found, the time is the same.
             # Add a little time here to guarantee the stamp is later
-            self.claimed_goals_msg_.header.stamp.nsecs += 1
+            self.claimed_goals_msg_.header.stamp.nsecs += 2
             if result_msg.status == GlobalNavigateResult.SUCCESS:
                 self.visited_goals_ = np.vstack([self.visited_goals_, self.current_goal_[None,:]])
 
