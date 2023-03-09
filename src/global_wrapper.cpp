@@ -200,10 +200,12 @@ void GlobalWrapper::poseCallback(const geometry_msgs::PoseStamped::ConstPtr& pos
     }
   }
 
-  bool path_complete = global_.setState(ROS2Eigen<float>(pose_map_frame));
+  auto waypt_state = global_.setState(ROS2Eigen<float>(pose_map_frame));
   publishLocalGoal(pose_msg->header.stamp);
 
-  if (path_complete && using_action_server_) {
+  if (waypt_state == WaypointManager::WaypointState::GOAL_REACHED && 
+      using_action_server_) 
+  {
     timeout_timer_.stop();
     spomp::GlobalNavigateResult result;
     result.status = spomp::GlobalNavigateResult::SUCCESS;

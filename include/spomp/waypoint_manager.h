@@ -12,7 +12,13 @@ class WaypointManager {
     };
     WaypointManager(const Params& p);
 
-    bool setState(const Eigen::Vector2f& pos);
+    enum struct WaypointState {
+      GOAL_REACHED,
+      NEW_WAYPOINT,
+      IN_PROGRESS,
+      NO_PATH
+    };
+    WaypointState setState(const Eigen::Vector2f& pos);
     void setPath(const std::list<TravGraph::Node*>& path);
 
     std::optional<Eigen::Vector2f> getPos() const {
@@ -20,7 +26,7 @@ class WaypointManager {
     }
 
     //! @return True if reached the end
-    bool advancePlan();
+    WaypointState advancePlan();
 
     TravGraph::Node* getNextWaypoint() const;
     TravGraph::Node* getLastWaypoint() const;

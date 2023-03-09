@@ -80,7 +80,8 @@ bool Global::updateOtherLocalReachability(
       if (waypoint_manager_.getPos()) {
         map_.resetGraphAroundPoint(*waypoint_manager_.getPos());
         ++num_recovery_reset_;
-        new_path = map_.getPath(*last_node, *waypoint_manager_.getPath().back());
+        new_path = map_.getPath(*waypoint_manager_.getPos(), 
+            waypoint_manager_.getPath().back()->pos);
       }
 
       if (new_path.size() < 1 || num_recovery_reset_ > params_.max_num_recovery_reset) {

@@ -12,11 +12,13 @@ void WaypointManager::setPath(const std::list<TravGraph::Node*>& path) {
   cur_edge_ = nullptr;
 }
 
-bool WaypointManager::setState(const Eigen::Vector2f& pos) {
+WaypointManager::WaypointState WaypointManager::setState(
+    const Eigen::Vector2f& pos) 
+{
   robot_pos_ = pos;
   if (path_.size() < 1) {
     // Inactive path
-    return false;
+    return WaypointState::NO_PATH;
   }
 
   checkForShortcuts(pos);
@@ -30,7 +32,7 @@ bool WaypointManager::setState(const Eigen::Vector2f& pos) {
     }
     return advancePlan();
   }
-  return false;
+  return WaypointState::IN_PROGRESS;
 }
 
 void WaypointManager::checkForShortcuts(const Eigen::Vector2f& pos) {
@@ -58,17 +60,17 @@ void WaypointManager::checkForShortcuts(const Eigen::Vector2f& pos) {
   }
 }
 
-bool WaypointManager::advancePlan() {
+WaypointManager::WaypointState WaypointManager::advancePlan() {
   ++next_node_;
   if (next_node_ != path_.end()) {
     // Get edge going to current node
     cur_edge_ = (*next_node_)->getEdgeToNode(*std::prev(next_node_));
+    return WaypointState::NEW_WAYPOINT;
   } else {
     // We have reached the end
     path_.clear();
-    return true;
+    return WaypointState::GOAL_REACHED;
   }
-  return false;
 }
 
 TravGraph::Node* WaypointManager::getNextWaypoint() const {

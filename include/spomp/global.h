@@ -34,9 +34,9 @@ class Global {
 
     /*! 
      * @param state The current global pose of the robot in map frame
-     * @return true if path was just completed
+     * @return Current manager state
      */
-    bool setState(const Eigen::Isometry3f& state) {
+    auto setState(const Eigen::Isometry3f& state) {
       return waypoint_manager_.setState(state.translation().head<2>());
     }
 
