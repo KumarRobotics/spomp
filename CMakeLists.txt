@@ -38,12 +38,12 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 find_package(Eigen3 REQUIRED NO_MODULE)
-find_package(TBB REQUIRED)
+find_package(TBB)
 find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs highgui)
-find_package(GTSAM REQUIRED)
-find_package(mlpack REQUIRED)
+find_package(GTSAM)
+find_package(mlpack)
 # Needed for mlpack
-find_package(Armadillo REQUIRED)
+find_package(Armadillo)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -141,6 +141,7 @@ catkin_package(
   CATKIN_DEPENDS roscpp rospy actionlib_msgs message_runtime
 )
 
+if(TBB_FOUND AND GTSAM_FOUND AND mlpack_FOUND AND Armadillo_FOUND)
 ###########
 ## Build ##
 ###########
@@ -351,6 +352,12 @@ add_dependencies(${PROJECT_NAME}_node_global ${${PROJECT_NAME}_EXPORTED_TARGETS}
 target_link_libraries(${PROJECT_NAME}_node_global
   ${PROJECT_NAME}_global
 )
+
+else()
+
+message(WARNING "Not all dependencies found, only building messages")
+
+endif()
 
 #############
 ## Install ##
