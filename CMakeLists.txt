@@ -427,21 +427,25 @@ if(CATKIN_ENABLE_TESTING)
     test/test_keyframe.cpp
   )
 
-  find_package(benchmark REQUIRED)
+  find_package(benchmark)
 
-  target_link_libraries(${PROJECT_NAME}-bench
-    ${PROJECT_NAME}_local
-    ${PROJECT_NAME}_mapper
-    benchmark::benchmark
-    ${catkin_LIBRARIES}
-  )
+  if (benchmark_FOUND)
+    target_link_libraries(${PROJECT_NAME}-bench
+      ${PROJECT_NAME}_local
+      ${PROJECT_NAME}_mapper
+      benchmark::benchmark
+      ${catkin_LIBRARIES}
+    )
 
-  target_link_libraries(${PROJECT_NAME}-test 
-    ${PROJECT_NAME}_local
-    ${PROJECT_NAME}_mapper
-    ${PROJECT_NAME}_global
-    benchmark::benchmark
-    ${catkin_LIBRARIES}
-  )
+    target_link_libraries(${PROJECT_NAME}-test 
+      ${PROJECT_NAME}_local
+      ${PROJECT_NAME}_mapper
+      ${PROJECT_NAME}_global
+      benchmark::benchmark
+      ${catkin_LIBRARIES}
+    )
+  else()
+    message(WARNING "Google bench not found, not building benchmarks")
+  endif()
 endif()
 
