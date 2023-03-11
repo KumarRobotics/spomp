@@ -3,18 +3,22 @@
   <arg name="find_obj" default="False"/>
   <arg name="robot_list" default="europa,callisto,io"/>
   <arg name="this_robot" default="europa"/>
+  <arg name="aerial_map_ns" default="quadrotor"/>
+
   <arg name="output" default="screen"/>
 
   <node pkg="spomp" type="goal_manager.py" name="goal_manager" output="$(arg output)">
     <!-- Remappings -->
     <remap from="~add_goal_point" to="/initialpose"/>
     <remap from="~pose" to="top_down_render/pose_est"/>
-    <remap from="~target_goals" to="/groundstation/target_goals"/>
+    <remap from="~target_goals" to="find_object_goal_gen/target_goals"/>
 
     <!-- Params -->
     <param name="~robot_list" value="$(arg robot_list)"/>
     <param name="~this_robot" value="$(arg this_robot)"/>
   </node>
 
-  <node pkg="spomp" type="find_object_goal_gen.py" name="find_object_goal_gen" output="$(arg output)" if="$(arg find_obj)"/>
+  <node pkg="spomp" type="find_object_goal_gen.py" name="find_object_goal_gen" output="$(arg output)" if="$(arg find_obj)">
+    <remap from="~map" to="$(arg aerial_map_ns)/asoom/map"/>
+  </node>
 </launch>
