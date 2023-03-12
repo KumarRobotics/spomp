@@ -44,11 +44,19 @@ class GoalManager:
         priorities = range(len(robots))
         this_robot = rospy.get_param("~this_robot")
         self.this_robot_ = this_robot
+
+        rospy.loginfo("\033[32m[GoalManager] \n" +
+                f"======== Configuration ========\n" +
+                f"min_goal_dist_m: {self.min_goal_dist_m_}\n" +
+                f"robot_list: {robots}\n" +
+                f"this_robot: {self.this_robot_}\n" +
+                f"====== End Configuration ======\033[0m")
+
         this_priority = int(priorities[robots.index(this_robot)])
         self.other_robot_subs_ = []
         for robot, priority in zip(robots, priorities):
             if this_robot != robot:
-                rospy.loginfo(f"{self.this_robot_} initializing other robot {robot}")
+                rospy.loginfo(f"[GoalManager] {self.this_robot_} initializing other robot {robot}")
                 self.last_stamp_other_[robot] = 0
                 self.other_claimed_goals_[robot] = np.zeros((0, 2))
                 bound_cb = partial(self.other_robot_cb, take_pri=int(priority) > this_priority, robot=robot)
@@ -59,9 +67,9 @@ class GoalManager:
         self.goal_viz_pub_ = rospy.Publisher("~goal_viz", Marker, queue_size=1)
         self.navigate_client_ = actionlib.SimpleActionClient('spomp_global/navigate', GlobalNavigateAction)
 
-        rospy.loginfo("Waiting for spomp action server...")
+        rospy.loginfo("[GoalManager] Waiting for spomp action server...")
         self.navigate_client_.wait_for_server()
-        rospy.loginfo("Action server found")
+        rospy.loginfo("[GoalManager] Action server found")
 
         # offset frequencies to reduce chance of collision
         self.check_for_new_goal_timer_ = rospy.Timer(rospy.Duration(5 + 1*this_priority), self.check_for_new_goal)
@@ -69,9 +77,9 @@ class GoalManager:
     def other_robot_cb(self, goals, take_pri, robot):
         self.lock_.acquire()
 
-        rospy.loginfo(f"{self.this_robot_} got goals from {robot}")
+        rospy.loginfo(f"[GoalManager] {self.this_robot_} got goals from {robot}")
         if goals.header.stamp.to_nsec() <= self.last_stamp_other_[robot]:
-            rospy.loginfo("Message from other robot was old")
+            rospy.loginfo("[GoalManager] Message from other robot was old")
             self.lock_.release()
             return
         self.last_stamp_other_[robot] = goals.header.stamp.to_nsec()
@@ -82,14 +90,14 @@ class GoalManager:
             self.other_claimed_goals_[robot] = np.vstack([self.other_claimed_goals_[robot], goal_pt])
             if self.in_progress_ and self.current_goal_ is not None:
                 dist = np.linalg.norm(self.current_goal_ - goal_pt)
-                rospy.loginfo(dist)
+                rospy.loginfo(f"[GoalManager] Other goal dist: {dist}")
                 if dist < self.min_goal_dist_m_ and (not take_pri or goal.status == ClaimedGoal.VISITED):
                     # preempt if we are not priority, or if goal has already been visited
-                    rospy.loginfo("Preempted")
+                    rospy.loginfo("[GoalManager] Preempted")
                     preempted = True
                 else:
-                    rospy.loginfo("Not preempted")
-        rospy.loginfo(self.other_claimed_goals_)
+                    rospy.loginfo("[GoalManager] Not preempted")
+                    rospy.loginfo(f"[GoalManager] Other goals: {self.other_claimed_goals_}")
 
         if preempted:
             # report not successful
@@ -98,7 +106,7 @@ class GoalManager:
                 self.claimed_goals_msg_.goals.pop()
             self.claimed_goals_pub_.publish(self.claimed_goals_msg_)
 
-            rospy.loginfo("Other robot with higher priority has goal")
+            rospy.loginfo("[GoalManager] Other robot with higher priority has goal")
             # preempt
             self.in_progress_ = False
             self.current_goal_ = None
@@ -115,7 +123,7 @@ class GoalManager:
             trans_goal = goal_msg
             #trans_goal = self.tf_buffer_.transform(goal_msg, "map")
         except Exception as ex:
-            rospy.logwarn(f"Cannot transform goals: {ex}")
+            rospy.logwarn(f"[GoalManager] Cannot transform goals: {ex}")
             return
         self.lock_.acquire()
 
@@ -146,7 +154,7 @@ class GoalManager:
 
                 self.goal_list_ = np.vstack([self.goal_list_, goal_pt])
             except Exception as ex:
-                rospy.logwarn(f"Cannot transform goal: {ex}")
+                rospy.logwarn(f"[GoalManager] Cannot transform goal: {ex}")
                 self.lock_.release()
                 return
 
@@ -178,7 +186,7 @@ class GoalManager:
         if not self.in_progress_:
             selected_goal = self.choose_goal()
             if selected_goal is not None:
-                rospy.loginfo("Found goal, executing plan")
+                rospy.loginfo("[GoalManager] Found goal, executing plan")
                 self.current_goal_ = selected_goal
                 if self.start_loc_ is None:
                     # save start position
@@ -202,12 +210,12 @@ class GoalManager:
                 cur_goal_msg.goal.pose.orientation.w = 1
                 self.navigate_client_.send_goal(cur_goal_msg, done_cb=self.navigate_status_cb)
             else:
-                rospy.logwarn("Cannot find any path to goals")
+                rospy.logwarn("[GoalManager] Cannot find any path to goals")
 
                 # go home
                 if self.start_loc_ is not None and not self.rtls_:
                     if np.linalg.norm(self.start_loc_ - self.current_loc_) > 10:
-                        rospy.loginfo("Returning to start")
+                        rospy.loginfo("[GoalManager] Returning to start")
                         self.rtls_ = True
                         cur_goal_msg = GlobalNavigateGoal()
                         cur_goal_msg.goal.header.stamp = rospy.Time.now()
@@ -226,7 +234,7 @@ class GoalManager:
 
     def choose_goal(self):
         if self.current_loc_ is None:
-            rospy.logwarn("No Odometry Received Yet")
+            rospy.logwarn("[GoalManager] No Odometry Received Yet")
             return None
 
         best_cost = np.inf
@@ -275,7 +283,7 @@ class GoalManager:
                     reason = "timeout"
                 elif result_msg.status == GlobalNavigateResult.NO_PATH:
                     reason = "no_path"
-                rospy.logerr(f"Failed to get to goal: {reason}")
+                rospy.logerr(f"[GoalManager] Failed to get to goal: {reason}")
 
                 # did not get to goal successfully
                 self.failed_goals_ = np.vstack([self.failed_goals_, self.current_goal_[None,:]])

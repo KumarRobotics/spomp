@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import yaml
+from pathlib import Path
 import rospy
 import numpy as np
 import cv2
@@ -8,29 +10,68 @@ from grid_map_msgs.msg import GridMap
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import PointStamped, PoseArray, Pose
 
+def get_class_info(class_path, target_class_name):
+    target_class_ind = 0
+    class_list = []
+
+    class_dict = yaml.load(open(class_path, 'r'), Loader=yaml.CLoader)
+    # Attach a new property to the dict to keep track of the original order
+    for cls_id, cls_info in enumerate(class_dict):
+        cls_info["id_counter"] = cls_id
+
+    class_dict.sort(key = lambda e : e["traversability_diff"])
+
+    for cls_info in class_dict:
+        if cls_info["name"] == target_class_name:
+            target_class_ind = cls_info["id_counter"]
+        class_list.append(cls_info["id_counter"])
+
+    return target_class_ind, class_list
+
 class FindObjectGoalGen:
     def __init__(self):
         self.last_map_stamp_ = 0
         self.map_size_ = np.array([0., 0])
-        self.scale_ = 0
-        self.class_list_ = [0, 6, 3]
+        self.resolution_ = 0
 
-        self.scale_ = rospy.get_param("~resolution", 2)
-        self.merge_dist_ = rospy.get_param("~merge_dist", 10) * self.scale_
-        self.min_size_ = (rospy.get_param("~min_size", 2) * self.scale_) ** 2
-        self.region_size_ = rospy.get_param("~region_size", 7) * self.scale_
+        world_config_path = rospy.get_param("~world_config_path")
+        world_config = yaml.load(open(world_config_path, 'r'), Loader=yaml.CLoader)
+        class_path = Path(world_config_path).parent.absolute() / world_config["classes"]
+        map_path = Path(world_config_path).parent.absolute() / world_config["map"]
+
+        target_class_name = rospy.get_param("~target_class_name", "vehicle")
+
+        self.target_class_ind_, self.class_list_ = get_class_info(class_path, target_class_name)
+
+        self.resolution_ = yaml.load(open(map_path, 'r'), Loader=yaml.CLoader)["resolution"]
+        self.merge_dist_ = rospy.get_param("~merge_dist_m", 10)
+        self.min_size_ = rospy.get_param("~min_size_m", 2) 
+        self.region_size_ = rospy.get_param("~region_size_m", 7)
+
+        rospy.loginfo("\033[32m[FindObj] \n" +
+                f"======== Configuration ========\n" +
+                f"world_config_path: {world_config_path}\n" +
+                f"target_class_name: {target_class_name}, id: {self.target_class_ind_}\n" +
+                f"merge_dist_m: {self.merge_dist_}\n" +
+                f"min_size_m: {self.min_size_}\n" +
+                f"region_size_m: {self.region_size_}\n" +
+                f"====== End Configuration ======\033[0m")
+
+        self.merge_dist_ = self.merge_dist_ * self.resolution_
+        self.min_size_ = (self.min_size_ * self.resolution_) ** 2
+        self.region_size_ = self.region_size_ * self.resolution_
 
         self.map_sub_ = rospy.Subscriber("~map", GridMap, self.map_cb)
         self.goal_viz_pub_ = rospy.Publisher("~goal_viz", Image, queue_size=1)
         self.target_goals_pub_ = rospy.Publisher("~target_goals", PoseArray, queue_size=1)
 
     def world2img(self, world_pos):
-        return ((-world_pos + self.origin_) * self.scale_ +
+        return ((-world_pos + self.origin_) * self.resolution_ +
                 self.map_size_/2).astype(np.int)
 
     def img2world(self, img_pos):
         return -(((img_pos -
-                self.map_size_/2)/self.scale_) - self.origin_)
+                self.map_size_/2)/self.resolution_) - self.origin_)
 
     def map_cb(self, map_msg):
         if map_msg.info.header.stamp.to_nsec() <= self.last_map_stamp_:
@@ -48,7 +89,7 @@ class FindObjectGoalGen:
                 sem_layer.layout.dim[0].size, sem_layer.layout.dim[1].size)
         map_img = map_img.transpose()
 
-        self.scale_ = 1./map_msg.info.resolution
+        self.resolution_ = 1./map_msg.info.resolution
         self.origin_ = np.array([center.x, center.y])
         self.map_size_ = np.array(map_img.shape, dtype=np.float32)[:2]
 
@@ -68,7 +109,7 @@ class FindObjectGoalGen:
         return cv2.distanceTransform(road_map, cv2.DIST_L2, cv2.DIST_MASK_5)
 
     def detect_roi(self, map_img):
-        car_locations = (map_img == 4).astype(np.uint8)*255
+        car_locations = (map_img == self.target_class_ind_).astype(np.uint8)*255
         # remove points with very small area
         car_locations_filtered = cv2.morphologyEx(car_locations, cv2.MORPH_OPEN, 
                 cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2)))
@@ -118,7 +159,7 @@ class FindObjectGoalGen:
     def find_goals(self, map_img):
         blob_centers = self.detect_roi(map_img) 
         goals = self.choose_goals(blob_centers, map_img)
-        rospy.loginfo(f"Found {goals.shape[0]} goals")
+        rospy.loginfo(f"[FindObj] Found {goals.shape[0]} goals")
         self.pub_viz(map_img, blob_centers, goals)
         self.pub_goals(goals)
 
@@ -136,7 +177,7 @@ class FindObjectGoalGen:
 
     def pub_viz(self, viz_img, blob_centers, goals):
         viz = cv2.cvtColor(viz_img.copy()*20, cv2.COLOR_GRAY2BGR)
-        viz[viz[:,:,0] == 4*20, :] = np.array([255, 255, 0])
+        viz[viz[:,:,0] == self.target_class_ind_*20, :] = np.array([255, 255, 0])
         for blob_w in blob_centers:
             blob = self.world2img(blob_w)
             min_b = np.flip((blob - self.region_size_).astype(np.int))
