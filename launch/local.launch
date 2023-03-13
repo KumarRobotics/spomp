@@ -8,7 +8,8 @@
   <arg name="body_frame" default="body"/>
   <arg name="control_frame" default="base_link"/>
 
-  <arg name="SL_goal_thresh_m" default="2"/>
+  <arg name="SL_global_goal_thresh_m" default="0.5"/>
+  <arg name="SL_local_goal_thresh_m" default="2.0"/>
 
   <arg name="TP_max_hole_fill_size" default="0.1"/>
   <arg name="TP_min_noise_size" default="0.3"/>
@@ -51,7 +52,8 @@
     <param name="body_frame" value="$(arg body_frame)"/>
     <param name="control_frame" value="$(arg control_frame)"/>
 
-    <param name="SL_goal_thresh_m" value="$(arg SL_goal_thresh_m)"/>
+    <param name="SL_global_goal_thresh_m" value="$(arg SL_global_goal_thresh_m)"/>
+    <param name="SL_local_goal_thresh_m" value="$(arg SL_local_goal_thresh_m)"/>
 
     <param name="TP_max_hole_fill_size" value="$(arg TP_max_hole_fill_size)"/>
     <param name="TP_min_noise_size" value="$(arg TP_min_noise_size)"/>

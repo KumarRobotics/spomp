@@ -40,7 +40,7 @@ void Local::setGoal(const Eigen::Vector3f& goal) {
 Twistf Local::getControlInput(const Eigen::Isometry3f& state) {
   if (global_goal_) {
     if ((*global_goal_ - state.translation()).norm() < 
-        params_.goal_thresh_m) 
+        params_.global_goal_thresh_m) 
     {
       // Reached global goal, stop
       global_goal_.reset();
@@ -48,7 +48,7 @@ Twistf Local::getControlInput(const Eigen::Isometry3f& state) {
     } else {
       Eigen::Isometry3f pose_l = pano_.getPose().inverse() * state;
       if ((controller_.getLocalGoal() - pose_l.translation().head<2>()).norm() < 
-          params_.goal_thresh_m) 
+          params_.local_goal_thresh_m) 
       {
         // Close to local goal, replan
         setGoal(*global_goal_);

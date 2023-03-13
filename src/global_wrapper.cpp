@@ -330,6 +330,9 @@ void GlobalWrapper::globalNavigateSetFailed() {
 bool GlobalWrapper::setGoal(
     const geometry_msgs::PoseStamped& goal_msg) 
 {
+  // Reset last_goal so that if we get same goal as old we retransmit it
+  last_goal_.setZero();
+
   auto goal_map_frame = goal_msg;
   if (goal_map_frame.header.frame_id != map_frame_) {
     try {
@@ -369,6 +372,9 @@ void GlobalWrapper::publishLocalGoal(const ros::Time& stamp) {
 }
 
 void GlobalWrapper::cancelLocalPlanner() {
+  // Reset last_goal so that if we get same goal as old we retransmit it
+  last_goal_.setZero();
+
   auto pos = global_.getPos();
   if (!pos) return;
 

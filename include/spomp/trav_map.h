@@ -52,6 +52,7 @@ class TravMap {
     }
 
     void resetGraphAroundPoint(const Eigen::Vector2f& pt);
+    void resetGraphLocked();
 
     cv::Mat viz() const;
     cv::Mat viz_visibility() const;

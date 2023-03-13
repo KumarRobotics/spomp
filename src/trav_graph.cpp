@@ -41,7 +41,7 @@ std::list<TravGraph::Node*> TravGraph::getPath(
     }
 
     for (const auto& edge : cur_n->edges) {
-      if (edge->cls >= Edge::MAX_TERRAIN) continue;
+      if (edge->cls >= Edge::MAX_TERRAIN && edge->is_locked) continue;
       Node* next_n = edge->getOtherNode(cur_n);
       if (next_n->visited) continue;
       float new_cost = cur_n->cost + edge->totalCost();
@@ -60,7 +60,9 @@ std::list<TravGraph::Node*> TravGraph::getPath(
     // We have found a path
     path.push_front(end_n);
     while (path.front() != start_n) {
-      if (path.front()->best_prev_edge->cls >= Edge::MAX_TERRAIN) {
+      if (path.front()->best_prev_edge->cls >= Edge::MAX_TERRAIN &&
+          path.front()->best_prev_edge->is_locked) 
+      {
         // We have a bad edge
         path = {};
         break;
@@ -83,7 +85,7 @@ float TravGraph::getPathCost(const std::list<Node*>& path) const {
       continue;
     }
     auto edge = node->getEdgeToNode(last_node);
-    if (!edge || edge->cls >= Edge::MAX_TERRAIN) {
+    if (!edge || (edge->cls >= Edge::MAX_TERRAIN && edge->is_locked)) {
       return std::numeric_limits<float>::max();
     }
     cost += node->getEdgeToNode(last_node)->totalCost();

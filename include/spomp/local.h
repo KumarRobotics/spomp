@@ -9,7 +9,8 @@ namespace spomp {
 class Local {
   public:
     struct Params {
-      float goal_thresh_m = 2;
+      float local_goal_thresh_m = 2;
+      float global_goal_thresh_m = 2;
     };
     Local(const Local::Params& l_p, const TerrainPano::Params& tp_p, 
         const PanoPlanner::Params& pp_p, const Controller::Params& c_p);

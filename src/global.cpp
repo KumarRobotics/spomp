@@ -78,7 +78,7 @@ bool Global::updateOtherLocalReachability(
       std::cout << "\033[31m" << "[SPOMP-Global] Attemping to reset local graph" 
         << "\033[0m" << std::endl;
       if (waypoint_manager_.getPos()) {
-        map_.resetGraphAroundPoint(*waypoint_manager_.getPos());
+        map_.resetGraphLocked();
         ++num_recovery_reset_;
         new_path = map_.getPath(*waypoint_manager_.getPos(), 
             waypoint_manager_.getPath().back()->pos);
@@ -86,7 +86,7 @@ bool Global::updateOtherLocalReachability(
 
       if (new_path.size() < 1 || num_recovery_reset_ > params_.max_num_recovery_reset) {
         // Cannot find path
-        std::cout << "\033[31m" << "[SPOMP-Global] [ERROR] Could not find valid path" 
+        std::cout << "\033[31m" << "[SPOMP-Global] [ERROR] Could not replan to find valid path" 
           << "\033[0m" << std::endl;
         cancel();
         return false;

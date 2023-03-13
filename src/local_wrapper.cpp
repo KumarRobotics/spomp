@@ -61,7 +61,8 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
   nh.getParam("body_frame", body_frame_);
   nh.getParam("control_frame", control_frame_);
 
-  nh.getParam("SL_goal_thresh_m", sl_params.goal_thresh_m);
+  nh.getParam("SL_global_goal_thresh_m", sl_params.global_goal_thresh_m);
+  nh.getParam("SL_local_goal_thresh_m", sl_params.local_goal_thresh_m);
 
   nh.getParam("TP_max_hole_fill_size", tp_params.max_hole_fill_size);
   nh.getParam("TP_min_noise_size", tp_params.min_noise_size);
@@ -99,7 +100,8 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
     setw(width) << "[ROS] body_frame: " << body_frame_ << endl <<
     setw(width) << "[ROS] control_frame: " << control_frame_ << endl <<
     "[ROS] ===============================" << endl <<
-    setw(width) << "[ROS] SL_goal_thresh_m: " << sl_params.goal_thresh_m << endl <<
+    setw(width) << "[ROS] SL_global_goal_thresh_m: " << sl_params.global_goal_thresh_m << endl <<
+    setw(width) << "[ROS] SL_local_goal_thresh_m: " << sl_params.local_goal_thresh_m << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] TP_max_hole_fill_size: " << tp_params.max_hole_fill_size << endl <<
     setw(width) << "[ROS] TP_min_noise_size: " << tp_params.min_noise_size << endl <<
@@ -183,7 +185,7 @@ void LocalWrapper::play() {
 void LocalWrapper::initialize() {
   // Subscribers
   pano_sub_ = it_.subscribeCamera("pano/img", 1, &LocalWrapper::panoCallback, this);
-  goal_sub_ = nh_.subscribe("goal", 1, &LocalWrapper::goalCallback, this);
+  goal_sub_ = nh_.subscribe("goal", 5, &LocalWrapper::goalCallback, this);
   pose_sub_ = nh_.subscribe("pose", 1, &LocalWrapper::poseCallback, this);
 
   ros::spin();

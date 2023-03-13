@@ -491,6 +491,14 @@ void TravMap::resetGraphAroundPoint(const Eigen::Vector2f& pt) {
   }
 }
 
+void TravMap::resetGraphLocked() {
+  for (auto& edge : graph_.getEdges()) {
+    if (edge.cls > 0) {
+      edge.is_locked = false;
+    }
+  }
+}
+
 cv::Mat TravMap::viz() const {
   cv::Mat viz;
   if (map_.empty()) {
@@ -513,7 +521,6 @@ cv::Mat TravMap::viz() const {
 
   // Draw edges
   for (const auto& edge : graph_.getEdges()) {
-    if (edge.cls >= TravGraph::Edge::MAX_TERRAIN) continue;
     auto node1_img_pos = map_ref_frame_.world2img(edge.node1->pos);
     auto node2_img_pos = map_ref_frame_.world2img(edge.node2->pos);
     cv::Scalar color;
