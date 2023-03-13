@@ -8,7 +8,7 @@
   <arg name="body_frame" default="body"/>
   <arg name="control_frame" default="base_link"/>
 
-  <arg name="SL_global_goal_thresh_m" default="0.5"/>
+  <arg name="SL_global_goal_thresh_m" default="1.5"/>
   <arg name="SL_local_goal_thresh_m" default="2.0"/>
 
   <arg name="TP_max_hole_fill_size" default="0.1"/>
