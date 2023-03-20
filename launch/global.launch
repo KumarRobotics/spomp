@@ -15,6 +15,7 @@
   <arg name="TM_uniform_node_sampling" default="False"/>
   <arg name="TM_no_max_terrain_in_graph" default="True"/>
   <arg name="TM_max_hole_fill_size_m" default="1"/>
+  <arg name="TM_min_region_size_m" default="1"/>
   <arg name="TM_vis_dist_m" default="10"/>
   <arg name="TM_unvis_start_thresh" default="0.1"/>
   <arg name="TM_unvis_stop_thresh" default="0.01"/>
@@ -59,6 +60,7 @@
     <param name="TM_uniform_node_sampling" value="$(arg TM_uniform_node_sampling)"/>
     <param name="TM_no_max_terrain_in_graph" value="$(arg TM_no_max_terrain_in_graph)"/>
     <param name="TM_max_hole_fill_size_m" value="$(arg TM_max_hole_fill_size_m)"/>
+    <param name="TM_min_region_size_m" value="$(arg TM_min_region_size_m)"/>
     <param name="TM_vis_dist_m" value="$(arg TM_vis_dist_m)"/>
     <param name="TM_unvis_start_thresh" value="$(arg TM_unvis_start_thresh)"/>
     <param name="TM_unvis_stop_thresh" value="$(arg TM_unvis_stop_thresh)"/>

@@ -18,6 +18,7 @@ class TravMap {
       bool uniform_node_sampling = false;
       bool no_max_terrain_in_graph = true;
       float max_hole_fill_size_m = 1;
+      float min_region_size_m = 1;
       float vis_dist_m = 10;
       float unvis_start_thresh = 10;
       float unvis_stop_thresh = 2;

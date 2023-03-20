@@ -64,6 +64,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   nh.getParam("TM_uniform_node_sampling", tm_params.uniform_node_sampling);
   nh.getParam("TM_no_max_terrain_in_graph", tm_params.no_max_terrain_in_graph);
   nh.getParam("TM_max_hole_fill_size_m", tm_params.max_hole_fill_size_m);
+  nh.getParam("TM_min_region_size_m", tm_params.min_region_size_m);
   nh.getParam("TM_vis_dist_m", tm_params.vis_dist_m);
   nh.getParam("TM_unvis_start_thresh", tm_params.unvis_start_thresh);
   nh.getParam("TM_unvis_stop_thresh", tm_params.unvis_stop_thresh);
@@ -104,6 +105,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
     setw(width) << "[ROS] TM_uniform_node_sampling: " << tm_params.uniform_node_sampling << endl <<
     setw(width) << "[ROS] TM_no_max_terrain_in_graph: " << tm_params.no_max_terrain_in_graph << endl <<
     setw(width) << "[ROS] TM_max_hole_fill_size_m: " << tm_params.max_hole_fill_size_m << endl <<
+    setw(width) << "[ROS] TM_min_region_size_m: " << tm_params.min_region_size_m << endl <<
     setw(width) << "[ROS] TM_vis_dist_m: " << tm_params.vis_dist_m << endl <<
     setw(width) << "[ROS] TM_unvis_start_thresh: " << tm_params.unvis_start_thresh << endl <<
     setw(width) << "[ROS] TM_unvis_stop_thresh: " << tm_params.unvis_stop_thresh << endl <<

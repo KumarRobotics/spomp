@@ -288,20 +288,25 @@ std::list<TravGraph::Node*> TravMap::prunePath(
 void TravMap::computeDistMaps() {
   compute_dist_maps_t_->start();
 
-  auto morph_kernel = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(
-        params_.max_hole_fill_size_m * map_ref_frame_.res * 2 + 1,
-        params_.max_hole_fill_size_m * map_ref_frame_.res * 2 + 1));
+  // Add 1 so if zero we still have valid morph element
+  auto morph_kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(
+        params_.max_hole_fill_size_m * map_ref_frame_.res + 1,
+        params_.max_hole_fill_size_m * map_ref_frame_.res + 1));
 
-  int t_cls = 0;
-  for (auto& dist_map : dist_maps_) {
+  int t_cls = dist_maps_.size() - 1;
+  cv::Mat filtered_map(map_.size(), CV_8UC1, cv::Scalar(255));
+  for (auto it=dist_maps_.rbegin(); it!=dist_maps_.rend(); ++it) {
     cv::Mat trav_map;
     // 1 everywhere where we want to compute distance
     cv::bitwise_or(map_ <= t_cls, map_ == 255, trav_map);
     cv::morphologyEx(trav_map, trav_map, cv::MORPH_CLOSE, morph_kernel);
-    cv::distanceTransform(trav_map, dist_map, cv::DIST_L2, cv::DIST_MASK_5);
-    dist_map.setTo(0, map_ == 255);
-    ++t_cls;
+    cv::distanceTransform(trav_map, *it, cv::DIST_L2, cv::DIST_MASK_5);
+    it->setTo(0, map_ == 255);
+    filtered_map.setTo(t_cls, *it > 0);
+    --t_cls;
   }
+
+  map_ = filtered_map;
 
   compute_dist_maps_t_->end();
 }
@@ -349,9 +354,10 @@ void TravMap::buildGraph() {
   double min_v, max_v;
   cv::Point min_l, max_l;
 
+  // Add 1 so if zero we still have valid morph element
   auto morph_kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(
-        params_.max_hole_fill_size_m * map_ref_frame_.res * 2 + 1,
-        params_.max_hole_fill_size_m * map_ref_frame_.res * 2 + 1));
+        params_.min_region_size_m * map_ref_frame_.res + 1,
+        params_.min_region_size_m * map_ref_frame_.res + 1));
 
   int start_cls = 0;
   if (params_.uniform_node_sampling) {
