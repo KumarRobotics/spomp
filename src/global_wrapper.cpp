@@ -147,7 +147,7 @@ void GlobalWrapper::initialize() {
   int id = 1;
   for (const auto& robot : other_robot_list_) {
     other_robot_reachability_subs_.push_back(nh_.subscribe<LocalReachabilityArray>(
-          "/" + this_robot_ + "/" + robot + "/spomp_global/reachability_history", 5, 
+          "/" + ros::this_node::getNamespace() + "/" + robot + "/spomp_global/reachability_history", 5, 
           std::bind(&GlobalWrapper::otherReachabilityCallback, this, id, std::placeholders::_1)));
     ++id;
   }
