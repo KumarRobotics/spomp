@@ -192,10 +192,12 @@ AerialMap::EdgeInfo AerialMapInfer::traceEdge(const Eigen::Vector2f& n1,
   float dist = (img_pt1 - img_pt2).norm();
   Eigen::Vector2f dir = (img_pt2 - img_pt1).normalized();
 
-  std::scoped_lock lock(prob_map_.mtx);
+  std::scoped_lock prob_lock(prob_map_.mtx);
+  std::scoped_lock feat_lock(feature_map_.mtx);
   float total_neg_log_prob = 0;
   float num_valid = 0;
   float num_invalid = 0;
+  int num_off_map = 0;
   for (float cur_dist=0; cur_dist<dist; cur_dist+=map_ref_frame_.res) {
     Eigen::Vector2f sample_pt = img_pt1 + dir*cur_dist;
     float prob = prob_map_.map.at<float>(cv::Point(sample_pt[0], sample_pt[1]));
@@ -204,6 +206,11 @@ AerialMap::EdgeInfo AerialMapInfer::traceEdge(const Eigen::Vector2f& n1,
       ++num_valid;
     } else {
       ++num_invalid;
+    }
+    // This is different from checking the prob map, because the map fitting
+    // may not have completed yet
+    if (feature_map_.sem_map.at<uint8_t>(cv::Point(sample_pt[0], sample_pt[1])) == 255) {
+      ++num_off_map;
     }
   }
 
@@ -217,7 +224,12 @@ AerialMap::EdgeInfo AerialMapInfer::traceEdge(const Eigen::Vector2f& n1,
     total_neg_log_prob /= (num_valid/map_ref_frame_.res);
   }
 
-  return {0, total_neg_log_prob};
+  if (num_off_map / (num_valid + num_invalid) <= params_.max_frac_unknown) {
+    // A decent portion is on the map
+    return {0, total_neg_log_prob};
+  } else {
+    return {TravGraph::Edge::MAX_TERRAIN, 0};
+  }
 }
 
 

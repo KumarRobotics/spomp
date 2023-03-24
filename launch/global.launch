@@ -33,6 +33,7 @@
   <arg name="AM_trav_thresh" default="3"/>
   <arg name="AM_not_trav_thresh" default="3"/>
   <arg name="AM_not_trav_range_m" default="3"/>
+  <arg name="AM_max_frac_unknown" default="0.5"/>
 
   <arg name="MLP_hidden_layer_size" default="10"/>
   <arg name="MLP_regularization" default="0.01"/>
@@ -78,6 +79,7 @@
     <param name="AM_trav_thresh" value="$(arg AM_trav_thresh)"/>
     <param name="AM_not_trav_thresh" value="$(arg AM_not_trav_thresh)"/>
     <param name="AM_not_trav_range_m" value="$(arg AM_not_trav_range_m)"/>
+    <param name="AM_max_frac_unknown" value="$(arg AM_max_frac_unknown)"/>
 
     <param name="MLP_hidden_layer_size" value="$(arg MLP_hidden_layer_size)"/>
     <param name="MLP_regularization" value="$(arg MLP_regularization)"/>

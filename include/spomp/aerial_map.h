@@ -64,6 +64,7 @@ class AerialMapInfer : public AerialMap {
       int trav_thresh = 1;
       int not_trav_thresh = 1;
       float not_trav_range_m = 3;
+      float max_frac_unknown = 0.5;
     };
     AerialMapInfer(const Params& p, const MLPModel::Params& mlp_p, int n_cls);
     ~AerialMapInfer();

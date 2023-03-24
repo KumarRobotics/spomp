@@ -419,9 +419,13 @@ TravGraph::Node* TravMap::addNode(const Eigen::Vector2f& pos, int t_cls) {
       auto intermed_n = graph_.addNode({map_ref_frame_.img2world(overlap_loc)});
       addNodeToVisibility(*intermed_n);
       auto edge_info = aerial_map_->traceEdge(n->pos, intermed_n->pos);
-      addEdge({n, intermed_n, edge_info.cost, edge_info.cls});
+      if (edge_info.cls < TravGraph::Edge::MAX_TERRAIN) {
+        addEdge({n, intermed_n, edge_info.cost, edge_info.cls});
+      }
       edge_info = aerial_map_->traceEdge(overlap_n->pos, intermed_n->pos);
-      addEdge({overlap_n, intermed_n, edge_info.cost, edge_info.cls});
+      if (edge_info.cls < TravGraph::Edge::MAX_TERRAIN) {
+        addEdge({overlap_n, intermed_n, edge_info.cost, edge_info.cls});
+      }
     }
   }
 

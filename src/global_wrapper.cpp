@@ -82,6 +82,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   nh.getParam("AM_trav_thresh", am_params.trav_thresh);
   nh.getParam("AM_not_trav_thresh", am_params.not_trav_thresh);
   nh.getParam("AM_not_trav_range_m", am_params.not_trav_range_m);
+  nh.getParam("AM_max_frac_unknown", am_params.max_frac_unknown);
 
   nh.getParam("MLP_hidden_layer_size", mlp_params.hidden_layer_size);
   nh.getParam("MLP_regularization", mlp_params.regularization);
@@ -117,6 +118,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
     setw(width) << "[ROS] AM_trav_thresh: " << am_params.trav_thresh << endl <<
     setw(width) << "[ROS] AM_not_trav_thresh: " << am_params.not_trav_thresh << endl <<
     setw(width) << "[ROS] AM_not_trav_range_m: " << am_params.not_trav_range_m << endl <<
+    setw(width) << "[ROS] AM_max_frac_unknown: " << am_params.max_frac_unknown << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] MLP_hidden_layer_size: " << mlp_params.hidden_layer_size << endl <<
     setw(width) << "[ROS] MLP_regularization: " << mlp_params.regularization << endl <<
