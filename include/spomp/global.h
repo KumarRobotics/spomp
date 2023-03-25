@@ -12,6 +12,7 @@ class Global {
       int max_num_recovery_reset = 1;
       float timeout_duration_s_per_m = 3;
       float replan_hysteresis = 10;
+      int num_new_reach_to_pub = 10;
     };
     Global(const Params& g_p, 
            const TravMap::Params& tm_p, 
@@ -81,8 +82,15 @@ class Global {
       return map_.getAerialMapTrav();
     }
 
-    const auto& getReachabilityHistory() const {
-      return map_.getReachabilityHistory();
+    const auto& getReachabilityHistory() {
+      const auto& reach_hist = map_.getReachabilityHistory();
+      num_reach_panos_published_ = reach_hist.size();
+      return reach_hist;
+    }
+
+    bool haveNewReachabilityHistory() const {
+      return map_.getReachabilityHistory().size() >=
+        num_reach_panos_published_ + params_.num_new_reach_to_pub;
     }
 
     auto getPos() const {
@@ -107,6 +115,7 @@ class Global {
 
     float old_cost_{0};
     int num_recovery_reset_{0};
+    int num_reach_panos_published_{0};
 };
 
 } // namespace spomp

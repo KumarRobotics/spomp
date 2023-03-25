@@ -59,6 +59,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   nh.getParam("G_max_num_recovery_reset", g_params.max_num_recovery_reset);
   nh.getParam("G_timeout_duration_s_per_m", g_params.timeout_duration_s_per_m);
   nh.getParam("G_replan_hysteresis", g_params.replan_hysteresis);
+  nh.getParam("G_num_new_reach_to_pub", g_params.num_new_reach_to_pub);
 
   nh.getParam("TM_learn_trav", tm_params.learn_trav);
   nh.getParam("TM_uniform_node_sampling", tm_params.uniform_node_sampling);
@@ -101,6 +102,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
     setw(width) << "[ROS] G_max_num_recovery_reset: " << g_params.max_num_recovery_reset << endl <<
     setw(width) << "[ROS] G_timeout_duration_s_per_m: " << g_params.timeout_duration_s_per_m << endl <<
     setw(width) << "[ROS] G_replan_hysteresis: " << g_params.replan_hysteresis << endl <<
+    setw(width) << "[ROS] G_num_new_reach_to_pub: " << g_params.num_new_reach_to_pub << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] TM_learn_trav: " << tm_params.learn_trav << endl <<
     setw(width) << "[ROS] TM_uniform_node_sampling: " << tm_params.uniform_node_sampling << endl <<
@@ -393,6 +395,10 @@ void GlobalWrapper::cancelLocalPlanner() {
 }
 
 void GlobalWrapper::publishReachabilityHistory(const ros::Time& stamp) {
+  if (!global_.haveNewReachabilityHistory()) {
+    return;
+  }
+
   const auto& reach_hist = global_.getReachabilityHistory();
 
   LocalReachabilityArray lra_msg;
