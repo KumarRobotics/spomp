@@ -57,6 +57,10 @@ class Global {
     bool updateOtherLocalReachability(
         const Reachability& reachability, int robot_id);
 
+    void resetGraphLocked() {
+      map_.resetGraphLocked();
+    }
+
     //! @return The next global target waypoint, if available
     std::optional<Eigen::Vector2f> getNextWaypoint() {
       auto next_waypt = waypoint_manager_.getNextWaypoint();

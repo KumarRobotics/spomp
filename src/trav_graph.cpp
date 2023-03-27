@@ -17,6 +17,8 @@ std::list<TravGraph::Node*> TravGraph::getPath(
 {
   get_path_t_->start();
 
+  verifyCanExitNode(start_n);
+
   // Initial conditions
   reset();
   start_n->cost = 0;
@@ -73,6 +75,22 @@ std::list<TravGraph::Node*> TravGraph::getPath(
 
   get_path_t_->end();
   return path;
+}
+
+void TravGraph::verifyCanExitNode(Node* const node) {
+  // Make sure that it is possible to exit this node.
+  // We do this so that robot can't get stuck with no valid edges
+
+  for (const auto& edge : node->edges) {
+    if (edge->cls < Edge::MAX_TERRAIN || !edge->is_locked) {
+      // Valid edge out of here
+      return;
+    }
+  }
+
+  for (auto& edge : node->edges) {
+    edge->is_locked = false;
+  }
 }
 
 float TravGraph::getPathCost(const std::list<Node*>& path) const {

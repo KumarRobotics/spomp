@@ -205,6 +205,7 @@ class GoalManager:
                 self.claimed_goals_pub_.publish(self.claimed_goals_msg_)
 
                 cur_goal_msg = GlobalNavigateGoal()
+                cur_goal_msg.force = False
                 cur_goal_msg.goal.header = self.claimed_goals_msg_.header
                 cur_goal_msg.goal.pose.position = goal_pose.position
                 cur_goal_msg.goal.pose.orientation.w = 1
@@ -218,6 +219,7 @@ class GoalManager:
                         rospy.loginfo("[GoalManager] Returning to start")
                         self.rtls_ = True
                         cur_goal_msg = GlobalNavigateGoal()
+                        cur_goal_msg.force = True
                         cur_goal_msg.goal.header.stamp = rospy.Time.now()
                         cur_goal_msg.goal.header.frame_id = "map"
                         cur_goal_msg.goal.pose.position.x = self.start_loc_[0]

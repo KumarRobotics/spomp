@@ -75,7 +75,7 @@ bool Global::updateOtherLocalReachability(
     // Replan
     auto new_path = map_.getPath(*last_node, *waypoint_manager_.getPath().back());
     if (new_path.size() < 1) {
-      std::cout << "\033[31m" << "[SPOMP-Global] Attemping to reset local graph" 
+      std::cout << "\033[31m" << "[SPOMP-Global] Attemping to reset graph" 
         << "\033[0m" << std::endl;
       if (waypoint_manager_.getPos()) {
         map_.resetGraphLocked();

@@ -294,6 +294,13 @@ void GlobalWrapper::globalNavigateGoalCallback() {
   auto goal = global_navigate_as_.acceptNewGoal();
   bool success = setGoal(goal->goal);
 
+  if (!success && goal->force) {
+    std::cout << "\033[31m" << "[SPOMP-Global] Attemping to reset graph" 
+      << "\033[0m" << std::endl;
+    global_.resetGraphLocked();
+    success = setGoal(goal->goal);
+  }
+
   if (!success) {
     // Failed to find a path
     spomp::GlobalNavigateResult result;
