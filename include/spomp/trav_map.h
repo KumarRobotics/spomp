@@ -73,6 +73,10 @@ class TravMap {
     const auto& getReachabilityHistory() const {
       return reach_hist_[0];
     }
+    
+    const int getReachBufSize() const {
+      return reach_buf_.size();
+    }
 
     bool haveReachabilityForRobotAtStamp(int robot_id, uint64_t stamp) const {
       if (robot_id < reach_hist_.size()) {
@@ -126,6 +130,7 @@ class TravMap {
     std::unique_ptr<AerialMap> aerial_map_;
 
     std::vector<std::unordered_map<uint64_t, Reachability>> reach_hist_;
+    std::list<Reachability> reach_buf_;
 
     Timer* compute_dist_maps_t_;
     Timer* reweight_graph_t_;

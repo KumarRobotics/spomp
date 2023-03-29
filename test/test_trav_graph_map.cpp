@@ -134,11 +134,11 @@ TEST(trav_map, test_static_map) {
   cv::imwrite("spomp_static_viz_map.png", m.viz_visibility());
 }
 
-TEST(trav_map, update_map) {
+TEST(trav_map, test_update_map) {
   TravMap::Params m_p;
   TravGraph::Params g_p;
   g_p.reach_node_max_dist_m = 3;
-  m_p.world_config_path = ros::package::getPath("semantics_manager") + "/config/test_config.yaml";
+  m_p.world_config_path = ros::package::getPath("semantics_manager") + "/config/test_config_dynamic.yaml";
   TravMap m(m_p, g_p, {}, {});
   cv::Mat map_img = cv::imread(ros::package::getPath("spomp") + 
                                "/test/map.png");
@@ -153,8 +153,40 @@ TEST(trav_map, update_map) {
 
   reach.setIsObs(Eigen::VectorXi::Ones(360));
   m.updateLocalReachability(reach);
+  ASSERT_EQ(m.getReachBufSize(), 0);
 
   cv::imwrite("spomp_trav_updated_map.png", m.viz());
+}
+
+TEST(trav_map, test_reach_before_map) {
+  TravMap::Params m_p;
+  TravGraph::Params g_p;
+  g_p.reach_node_max_dist_m = 3;
+  m_p.world_config_path = ros::package::getPath("semantics_manager") + "/config/test_config_dynamic.yaml";
+  TravMap m(m_p, g_p, {}, {});
+  cv::Mat map_img = cv::imread(ros::package::getPath("spomp") +
+                               "/test/map.png");
+
+  Reachability reach{0, AngularProj(AngularProj::StartFinish{0, 2*pi}, 360),
+    Eigen::Isometry2f::Identity()};
+
+  Eigen::VectorXf scan = Eigen::VectorXf::Ones(360)*100;
+  scan.tail<180>().setConstant(0);
+  reach.setScan(scan);
+
+  reach.setIsObs(Eigen::VectorXi::Ones(360));
+
+  ASSERT_EQ(m.getReachBufSize(), 0);
+  m.updateLocalReachability(reach);
+  ASSERT_EQ(m.getReachBufSize(), 1);
+  m.updateMap(cv::Mat(cv::Size(10, 10), CV_8UC1), {20, 20});
+  ASSERT_EQ(m.getReachBufSize(), 1);
+
+  m.updateMap(map_img, {-24.1119060516, 62.8522758484});
+  ASSERT_EQ(m.getReachBufSize(), 0);
+
+  m.updateLocalReachability(reach);
+  ASSERT_EQ(m.getReachBufSize(), 0);
 }
 
 } // namespace spomp

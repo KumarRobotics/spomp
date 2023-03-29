@@ -142,6 +142,20 @@ void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center,
   reweightGraph();
   rebuildVisibility();
   buildGraph();
+
+  // Look through the reachability buffer and if we are now in the map,
+  // take it off accordingly
+  reach_buf_.remove_if([&](const auto& reach) -> bool
+    {
+      if (map_ref_frame_.imgPointInMap(map_ref_frame_.world2img(
+              reach.getPose().translation())))
+      {
+        aerial_map_->updateLocalReachability(reach);
+        graph_.updateLocalReachability(reach);
+        return true;
+      }
+      return false;
+    });
 }
 
 std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,
@@ -191,19 +205,28 @@ std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,
 
 bool TravMap::updateLocalReachability(const Reachability& reachability, int robot_id) {
   if (robot_id < reach_hist_.size()) {
-    if (reach_hist_[robot_id].size() == 0 || 
+    if (reach_hist_[robot_id].size() == 0 || robot_id > 0 ||
         (reach_hist_[robot_id].cbegin()->second.getPose().translation() - 
          reachability.getPose().translation()).norm() > 2) 
     {
       reach_hist_[robot_id].insert({reachability.getStamp(), reachability});
     }
   }
-  aerial_map_->updateLocalReachability(reachability);
-  if (aerial_map_->haveNewTrav()) {
-    reweightGraph();
-    aerial_map_->setTravRead();
+  if (map_ref_frame_.imgPointInMap(map_ref_frame_.world2img(
+          reachability.getPose().translation())))
+  {
+    aerial_map_->updateLocalReachability(reachability);
+    if (aerial_map_->haveNewTrav()) {
+      reweightGraph();
+      aerial_map_->setTravRead();
+    }
+    return graph_.updateLocalReachability(reachability);
+  } else {
+    // Reachability is not yet in the known map, add to buffer to add at a later time,
+    // namely when we get a new (hopefully larger) map
+    reach_buf_.push_back(reachability);
+    return false;
   }
-  return graph_.updateLocalReachability(reachability);
 }
 
 std::list<TravGraph::Node*> TravMap::getPath(TravGraph::Node& start_n, 
@@ -216,12 +239,6 @@ std::list<TravGraph::Node*> TravMap::getPath(TravGraph::Node& start_n,
   }
 
   float original_cost = path.back()->cost;
-  if (original_cost >= std::pow(1000, TravGraph::Edge::MAX_TERRAIN)-1) 
-  {
-    // If cost is this high, we have an obstacle edge
-    path = {};
-  }
-
   if (params_.prune) {
     final_path = prunePath(path);
     if (getPathCost(final_path) > original_cost) {
