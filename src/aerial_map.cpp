@@ -200,6 +200,13 @@ AerialMap::EdgeInfo AerialMapInfer::traceEdge(const Eigen::Vector2f& n1,
   int num_off_map = 0;
   for (float cur_dist=0; cur_dist<dist; cur_dist+=map_ref_frame_.res) {
     Eigen::Vector2f sample_pt = img_pt1 + dir*cur_dist;
+    if (feature_map_.sem_map.at<uint8_t>(cv::Point(sample_pt[0], sample_pt[1])) == 
+        TravGraph::Edge::MAX_TERRAIN) 
+    {
+      // We are going through a forbidden region
+      return {TravGraph::Edge::MAX_TERRAIN, 0};
+    }
+
     float prob = prob_map_.map.at<float>(cv::Point(sample_pt[0], sample_pt[1]));
     if (prob != 0) {
       total_neg_log_prob += -std::log(std::max<float>(prob, 0.0001))/5;

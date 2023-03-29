@@ -99,9 +99,8 @@ class TravMap {
         const Eigen::Vector2f& n2);
     /*!
      * @param pos Position of node in world space
-     * @param t_cls require that intermediate edges be this class or better
      */
-    TravGraph::Node* addNode(const Eigen::Vector2f& pos, int t_cls);
+    TravGraph::Node* addNode(const Eigen::Vector2f& pos);
     void addEdge(const TravGraph::Edge& edge);
     //! @return set of neighboring nodes
     std::map<int, Eigen::Vector2f> addNodeToVisibility(const TravGraph::Node& n);
