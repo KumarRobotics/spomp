@@ -204,14 +204,24 @@ std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,
 }
 
 bool TravMap::updateLocalReachability(const Reachability& reachability, int robot_id) {
+  // Return true if we are at least reach_dist_thresh_m away from all prior reach
+  auto is_far_from_prev_reach = [&](const Reachability& reach) {
+    for (const auto& past_reach : reach_hist_[0]) {
+      float dist = (past_reach.second.getPose().translation().head<2>() -
+                    reach.getPose().translation().head<2>()).norm();
+      if (dist < params_.reach_dist_thresh_m) {
+        return false;
+      }
+    }
+    return true;
+  };
+
   if (robot_id < reach_hist_.size()) {
-    if (reach_hist_[robot_id].size() == 0 || robot_id > 0 ||
-        (reach_hist_[robot_id].cbegin()->second.getPose().translation() - 
-         reachability.getPose().translation()).norm() > 2) 
-    {
+    if (robot_id != 0 || is_far_from_prev_reach(reachability)) {
       reach_hist_[robot_id].insert({reachability.getStamp(), reachability});
     }
   }
+
   if (map_ref_frame_.imgPointInMap(map_ref_frame_.world2img(
           reachability.getPose().translation())))
   {

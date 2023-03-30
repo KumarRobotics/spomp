@@ -25,6 +25,7 @@ class TravMap {
       bool prune = true;
       float max_prune_edge_dist_m = 20;
       float recover_reset_dist_m = 10;
+      float reach_dist_thresh_m = 2;
       // Not set directly
       int num_robots = 1;
     };

@@ -189,4 +189,27 @@ TEST(trav_map, test_reach_before_map) {
   ASSERT_EQ(m.getReachBufSize(), 0);
 }
 
+TEST(trav_map, test_update_reach) {
+  TravMap::Params m_p;
+  m_p.world_config_path = ros::package::getPath("semantics_manager") + "/config/test_config_dynamic.yaml";
+  TravMap m(m_p, {}, {}, {});
+
+  ASSERT_EQ(m.getReachabilityHistory().size(), 0);
+  Eigen::Isometry2f pose = Eigen::Isometry2f::Identity();
+  m.updateLocalReachability({0, AngularProj(AngularProj::StartFinish{0, 2*pi}, 360), pose}, 0);
+  ASSERT_EQ(m.getReachabilityHistory().size(), 1);
+  pose.translate(Eigen::Vector2f(1, 0));
+  m.updateLocalReachability({1, AngularProj(AngularProj::StartFinish{0, 2*pi}, 360), pose}, 0);
+  ASSERT_EQ(m.getReachabilityHistory().size(), 1);
+  pose.translate(Eigen::Vector2f(2, 0));
+  m.updateLocalReachability({2, AngularProj(AngularProj::StartFinish{0, 2*pi}, 360), pose}, 0);
+  ASSERT_EQ(m.getReachabilityHistory().size(), 2);
+  pose.translate(Eigen::Vector2f(-3, 0));
+  m.updateLocalReachability({3, AngularProj(AngularProj::StartFinish{0, 2*pi}, 360), pose}, 0);
+  ASSERT_EQ(m.getReachabilityHistory().size(), 2);
+  pose.translate(Eigen::Vector2f(-2, 0));
+  m.updateLocalReachability({4, AngularProj(AngularProj::StartFinish{0, 2*pi}, 360), pose}, 0);
+  ASSERT_EQ(m.getReachabilityHistory().size(), 3);
+}
+
 } // namespace spomp
