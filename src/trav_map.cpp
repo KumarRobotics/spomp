@@ -133,6 +133,8 @@ void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center,
     cv::cvtColor(map, map_, cv::COLOR_BGR2GRAY);
   }
   cv::LUT(map_, terrain_lut_, map_);
+
+  auto old_map_ref_frame = map_ref_frame_;
   map_ref_frame_.center = center;
   map_ref_frame_.setMapSizeFrom(map_);
 
@@ -140,7 +142,7 @@ void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center,
   aerial_map_->updateMap(map_, dist_maps_, map_ref_frame_, other_maps);
 
   reweightGraph();
-  rebuildVisibility();
+  rebuildVisibility(old_map_ref_frame);
   buildGraph();
 
   // Look through the reachability buffer and if we are now in the map,
@@ -341,14 +343,31 @@ void TravMap::computeDistMaps() {
   compute_dist_maps_t_->end();
 }
 
-void TravMap::rebuildVisibility() {
+void TravMap::rebuildVisibility(const MapReferenceFrame& old_mrf) {
   rebuild_visibility_t_->start();
 
-  // This is brute-force, can definitely do better
+  cv::Mat old_vis_map = visibility_map_.clone();
   visibility_map_ = -cv::Mat::ones(map_.rows, map_.cols, CV_32SC1);
-  for (const auto& [node_id, node] : graph_.getNodes()) {
-    // Rebuild node visibility
-    addNodeToVisibility(node);
+
+  auto intersect = old_mrf.computeIntersect(map_ref_frame_);
+
+  if (!intersect.new_frame.empty()) {
+    old_vis_map(intersect.old_frame).copyTo(visibility_map_(intersect.new_frame));
+  }
+
+  // Now go through all nodes and add to the connectivity as needed
+  // This also allows regions that are filled in by the quad later to improve their
+  // connectivity.
+  for (auto& [node_id, node] : graph_.getNodes()) {
+    auto overlapping_nodes = addNodeToVisibility(node);
+
+    for (const auto& [overlap_n_id, overlap_loc] : overlapping_nodes) {
+      auto overlap_n = &graph_.getNode(overlap_n_id);
+      auto worst_edge = aerial_map_->traceEdge(node.pos, overlap_n->pos);
+      if (worst_edge.cls < TravGraph::Edge::MAX_TERRAIN) {
+        addEdge({&node, overlap_n, worst_edge.cost, worst_edge.cls});
+      }
+    }
   }
 
   rebuild_visibility_t_->end();

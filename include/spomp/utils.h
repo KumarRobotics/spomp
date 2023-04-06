@@ -242,6 +242,25 @@ struct MapReferenceFrame {
     return ((img_c.array() >= 0).all() && 
             (img_c.array() < size.array()).all());
   }
+
+  struct Intersect {
+    cv::Rect old_frame;
+    cv::Rect new_frame;
+  };
+  Intersect computeIntersect(const MapReferenceFrame& new_mrf) const {
+    // Location of upper left corner of old map in new map
+    Eigen::Vector2f ul_old_in_new = new_mrf.world2img(
+        img2world({0, 0}));
+    cv::Rect old_roi(cv::Point(ul_old_in_new[0], ul_old_in_new[1]), 
+        cv::Size(size[0], size[1]));
+    cv::Rect new_roi({}, cv::Size(new_mrf.size[0], new_mrf.size[1]));
+
+    auto intersect = new_roi & old_roi;
+    auto intersect_old_frame = intersect;
+    intersect_old_frame -= old_roi.tl();
+
+    return {intersect_old_frame, intersect};
+  }
 };
   
 } // namespace spomp

@@ -109,31 +109,22 @@ void AerialMapInfer::updateMap(const cv::Mat& sem_map,
     feature_map_.other_maps = om;
   }
 
-  // Location of upper left corner of old map in new map
-  Eigen::Vector2f ul_old_in_new = mrf.world2img(
-      map_ref_frame_.img2world({0, 0}));
-  cv::Rect old_roi(cv::Point(ul_old_in_new[0], ul_old_in_new[1]), 
-      cv::Size(map_ref_frame_.size[0], map_ref_frame_.size[1]));
-  cv::Rect new_roi({}, sem_map.size());
-
-  auto intersect = new_roi & old_roi;
-  auto intersect_old_frame = intersect;
-  intersect_old_frame -= old_roi.tl();
+  auto intersect = map_ref_frame_.computeIntersect(mrf);
 
   {
     std::scoped_lock lock(reachability_map_.mtx);
     cv::Mat old_reach_map = reachability_map_.map.clone();
     reachability_map_.map = cv::Mat::zeros(sem_map.size(), CV_16SC1);
-    if (!intersect.empty()) {
-      old_reach_map(intersect_old_frame).copyTo(reachability_map_.map(intersect));
+    if (!intersect.new_frame.empty()) {
+      old_reach_map(intersect.old_frame).copyTo(reachability_map_.map(intersect.new_frame));
     }
   }
   {
     std::scoped_lock lock(prob_map_.mtx);
     cv::Mat old_prob_map = prob_map_.map.clone();
     prob_map_.map = cv::Mat::zeros(sem_map.size(), CV_32FC1);
-    if (!intersect.empty()) {
-      old_prob_map(intersect_old_frame).copyTo(prob_map_.map(intersect));
+    if (!intersect.new_frame.empty()) {
+      old_prob_map(intersect.old_frame).copyTo(prob_map_.map(intersect.new_frame));
     }
   }
 

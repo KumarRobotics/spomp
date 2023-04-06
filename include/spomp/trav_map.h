@@ -95,7 +95,7 @@ class TravMap {
     void loadStaticMap(const semantics_manager::MapConfig& map_config,
         const semantics_manager::ClassConfig& class_config);
     void computeDistMaps();
-    void rebuildVisibility();
+    void rebuildVisibility(const MapReferenceFrame& old_mrf);
     void reweightGraph();
     void buildGraph();
     std::list<TravGraph::Node*> prunePath(const std::list<TravGraph::Node*>& path);
