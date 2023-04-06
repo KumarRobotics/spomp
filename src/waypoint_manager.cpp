@@ -22,15 +22,19 @@ WaypointManager::WaypointState WaypointManager::setState(
   }
 
   checkForShortcuts(pos);
-  // Check if we are within threshold of end
-  if ((*robot_pos_ - (*next_node_)->pos).norm() < params_.waypoint_thresh_m) {
+  // Check if we are within threshold of final waypt
+  if ((*robot_pos_ - (*path_.rbegin())->pos).norm() < params_.final_waypoint_thresh_m) {
+    // We have reached the end
+    path_.clear();
+    return WaypointState::GOAL_REACHED;
+  } else if ((*robot_pos_ - (*next_node_)->pos).norm() < params_.waypoint_thresh_m) {
     if (cur_edge_) {
       // We have traversed edge successfully, very conclusively traversable
       cur_edge_->is_locked = true;
       cur_edge_->is_experienced = true;
       cur_edge_->cls = 0;
     }
-    return advancePlan();
+    advancePlan();
   }
   return WaypointState::IN_PROGRESS;
 }
@@ -60,16 +64,11 @@ void WaypointManager::checkForShortcuts(const Eigen::Vector2f& pos) {
   }
 }
 
-WaypointManager::WaypointState WaypointManager::advancePlan() {
+void WaypointManager::advancePlan() {
   ++next_node_;
   if (next_node_ != path_.end()) {
     // Get edge going to current node
     cur_edge_ = (*next_node_)->getEdgeToNode(*std::prev(next_node_));
-    return WaypointState::NEW_WAYPOINT;
-  } else {
-    // We have reached the end
-    path_.clear();
-    return WaypointState::GOAL_REACHED;
   }
 }
 

@@ -90,6 +90,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   nh.getParam("MLP_regularization", mlp_params.regularization);
 
   nh.getParam("WM_waypoint_thresh_m", wm_params.waypoint_thresh_m);
+  nh.getParam("WM_final_waypoint_thresh_m", wm_params.final_waypoint_thresh_m);
   nh.getParam("WM_shortcut_thresh_m", wm_params.shortcut_thresh_m);
 
   constexpr int width = 30;
@@ -134,6 +135,7 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
     setw(width) << "[ROS] TG_trav_edge_prob_trav: " << tg_params.trav_edge_prob_trav << endl <<
     "[ROS] ===============================" << endl <<
     setw(width) << "[ROS] WM_waypoint_thresh_m: " << wm_params.waypoint_thresh_m << endl <<
+    setw(width) << "[ROS] WM_final_waypoint_thresh_m: " << wm_params.final_waypoint_thresh_m << endl <<
     setw(width) << "[ROS] WM_shortcut_thresh_m: " << wm_params.shortcut_thresh_m << endl <<
     "[ROS] ====== End Configuration ======" << "\033[0m");
 
@@ -211,13 +213,14 @@ void GlobalWrapper::poseCallback(const geometry_msgs::PoseStamped::ConstPtr& pos
   auto waypt_state = global_.setState(ROS2Eigen<float>(pose_map_frame));
   publishLocalGoal(pose_msg->header.stamp);
 
-  if (waypt_state == WaypointManager::WaypointState::GOAL_REACHED && 
-      using_action_server_) 
-  {
-    timeout_timer_.stop();
-    spomp::GlobalNavigateResult result;
-    result.status = spomp::GlobalNavigateResult::SUCCESS;
-    global_navigate_as_.setSucceeded(result);
+  if (waypt_state == WaypointManager::WaypointState::GOAL_REACHED) {
+    cancelLocalPlanner();
+    if (using_action_server_) {
+      timeout_timer_.stop();
+      spomp::GlobalNavigateResult result;
+      result.status = spomp::GlobalNavigateResult::SUCCESS;
+      global_navigate_as_.setSucceeded(result);
+    }
   }
 }
 

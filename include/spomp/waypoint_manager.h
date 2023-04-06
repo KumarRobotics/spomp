@@ -8,6 +8,7 @@ class WaypointManager {
   public:
     struct Params {
       float waypoint_thresh_m = 2;
+      float final_waypoint_thresh_m = 5;
       float shortcut_thresh_m = 0.5;
     };
     WaypointManager(const Params& p);
@@ -25,8 +26,7 @@ class WaypointManager {
       return robot_pos_;
     }
 
-    //! @return True if reached the end
-    WaypointState advancePlan();
+    void advancePlan();
 
     TravGraph::Node* getNextWaypoint() const;
     TravGraph::Node* getLastWaypoint() const;

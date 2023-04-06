@@ -41,6 +41,7 @@
   <arg name="MLP_regularization" default="0.01"/>
 
   <arg name="WM_waypoint_thresh_m" default="2.5"/>
+  <arg name="WM_final_waypoint_thresh_m" default="5"/>
   <arg name="WM_shortcut_thresh_m" default="0.5"/>
 
   <node pkg="spomp" type="node_global" name="spomp_global" output="$(arg output)">
@@ -89,6 +90,7 @@
     <param name="MLP_regularization" value="$(arg MLP_regularization)"/>
 
     <param name="WM_waypoint_thresh_m" value="$(arg WM_waypoint_thresh_m)"/>
+    <param name="WM_final_waypoint_thresh_m" value="$(arg WM_final_waypoint_thresh_m)"/>
     <param name="WM_shortcut_thresh_m" value="$(arg WM_shortcut_thresh_m)"/>
   </node>
 </launch>
