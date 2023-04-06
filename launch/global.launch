@@ -18,8 +18,8 @@
   <arg name="TM_max_hole_fill_size_m" default="1"/>
   <arg name="TM_min_region_size_m" default="1"/>
   <arg name="TM_vis_dist_m" default="10"/>
-  <arg name="TM_unvis_start_thresh" default="0.1"/>
-  <arg name="TM_unvis_stop_thresh" default="0.01"/>
+  <arg name="TM_unvis_start_thresh" default="0"/>
+  <arg name="TM_unvis_stop_thresh" default="0.001"/>
   <arg name="TM_prune" default="True"/>
   <arg name="TM_max_prune_edge_dist_m" default="20"/>
   <arg name="TM_recover_reset_dist_m" default="10"/>

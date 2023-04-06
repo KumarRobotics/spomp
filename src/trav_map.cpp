@@ -324,16 +324,21 @@ void TravMap::computeDistMaps() {
   auto morph_kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(
         params_.max_hole_fill_size_m * map_ref_frame_.res + 1,
         params_.max_hole_fill_size_m * map_ref_frame_.res + 1));
+  
+  cv::Mat unknown_mask = (map_ == 255);
+  cv::morphologyEx(unknown_mask, unknown_mask, cv::MORPH_OPEN, morph_kernel);
 
   int t_cls = dist_maps_.size() - 1;
   cv::Mat filtered_map(map_.size(), CV_8UC1, cv::Scalar(255));
   for (auto it=dist_maps_.rbegin(); it!=dist_maps_.rend(); ++it) {
     cv::Mat trav_map;
     // 1 everywhere where we want to compute distance
-    cv::bitwise_or(map_ <= t_cls, map_ == 255, trav_map);
+    cv::bitwise_or(map_ <= t_cls, unknown_mask, trav_map);
     cv::morphologyEx(trav_map, trav_map, cv::MORPH_CLOSE, morph_kernel);
     cv::distanceTransform(trav_map, *it, cv::DIST_L2, cv::DIST_MASK_5);
-    it->setTo(0, map_ == 255);
+    // Clear out unknown here.  We don't want to treat unknown as obstacle,
+    // but we don't want to treat is as traversable either
+    it->setTo(0, unknown_mask);
     filtered_map.setTo(t_cls, *it > 0);
     --t_cls;
   }
@@ -354,6 +359,7 @@ void TravMap::rebuildVisibility(const MapReferenceFrame& old_mrf) {
   if (!intersect.new_frame.empty()) {
     old_vis_map(intersect.old_frame).copyTo(visibility_map_(intersect.new_frame));
   }
+  visibility_map_.setTo(-1, map_ == 255);
 
   // Now go through all nodes and add to the connectivity as needed
   // This also allows regions that are filled in by the quad later to improve their
