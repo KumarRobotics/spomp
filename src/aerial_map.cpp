@@ -224,7 +224,7 @@ AerialMap::EdgeInfo AerialMapInfer::traceEdge(const Eigen::Vector2f& n1,
 
   if (num_off_map / (num_valid + num_invalid) <= params_.max_frac_unknown) {
     // A decent portion is on the map
-    return {0, total_neg_log_prob};
+    return {0, std::min<float>(total_neg_log_prob, 100)};
   } else {
     return {TravGraph::Edge::MAX_TERRAIN, 0};
   }

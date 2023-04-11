@@ -42,8 +42,12 @@ class Global {
     }
 
     float getTimeoutDuration() const {
-      return params_.timeout_duration_s_per_m * 
-        map_.getPathLength(waypoint_manager_.getPath());
+      float total_length = map_.getPathLength(waypoint_manager_.getPath());
+      if (total_length < std::numeric_limits<float>::max()) {
+        return params_.timeout_duration_s_per_m * total_length;
+      }
+      // This is a bad scenario, try again soon
+      return params_.timeout_duration_s_per_m * 5;
     }
 
     void cancel() {
@@ -118,7 +122,6 @@ class Global {
     WaypointManager waypoint_manager_;
 
     float old_cost_{0};
-    int num_recovery_reset_{0};
     int num_reach_panos_published_{0};
 };
 

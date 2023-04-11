@@ -270,7 +270,7 @@ std::list<TravGraph::Node*> TravMap::prunePath(
 
   TravGraph::Node* last_node = path.front();
   TravGraph::Edge last_edge;
-  float summed_cost = 0;
+  double summed_cost = 0;
   for (const auto& node : path) {
     if (pruned_path.size() == 0) {
       pruned_path.push_back(node);

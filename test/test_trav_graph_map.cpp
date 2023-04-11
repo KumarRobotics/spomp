@@ -115,13 +115,13 @@ TEST(trav_map, test_map_graph_search) {
   auto path = m.getPath(m.getMapReferenceFrame().img2world({90, 244}),
                         m.getMapReferenceFrame().img2world({225, 127}));
   ASSERT_TRUE(path.size() > 0);
-  ASSERT_TRUE(path.back()->cost < std::pow(1000, 3));
-  ASSERT_TRUE(path.back()->cost > std::pow(1000, 1));
+  ASSERT_TRUE(path.back()->cost < std::pow(100, 3));
+  ASSERT_TRUE(path.back()->cost > std::pow(100, 1));
 
   // stay on road
   path = m.getPath(m.getMapReferenceFrame().img2world({392, 135}), {0, 0});
   ASSERT_TRUE(path.size() > 0);
-  ASSERT_TRUE(path.back()->cost < std::pow(1000, 1));
+  ASSERT_TRUE(path.back()->cost < std::pow(100, 1));
 }
 
 TEST(trav_map, test_static_map) {

@@ -33,7 +33,7 @@ class TravGraph {
 
       // Graph-search temps
       bool visited{false};
-      float cost{std::numeric_limits<float>::infinity()};
+      double cost{std::numeric_limits<double>::infinity()};
       Edge* best_prev_edge{nullptr};
 
       Node(const Eigen::Vector2f& p) : pos(p) {}
@@ -56,7 +56,7 @@ class TravGraph {
       Node* node2{nullptr};
 
       float length{0};
-      float cost{0};
+      double cost{0};
       int cls{0};
       bool is_locked{false};
       bool is_experienced{false};
@@ -69,8 +69,8 @@ class TravGraph {
       }
       Edge() = default;
 
-      float totalCost() {
-        return length * cost + ((std::pow(1000, cls)-1) * (length + 1));
+      double totalCost() {
+        return length * cost + ((std::pow(100, cls)-1) * (length + 1));
       }
 
       Node* getOtherNode(const Node* n) const {
@@ -100,7 +100,7 @@ class TravGraph {
     //! Djikstra shortest-path solver
     std::list<Node*> getPath(Node* const start_n, Node* const end_n);
 
-    float getPathCost(const std::list<Node*>& path) const;
+    double getPathCost(const std::list<Node*>& path) const;
     float getPathLength(const std::list<Node*>& path) const;
 
     //! @return True if map changed

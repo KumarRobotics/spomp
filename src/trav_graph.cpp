@@ -17,8 +17,6 @@ std::list<TravGraph::Node*> TravGraph::getPath(
 {
   get_path_t_->start();
 
-  verifyCanExitNode(start_n);
-
   // Initial conditions
   reset();
   start_n->cost = 0;
@@ -46,7 +44,7 @@ std::list<TravGraph::Node*> TravGraph::getPath(
       if (edge->cls >= Edge::MAX_TERRAIN && edge->is_locked) continue;
       Node* next_n = edge->getOtherNode(cur_n);
       if (next_n->visited) continue;
-      float new_cost = cur_n->cost + edge->totalCost();
+      double new_cost = cur_n->cost + edge->totalCost();
       if (new_cost < next_n->cost) {
         next_n->cost = new_cost;
         next_n->best_prev_edge = edge;
@@ -93,8 +91,8 @@ void TravGraph::verifyCanExitNode(Node* const node) {
   }
 }
 
-float TravGraph::getPathCost(const std::list<Node*>& path) const {
-  float cost = 0;
+double TravGraph::getPathCost(const std::list<Node*>& path) const {
+  double cost = 0;
 
   const Node* last_node = nullptr;
   for (const auto& node : path) {
@@ -104,7 +102,7 @@ float TravGraph::getPathCost(const std::list<Node*>& path) const {
     }
     auto edge = node->getEdgeToNode(last_node);
     if (!edge || (edge->cls >= Edge::MAX_TERRAIN && edge->is_locked)) {
-      return std::numeric_limits<float>::max();
+      return std::numeric_limits<double>::max();
     }
     cost += node->getEdgeToNode(last_node)->totalCost();
     last_node = node;
@@ -254,7 +252,7 @@ TravGraph::Edge* TravGraph::addEdge(const Edge& edge) {
 void TravGraph::reset() {
   for (auto& node : nodes_) {
     node.second.visited = false;
-    node.second.cost = std::numeric_limits<float>::infinity();
+    node.second.cost = std::numeric_limits<double>::infinity();
   }
 }
 

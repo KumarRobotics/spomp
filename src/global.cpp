@@ -17,7 +17,6 @@ bool Global::setGoal(const Eigen::Vector3f& goal) {
     return false;
   }
 
-  num_recovery_reset_ = 0;
   auto path = map_.getPath(*pos, goal.head<2>());
   if (path.size() < 1) {
     // Cannot find path
@@ -46,7 +45,7 @@ bool Global::updateOtherLocalReachability(
   if (cur_edge) {
     cur_edge_copy = *cur_edge;
   }
-  float old_cost = map_.getPathCost(cur_path);
+  double old_cost = map_.getPathCost(cur_path);
 
   map_.updateLocalReachability(reachability, robot_id);
 
@@ -63,11 +62,10 @@ bool Global::updateOtherLocalReachability(
     map_.updateEdgeFromReachability(*cur_edge, *last_node, reachability, 
         reachability.getPose().translation());
   }
-  float new_cost = map_.getPathCost(cur_path);
+  double new_cost = map_.getPathCost(cur_path);
 
-  if ((new_cost > old_cost + params_.replan_hysteresis || 
-       new_cost > std::pow(1000, TravGraph::Edge::MAX_TERRAIN)-1) && 
-      last_node) 
+  if ((new_cost > old_cost + params_.replan_hysteresis ||
+       new_cost == std::numeric_limits<double>::max()) && last_node) 
   {
     // We get the last waypoint because we want to replan including the current
     // edge, in case the current edge changed traversability
@@ -75,24 +73,10 @@ bool Global::updateOtherLocalReachability(
     // Replan
     auto new_path = map_.getPath(*last_node, *waypoint_manager_.getPath().back());
     if (new_path.size() < 1) {
-      std::cout << "\033[31m" << "[SPOMP-Global] Attemping to reset graph" 
+      std::cout << "\033[31m" << "[SPOMP-Global] [ERROR] Could not replan to find valid path" 
         << "\033[0m" << std::endl;
-      if (waypoint_manager_.getPos()) {
-        map_.resetGraphLocked();
-        ++num_recovery_reset_;
-        new_path = map_.getPath(*waypoint_manager_.getPos(), 
-            waypoint_manager_.getPath().back()->pos);
-      }
-
-      if (new_path.size() < 1 || num_recovery_reset_ > params_.max_num_recovery_reset) {
-        // Cannot find path
-        std::cout << "\033[31m" << "[SPOMP-Global] [ERROR] Could not replan to find valid path" 
-          << "\033[0m" << std::endl;
-        cancel();
-        return false;
-      } else {
-        waypoint_manager_.setPath(new_path);
-      }
+      cancel();
+      return false;
     } else {
       waypoint_manager_.setPath(new_path);
       waypoint_manager_.advancePlan();
