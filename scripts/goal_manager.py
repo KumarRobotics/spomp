@@ -345,7 +345,7 @@ class GoalManager:
             add_goal_to_viz(goal, (1, 0, 0))
 
         for goal in self.get_all_other_goals():
-            add_goal_to_viz(goal, (0.5, 1, 0.5))
+            add_goal_to_viz(goal, (1, 1, 0))
 
         for goal in self.goal_list_:
             add_goal_to_viz(goal, (0.8, 0.8, 0.8))
