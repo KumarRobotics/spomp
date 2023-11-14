@@ -67,7 +67,7 @@ class FindObjectGoalGen:
 
     def world2img(self, world_pos):
         return ((-world_pos + self.origin_) * self.resolution_ +
-                self.map_size_/2).astype(np.int)
+                self.map_size_/2).astype(np.int32)
 
     def img2world(self, img_pos):
         return -(((img_pos -
@@ -180,8 +180,8 @@ class FindObjectGoalGen:
         viz[viz[:,:,0] == self.target_class_ind_*20, :] = np.array([255, 255, 0])
         for blob_w in blob_centers:
             blob = self.world2img(blob_w)
-            min_b = np.flip((blob - self.region_size_).astype(np.int))
-            max_b = np.flip((blob + self.region_size_).astype(np.int))
+            min_b = np.flip((blob - self.region_size_).astype(np.int32))
+            max_b = np.flip((blob + self.region_size_).astype(np.int32))
             viz = cv2.rectangle(viz, tuple(min_b), tuple(max_b), (0, 0, 255), 2)
         for target_w in goals:
             target = np.flip(self.world2img(target_w))

@@ -63,8 +63,8 @@ class GoalManager:
                 self.other_robot_subs_.append(rospy.Subscriber(robot+"/goal_manager/claimed_goals", ClaimedGoalArray, bound_cb))
 
         self.claimed_goals_msg_ = ClaimedGoalArray()
-        self.claimed_goals_pub_ = rospy.Publisher("~claimed_goals", ClaimedGoalArray, queue_size=1)
-        self.goal_viz_pub_ = rospy.Publisher("~goal_viz", Marker, queue_size=1)
+        self.claimed_goals_pub_ = rospy.Publisher("~claimed_goals", ClaimedGoalArray, queue_size=10)
+        self.goal_viz_pub_ = rospy.Publisher("~goal_viz", Marker, queue_size=10)
         self.navigate_client_ = actionlib.SimpleActionClient('spomp_global/navigate', GlobalNavigateAction)
 
         rospy.loginfo("[GoalManager] Waiting for spomp action server...")
@@ -112,7 +112,7 @@ class GoalManager:
             self.current_goal_ = None
             # manually trigger looking for new goal
             self.lock_.release()
-            self.check_for_new_goal()
+            self.check_for_new_goal(None, True)
             self.lock_.acquire()
 
         self.visualize()
@@ -181,7 +181,7 @@ class GoalManager:
             other_goals = np.vstack([other_goals, robot_goals])
         return other_goals
 
-    def check_for_new_goal(self, timer=None):
+    def check_for_new_goal(self, timer=None, force_rtls=False):
         self.lock_.acquire()
         if not self.in_progress_:
             selected_goal = self.choose_goal()
@@ -209,13 +209,14 @@ class GoalManager:
                 cur_goal_msg.goal.header = self.claimed_goals_msg_.header
                 cur_goal_msg.goal.pose.position = goal_pose.position
                 cur_goal_msg.goal.pose.orientation.w = 1
+                self.rtls_ = False
                 self.navigate_client_.send_goal(cur_goal_msg, done_cb=self.navigate_status_cb)
             else:
                 rospy.logwarn("[GoalManager] Cannot find any path to goals")
 
                 # go home
                 if self.start_loc_ is not None and not self.rtls_:
-                    if np.linalg.norm(self.start_loc_ - self.current_loc_) > 10:
+                    if np.linalg.norm(self.start_loc_ - self.current_loc_) > 5 or force_rtls:
                         rospy.loginfo("[GoalManager] Returning to start")
                         self.rtls_ = True
                         cur_goal_msg = GlobalNavigateGoal()

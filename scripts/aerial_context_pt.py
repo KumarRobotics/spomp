@@ -114,7 +114,7 @@ class AerialMap:
                 pos + (rot @ no_trav_pts.reshape(-1, 2).transpose()).transpose())
 
     def load_trav(self, path):
-        comb_trav_img = np.zeros(self.sem_.shape, dtype=np.int)
+        comb_trav_img = np.zeros(self.sem_.shape, dtype=np.int32)
         for topic, msg, t in rosbag.Bag(path, 'r').read_messages():
             for reachability in msg.reachabilities:
                 reach_pts, no_reach_pts = self.parse_reachability(reachability)
@@ -129,7 +129,7 @@ class AerialMap:
 
     def world2img(self, world_pos):
         return ((-world_pos + self.origin_) * self.scale_ +
-                self.map_size_/2).astype(np.int)
+                self.map_size_/2).astype(np.int32)
 
     def img2world(self, img_pos):
         return -(((img_pos -
