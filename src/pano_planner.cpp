@@ -4,7 +4,11 @@
 
 namespace spomp {
 
-PanoPlanner::PanoPlanner(const Params& params) : params_(params) {
+/**
+ * @class PanoPlanner
+ * @brief Class for a panoramic planner
+ */
+    PanoPlanner::PanoPlanner(const Params& params) : params_(params) {
   auto& tm = TimerManager::getGlobal();
   pano_update_t_ = tm.get("PP");
 
@@ -14,7 +18,12 @@ PanoPlanner::PanoPlanner(const Params& params) : params_(params) {
   reachability_.getScan().setConstant(10);
 }
 
-void PanoPlanner::updatePano(const TerrainPano& pano) {
+/**
+ * @brief Updates the panoramic traversability information based on a given TerrainPano object.
+ *
+ * @param pano The TerrainPano object containing depth and pose information.
+ */
+    void PanoPlanner::updatePano(const TerrainPano& pano) {
   pano_update_t_->start();
 
   // Zero for timestamp here is fine
@@ -50,8 +59,17 @@ void PanoPlanner::updatePano(const TerrainPano& pano) {
   pano_update_t_->end();
 }
 
-Eigen::Vector2f PanoPlanner::plan(const Eigen::Vector2f& goal, 
-    const Eigen::Vector2f& old_goal) const 
+/**
+ * @brief Plan a new goal point based on the given goal and old goal points.
+ *
+ * This function plans a new goal point based on the given goal and old goal points.
+ *
+ * @param[in] goal The current goal point to plan from.
+ * @param[in] old_goal The previous goal point for consistency tracking.
+ * @return The new goal point.
+ */
+    Eigen::Vector2f PanoPlanner::plan(const Eigen::Vector2f& goal,
+                                      const Eigen::Vector2f& old_goal) const
 {
   Eigen::Array2Xf samples(2, params_.sample_size);
 
@@ -89,7 +107,20 @@ Eigen::Vector2f PanoPlanner::plan(const Eigen::Vector2f& goal,
   return samples.col(best_ind);
 }
 
-bool PanoPlanner::isSafe(const Eigen::Vector2f& pt) const {
+/**
+* @brief Check if a point is safe to move to.
+*
+* This function determines whether a given 2D point is safe to move to.
+* It checks the reachability of the position based on the existing scan data.
+* If no scan has been performed yet, the function assumes everything is safe and returns true.
+* If the point is at the origin, the function considers it safe and returns true.
+* Otherwise, it converts the point from Cartesian to polar coordinates and checks if the
+* range at the azimuth angle is greater than the distance from the origin to the point.
+*
+* @param pt The 2D point to check safety for.
+* @return True if the point is safe, otherwise false.
+*/
+    bool PanoPlanner::isSafe(const Eigen::Vector2f& pt) const {
   if (reachability_.size() < 1) {
     // No scan yet, say everything is safe so we can move
     return true;

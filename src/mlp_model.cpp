@@ -2,7 +2,16 @@
 
 namespace spomp {
 
-MLPModel::MLPModel(const Params& p) : params_(p) {
+/**
+ * @class MLPModel
+ * @brief A class that represents a multi-layer perceptron (MLP) model.
+ *
+ * The MLPModel class is used to create and manage a MLP model for classification
+ * tasks. It consists of multiple layers of linear transform, activation, and softmax
+ * functions. The model can be trained using mlpack optimizer classes like
+ * SGD (Stochastic Gradient Descent) or Adam.
+ */
+    MLPModel::MLPModel(const Params& p) : params_(p) {
   model_.Add<mlpack::LinearType<arma::mat, mlpack::L2Regularizer>>(
       params_.hidden_layer_size, params_.regularization);
   model_.Add<mlpack::Sigmoid>();
@@ -11,7 +20,13 @@ MLPModel::MLPModel(const Params& p) : params_(p) {
   model_.Add<mlpack::LogSoftMax>();
 }
 
-arma::mat MLPModel::preprocFeatures(const Eigen::ArrayXXf& feat, bool update_stats) {
+/**
+ * Preprocesses the features by converting them to an Armadillo matrix, normalizing them, and update the statistics of mean and standard deviation.
+ * @param feat The input Eigen array of features
+ * @param update_stats A boolean flag indicating whether to update the statistics of mean and standard deviation
+ * @return The preprocessed features as an Armadillo matrix
+ */
+    arma::mat MLPModel::preprocFeatures(const Eigen::ArrayXXf& feat, bool update_stats) {
   // Do not want to copy data
   // Somewhat sketchy, since armadillo doesn't have a non-copy constructor
   // for const data.  We pinky promise to not modify this.
@@ -34,8 +49,18 @@ arma::mat MLPModel::preprocFeatures(const Eigen::ArrayXXf& feat, bool update_sta
   return feat_arma_mat;
 }
 
-void MLPModel::fit(const Eigen::ArrayXXf& feat, 
-    const Eigen::VectorXi& labels) 
+/**
+ * @brief Fits the MLPModel using the given features and labels.
+ *
+ * This function trains the MLPModel with the provided features and labels.
+ * It checks if the dimensions of the input data are valid and transforms the labels to an Armadillo matrix.
+ * The features are preprocessed by setting them to be of double type.
+ *
+ * @param feat The input feature matrix represented as an Eigen::ArrayXXf.
+ * @param labels The labels vector represented as an Eigen::VectorXi.
+ */
+    void MLPModel::fit(const Eigen::ArrayXXf& feat,
+                       const Eigen::VectorXi& labels)
 {
   if (feat.cols() == 0 || labels.size() == 0) return;
   const arma::Mat<int> labels_arma(const_cast<int*>(labels.data()), 
@@ -48,7 +73,19 @@ void MLPModel::fit(const Eigen::ArrayXXf& feat,
   is_trained_ = true;
 }
 
-Eigen::VectorXf MLPModel::infer(const Eigen::ArrayXXf& feat) {
+/**
+ * @brief Performs inference using a Multi-Layer Perceptron (MLP) model
+ *
+ * Given a feature matrix `feat`, this function predicts the probabilities
+ * of the input belonging to class 1 using the trained MLP model.
+ *
+ * @param feat The feature matrix, of size (num_samples, num_features), where
+ *             each row represents a sample and each column represents a feature.
+ * @return An Eigen::VectorXf containing the log probabilities of the input
+ *         belonging to class 1. If `feat_means_` is empty, the returned
+ *         Eigen::VectorXf will also be empty.
+ */
+    Eigen::VectorXf MLPModel::infer(const Eigen::ArrayXXf& feat) {
   Eigen::VectorXf log_probs;
   if (feat_means_.n_elem > 0) {
     arma::mat preds;

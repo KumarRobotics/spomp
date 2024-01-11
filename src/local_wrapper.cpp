@@ -22,7 +22,11 @@ std::string LocalWrapper::pano_frame_{"planner_pano"};
 std::string LocalWrapper::body_frame_{"body"};
 std::string LocalWrapper::control_frame_{"base_link"};
 
-LocalWrapper::LocalWrapper(ros::NodeHandle& nh) : 
+/**
+ * @class LocalWrapper
+ * @brief A class representing a local wrapper for a ROS node.
+ */
+    LocalWrapper::LocalWrapper(ros::NodeHandle& nh) :
   nh_(nh), 
   local_(createLocal(nh)), 
   remote_(50), 
@@ -47,7 +51,13 @@ LocalWrapper::LocalWrapper(ros::NodeHandle& nh) :
   reachability_pub_ = nh_.advertise<sensor_msgs::LaserScan>("reachability", 1);
 }
 
-Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
+/**
+ * Creates a Local object with the specified parameters.
+ *
+ * @param nh The ROS NodeHandle
+ * @return A Local object
+ */
+    Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
   Local::Params sl_params{};
   TerrainPano::Params tp_params{};
   PanoPlanner::Params pp_params{};
@@ -132,7 +142,20 @@ Local LocalWrapper::createLocal(ros::NodeHandle& nh) {
   return Local(sl_params, tp_params, pp_params, co_params);
 }
 
-bool LocalWrapper::getControlTrans(Eigen::Isometry3f& trans) {
+/**
+* @brief Retrieves the transformation between the body frame and the control frame.
+*
+* This function uses a static tf2_ros::Buffer and tf2_ros::TransformListener to listen for transformations
+* between the body frame and the control frame. The function attempts to look up the transformation
+* twice with a delay of 0.5 seconds between retries. If the transformation is found successfully, it is
+* converted to an Eigen::Isometry3f and returned via the 'trans' parameter. If the transformation
+* cannot be found after the retries, false is returned.
+*
+* @param trans Reference to an Eigen::Isometry3f variable where the transformation will be stored.
+* @return True if the transformation was successfully retrieved, false otherwise.
+* @see ROS2Eigen
+*/
+    bool LocalWrapper::getControlTrans(Eigen::Isometry3f& trans) {
   // Static function, so create static buffer and listener
   tf2_ros::Buffer tf_buffer;
   tf2_ros::TransformListener tf_listener(tf_buffer);

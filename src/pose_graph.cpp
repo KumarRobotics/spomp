@@ -5,12 +5,27 @@
 
 namespace spomp {
 
-PoseGraph::PoseGraph(const Params& params) : params_(params) {
+/**
+ * @class PoseGraph
+ *
+ * @brief Class representing a pose graph.
+ *
+ * The PoseGraph class is responsible for managing the pose graph and associated operations.
+ */
+    PoseGraph::PoseGraph(const Params& params) : params_(params) {
   auto& tm = TimerManager::getGlobal(true);
   graph_update_t_ = tm.get("PG_graph_update");
 }
 
-size_t PoseGraph::addNode(long stamp, const Eigen::Isometry3d& pose) {
+/**
+ * @brief Adds a new node to the pose graph.
+ *
+ * @param stamp The timestamp of the new node.
+ * @param pose The pose of the new node.
+ *
+ * @return The index of the new node.
+ */
+    size_t PoseGraph::addNode(long stamp, const Eigen::Isometry3d& pose) {
   if (size_ > 0) {
     // Get difference from most recent pose
     const auto& most_recent_pose = pose_history_.rbegin()->second;
@@ -37,12 +52,33 @@ size_t PoseGraph::addNode(long stamp, const Eigen::Isometry3d& pose) {
   return size_ - 1;
 }
 
-void PoseGraph::addPrior(long stamp, const Prior2D& prior) {
+/**
+* @brief Adds a prior factor to the pose graph.
+*
+* This function adds a prior factor to the pose graph based on the provided timestamp and Prior2D object.
+* It first stores the prior in the prior_buffer_, and then calls processGlobalBuffer() to process the buffer and add the prior factor to the appropriate node in the pose_history_.
+*
+* @param stamp The timestamp of the prior.
+* @param prior The Prior2D object representing the prior information.
+*/
+    void PoseGraph::addPrior(long stamp, const Prior2D& prior) {
   prior_buffer_.emplace(stamp, prior);
   processGlobalBuffer();
 }
 
-void PoseGraph::update() {
+/**
+ * @brief Updates the pose graph if the conditions are met.
+ *
+ * This method updates the pose graph using the Levenberg-Marquardt optimization algorithm
+ * every `num_frames_opt` frames, as long as the size of the graph has changed since the last
+ * optimization. The optimization parameters are set to the default values.
+ *
+ * @note This method uses the `current_opt_` member variable to keep track of the optimized graph.
+ *
+ * @see gtsam::LevenbergMarquardtParams
+ * @see gtsam::LevenbergMarquardtOptimizer
+ */
+    void PoseGraph::update() {
   if (last_opt_size_ + params_.num_frames_opt > size_ && last_opt_size_ > 0) {
     // Only optimize every num_frames_opt frames
     return;
@@ -57,7 +93,18 @@ void PoseGraph::update() {
   last_opt_size_ = size_;
 }
 
-void PoseGraph::processGlobalBuffer() {
+/**
+ * @brief Process the global buffer by matching the priors with the pose history and adding prior factors.
+ *
+ * This function iterates through the prior buffer and matches each prior with the corresponding pose in the pose history.
+ * If an exact match is found, the prior factor is added with the corresponding key.
+ * If an exact match is not found, but there is a prior with local motion information and interpolation is allowed,
+ * the prior factor is interpolated between the previous and next pose.
+ * If there is no match and the priors are in the future, the process is terminated.
+ *
+ * @note This function modifies the prior buffer.
+ */
+    void PoseGraph::processGlobalBuffer() {
   for (auto prior_it = prior_buffer_.begin(); prior_it != prior_buffer_.end();) {
     // First pose after or at same time as prior
     auto matching_node_it = pose_history_.lower_bound(prior_it->first);
@@ -122,7 +169,15 @@ void PoseGraph::processGlobalBuffer() {
   }
 }
 
-void PoseGraph::addPriorFactor(const gtsam::Key& key, const Prior2D& prior) {
+/**
+ * @brief Adds a prior factor to the pose graph.
+ *
+ * This function adds a prior factor to the pose graph using the given key and prior information.
+ *
+ * @param key The key of the pose to which the prior factor is being added.
+ * @param prior The prior information used to construct the prior factor.
+ */
+    void PoseGraph::addPriorFactor(const gtsam::Key& key, const Prior2D& prior) {
   // (Relatively) large number
   Eigen::Vector6d unc = Eigen::Vector6d::Constant(1);
   //unc.head<2>() = Eigen::Vector2d(0.1, 0.1);
@@ -147,21 +202,47 @@ void PoseGraph::addPriorFactor(const gtsam::Key& key, const Prior2D& prior) {
       gtsam::noiseModel::Diagonal::Sigmas(unc));
 }
 
-std::optional<Eigen::Isometry3d> PoseGraph::getPoseAtTime(long stamp) const {
+/**
+ * @brief Get the pose at a given time stamp.
+ *
+ * This function returns the pose at the specified time stamp from the pose history.
+ * If no pose is found at the specified time stamp, it returns an empty std::optional value.
+ *
+ * @param stamp The time stamp of the pose to retrieve.
+ *
+ * @return The pose at the specified time stamp, or an empty std::optional if not found.
+ */
+    std::optional<Eigen::Isometry3d> PoseGraph::getPoseAtTime(long stamp) const {
   auto element = pose_history_.find(stamp);
   if (element == pose_history_.end()) return {};
 
   return GTSAM2Eigen(current_opt_.at<gtsam::Pose3>(element->second.key));
 }
 
-Eigen::Isometry3d PoseGraph::getPoseAtIndex(size_t ind) const {
+/**
+
+  * @brief Retrieve the pose from the pose graph at the specified index.
+  *
+  * This function returns the pose from the pose graph at the specified index.
+  * If the index is out of range, an std::out_of_range exception will be thrown.
+  *
+  * @param ind The index of the pose to retrieve.
+  * @return The pose at the specified index as an Isometry3d object.
+  * @throws std::out_of_range if the index is out of range.
+  */
+    Eigen::Isometry3d PoseGraph::getPoseAtIndex(size_t ind) const {
   if (ind >= size_) {
     throw std::out_of_range("Index out of range of Pose Graph");
   }
   return GTSAM2Eigen(current_opt_.at<gtsam::Pose3>(P(ind)));
 }
 
-Eigen::Isometry3d PoseGraph::getOdomCorrection() const {
+/**
+ * @brief Calculates the odom correction based on the pose history and the map pose.
+ *
+ * @return The odom correction as an Eigen::Isometry3d object.
+ */
+    Eigen::Isometry3d PoseGraph::getOdomCorrection() const {
   Eigen::Isometry3d correction = Eigen::Isometry3d::Identity();
 
   if (pose_history_.size() > 0) {

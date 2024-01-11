@@ -7,7 +7,11 @@
 
 namespace spomp {
 
-class AerialMap {
+/**
+ * @class AerialMap
+ * @brief The AerialMap class represents an abstract base class for an aerial map.
+ */
+    class AerialMap {
   public:
     virtual ~AerialMap() {}
 
@@ -41,7 +45,13 @@ class AerialMap {
     MapReferenceFrame map_ref_frame_{};
 };
 
-class AerialMapPrior : public AerialMap {
+/**
+ * @class AerialMapPrior
+ * @brief The AerialMapPrior class represents a derived class of AerialMap that adds functionality for updating an aerial map and tracing edges.
+ *
+ * AerialMapPrior inherits from the base class AerialMap and overrides its virtual functions.
+ */
+    class AerialMapPrior : public AerialMap {
   public:
     AerialMapPrior() = default;
 
@@ -56,7 +66,12 @@ class AerialMapPrior : public AerialMap {
     std::vector<cv::Mat> dist_maps_{};
 };
 
-class AerialMapInfer : public AerialMap {
+/**
+ * @class AerialMapInfer
+ * @brief The AerialMapInfer class represents a subclass of AerialMap that performs inference on an aerial map.
+ * It provides functionality to update the map, trace an edge, update local reachability, and visualize the map.
+ */
+    class AerialMapInfer : public AerialMap {
   public:
     struct Params {
       // This is really short for test purposes

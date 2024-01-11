@@ -10,9 +10,20 @@
 
 namespace spomp {
 
-class TravMap {
+/**
+ * @class TravMap
+ * @brief Class for managing a traversal map
+ *
+ * This class is responsible for updating and managing a traversal map.
+ * It provides functionalities for updating the map, finding paths, computing path cost and length,
+ * updating local reachability, resetting the graph, and visualizations.
+ */
+    class TravMap {
   public:
-    struct Params {
+        /**
+         * @brief The Params struct holds configuration parameters for a specific operation.
+         */
+        struct Params {
       std::string world_config_path = "";
       bool learn_trav = false;
       bool uniform_node_sampling = false;

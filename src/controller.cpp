@@ -4,13 +4,32 @@
 
 namespace spomp {
 
-Controller::Controller(const Params& params) : params_(params) {
+/**
+ * @class Controller
+ * @brief This class represents a controller object
+ *
+ * @details The Controller class is responsible for controlling a system using the provided parameters.
+ * It utilizes a TimerManager for timing purposes.
+ *
+ * @param params The parameters needed for controller initialization
+ */
+    Controller::Controller(const Params& params) : params_(params) {
   auto& tm = TimerManager::getGlobal();
   controller_t_ = tm.get("CO");
 }
 
-Twistf Controller::getControlInput(const Twistf& cur_vel, const Eigen::Isometry3f& state_p,
-    const PanoPlanner& planner, const TerrainPano& pano) const
+/**
+ * @brief Calculates the control input for the robot given the current velocity, robot state,
+ *        planner, and terrain panorama.
+ *
+ * @param cur_vel       The current velocity of the robot.
+ * @param state_p       The state of the robot as an isometry transformation.
+ * @param planner       The PanoPlanner used for planning.
+ * @param pano          The TerrainPano used for traversability information.
+ * @return              The control input (Twistf) for the robot.
+ */
+    Twistf Controller::getControlInput(const Twistf& cur_vel, const Eigen::Isometry3f& state_p,
+                                       const PanoPlanner& planner, const TerrainPano& pano) const
 {
   controller_t_->start();
 
@@ -95,7 +114,18 @@ std::vector<Eigen::Isometry2f> Controller::forward(
   return traj;
 }
 
-float Controller::trajCostGoal(const std::vector<Eigen::Isometry2f>& traj) const {
+/**
+ * Calculates the cost of a trajectory with respect to a goal.
+ * The cost is the sum of the linear distance from the point slightly in front of the robot to the goal,
+ * and the cross product of the vector from the point to the goal with the goal vector.
+ * This encourages the robot to face forward and stay on the path towards the goal.
+ *
+ * @param traj The trajectory as a vector of Isometry2f
+ *
+ * @return The cost of the trajectory with respect to the goal.
+ * If the trajectory is empty, -1 is returned.
+ */
+    float Controller::trajCostGoal(const std::vector<Eigen::Isometry2f>& traj) const {
   if (traj.size() < 1) {
     return -1;
   }
@@ -118,8 +148,15 @@ float Controller::trajCostGoal(const std::vector<Eigen::Isometry2f>& traj) const
   return lin_dist + path_dist;
 }
 
-float Controller::trajCostObs(const std::vector<Eigen::Isometry2f>& traj,
-    const TerrainPano& pano) const {
+/**
+ * Calculates the cost of traversing a trajectory with obstacles
+ *
+ * @param traj The trajectory as a vector of 2D Isometry transformation matrices
+ * @param pano The TerrainPano object representing the terrain and obstacles
+ * @return The cost of traversing the trajectory
+ */
+    float Controller::trajCostObs(const std::vector<Eigen::Isometry2f>& traj,
+                                  const TerrainPano& pano) const {
   float cost = 0;
   for (const auto& pt : traj) {
     Eigen::Vector2f pt_front = pt * (Eigen::Vector2f::UnitX()*0.5);
@@ -128,8 +165,18 @@ float Controller::trajCostObs(const std::vector<Eigen::Isometry2f>& traj,
   return cost/traj.size();
 }
 
-float Controller::angularDist(const Eigen::Isometry2f& pose,
-    const Eigen::Vector2f& goal)
+/**
+ * @brief Calculates the angular distance between a given pose and a goal point.
+ *
+ * The angular distance is defined as the difference in orientation angles between
+ * the given pose and the line that connects the pose's translation with the goal point.
+ *
+ * @param pose   The pose at which the angular distance is calculated.
+ * @param goal   The goal point to which the angular distance is measured.
+ * @return       The angular distance between the pose and the goal point.
+ */
+    float Controller::angularDist(const Eigen::Isometry2f& pose,
+                                  const Eigen::Vector2f& goal)
 {
   Eigen::Vector2f goal_vec = pose.translation() - goal;
   float goal_dir = atan2(goal_vec[1], goal_vec[0]);
@@ -137,8 +184,17 @@ float Controller::angularDist(const Eigen::Isometry2f& pose,
   return regAngle(goal_dir - pose_dir);
 }
 
-bool Controller::isTrajSafe(const std::vector<Eigen::Isometry2f>& traj,
-    const PanoPlanner& planner) const 
+/**
+ * @brief Checks if a given trajectory is safe.
+ *
+ * This method checks if every point in the trajectory is safe based on the planner's reachability.
+ *
+ * @param traj A vector of 2D isometric transformations representing the trajectory.
+ * @param planner The PanoPlanner instance used to check if a point is safe.
+ * @return True if every point in the trajectory is safe, false otherwise.
+ */
+    bool Controller::isTrajSafe(const std::vector<Eigen::Isometry2f>& traj,
+                                const PanoPlanner& planner) const
 {
   for (const auto& pt : traj) {
     if (!planner.isSafe(pt.translation())) {

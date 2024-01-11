@@ -5,14 +5,36 @@ namespace spomp {
 // Init static members
 int TravGraph::Edge::MAX_TERRAIN = 1;
 
-TravGraph::TravGraph(const Params& p) : params_(p) {
+/**
+ * @class TravGraph
+ * @brief Class representing a traversal graph
+ *
+ * This class provides an implementation for a traversal graph. It contains methods for
+ * creating and manipulating the graph.
+ */
+    TravGraph::TravGraph(const Params& p) : params_(p) {
   auto& tm = TimerManager::getGlobal(true);
   get_path_t_ = tm.get("TG_get_path");
   update_edge_t_ = tm.get("TG_update_edge");
   get_near_nodes_t_ = tm.get("TG_get_near_nodes");
 }
 
-std::list<TravGraph::Node*> TravGraph::getPath(
+/**
+ * @brief Computes the shortest path between two nodes in the graph.
+ *
+ * The function uses the Dijkstra algorithm to find the shortest path
+ * from the start node to the end node in the graph. It considers the
+ * cost of each edge and applies a custom comparison to prioritize the
+ * nodes with the lowest cost. It stops as soon as it reaches the end node
+ * or when there are no more nodes to visit.
+ *
+ * @param start_n Pointer to the start node.
+ * @param end_n Pointer to the end node.
+ * @return A list of nodes representing the shortest path from the
+ *         start node to the end node. If there is no path, an empty
+ *         list is returned.
+ */
+    std::list<TravGraph::Node*> TravGraph::getPath(
     Node* const start_n, Node* const end_n) 
 {
   get_path_t_->start();
@@ -75,7 +97,14 @@ std::list<TravGraph::Node*> TravGraph::getPath(
   return path;
 }
 
-void TravGraph::verifyCanExitNode(Node* const node) {
+/**
+* @brief Verifies if a given node has a valid edge to exit from.
+*
+* If a node does not have a valid edge to exit from, this function unlocks all the edges of the node.
+*
+* @param node Pointer to the node to be verified
+*/
+    void TravGraph::verifyCanExitNode(Node* const node) {
   // Make sure that it is possible to exit this node.
   // We do this so that robot can't get stuck with no valid edges
 
@@ -91,7 +120,19 @@ void TravGraph::verifyCanExitNode(Node* const node) {
   }
 }
 
-double TravGraph::getPathCost(const std::list<Node*>& path) const {
+/**
+ * @brief Calculates the cost of a given path in the Traveler's Graph.
+ *
+ * This function calculates the cost of traversing a given path in the Traversability Graph.
+ * The cost is calculated by summing up the total cost of each edge in the path.
+ * If an edge is locked or has a terrain class greater than or equal to MAX_TERRAIN, the function will return infinity.
+ * If the path is empty, the cost will be zero.
+ *
+ * @param path A list of Node pointers representing the path to calculate the cost for.
+ * @return The cost of traversing the given path in the Traveler's Graph.
+ * @return If the path is invalid or contains locked or impassable edges, std::numeric_limits<double>::max() will be returned.
+ */
+    double TravGraph::getPathCost(const std::list<Node*>& path) const {
   double cost = 0;
 
   const Node* last_node = nullptr;
@@ -111,7 +152,21 @@ double TravGraph::getPathCost(const std::list<Node*>& path) const {
   return cost;
 }
 
-float TravGraph::getPathLength(const std::list<Node*>& path) const {
+/**
+ * @brief Calculates the length of a path in a graph.
+ *
+ * This function takes a list of nodes that represent a path in a graph and
+ * calculates the total length of the path. The length is computed by summing
+ * the lengths of the edges between consecutive nodes in the list.
+ *
+ * If an edge is not found between two adjacent nodes, the function returns
+ * std::numeric_limits<float>::max() to indicate an invalid path.
+ *
+ * @param path The list of nodes representing the path.
+ * @return The length of the path, or std::numeric_limits<float>::max() if an
+ *         invalid path is given.
+ */
+    float TravGraph::getPathLength(const std::list<Node*>& path) const {
   float length = 0;
 
   const Node* last_node = nullptr;
@@ -132,7 +187,13 @@ float TravGraph::getPathLength(const std::list<Node*>& path) const {
   return length;
 }
 
-bool TravGraph::updateLocalReachability(const Reachability& reachability)
+/**
+ * @brief Updates the local reachability based on the given reachability object.
+ *
+ * @param reachability The reachability object containing information about the reachability.
+ * @return True if the map has changed, false otherwise.
+ */
+    bool TravGraph::updateLocalReachability(const Reachability& reachability)
 {
   if (edges_.empty()) {
     return false;
@@ -153,9 +214,22 @@ bool TravGraph::updateLocalReachability(const Reachability& reachability)
   return did_map_change;
 }
 
-bool TravGraph::updateEdgeFromReachability(TravGraph::Edge& edge, 
-    const TravGraph::Node& start_node, const Reachability& reachability,
-    std::optional<Eigen::Vector2f> start_pos)
+/**
+ * @brief Update an edge based on reachability information.
+ *
+ * This function updates an edge based on reachability information. It analyzes the edge
+ * based on the start position, end position, and provided reachability analysis parameters.
+ * Depending on the reachability analysis result, the edge's properties may be modified.
+ *
+ * @param edge The edge to update.
+ * @param start_node The start node of the edge.
+ * @param reachability The reachability information.
+ * @param start_pos The optional start position.
+ * @return True if the map changed due to the edge update, false otherwise.
+ */
+    bool TravGraph::updateEdgeFromReachability(TravGraph::Edge& edge,
+                                               const TravGraph::Node& start_node, const Reachability& reachability,
+                                               std::optional<Eigen::Vector2f> start_pos)
 {
   update_edge_t_->start();
 
@@ -212,7 +286,22 @@ bool TravGraph::updateEdgeFromReachability(TravGraph::Edge& edge,
   return did_map_change;
 }
 
-const std::vector<TravGraph::Node*> TravGraph::getNodesNear(
+/**
+ * @brief Retrieve nodes near a specified position within a given delta.
+ *
+ * This function returns a vector of pointers to the nodes that are located
+ * near the specified position within the specified delta. The position is
+ * provided as a 2D vector (Eigen::Vector2f), and the delta represents the maximum
+ * distance from the position for a node to be considered "near". Nodes are
+ * considered "near" if the distance between their positions and the specified
+ * position is less than or equal to the delta.
+ *
+ * @param pos   The position to search around.
+ * @param delta The maximum distance from the position to consider a node "near".
+ *
+ * @return A vector of pointers to the nodes that are near the specified position.
+ */
+    const std::vector<TravGraph::Node*> TravGraph::getNodesNear(
     const Eigen::Vector2f& pos, float delta) 
 {
   get_near_nodes_t_->start();
@@ -226,14 +315,33 @@ const std::vector<TravGraph::Node*> TravGraph::getNodesNear(
   return near_nodes;
 }
 
-TravGraph::Node* TravGraph::addNode(const Node& node) {
+/**
+ * @brief Adds a new node to the graph.
+ *
+ * This function creates a new node with the provided information and
+ * adds it to the graph.
+ *
+ * @param node The node to be added.
+ * @return A pointer to the added node.
+ */
+    TravGraph::Node* TravGraph::addNode(const Node& node) {
   int id = nodes_.size();
   auto [it, success] = nodes_.emplace(id, node);
   it->second.id = id;
   return &(it->second);
 }
 
-TravGraph::Edge* TravGraph::addEdge(const Edge& edge) {
+/**
+ * @brief Adds an edge to the graph.
+ *
+ * This function verifies that the endpoints of the edge are valid and that the edge does not already exist
+ * in the graph. If the conditions are met, the edge is added to the graph's list of edges and also assigned
+ * to the nodes it connects.
+ *
+ * @param edge The edge to be added to the graph.
+ * @return A pointer to the added edge if it was successfully added, nullptr otherwise.
+ */
+    TravGraph::Edge* TravGraph::addEdge(const Edge& edge) {
   // Verify that endpoints are valid and edge does not already exist
   if (edge.node1 && edge.node2 && 
       !(edge.node1->getEdgeToNode(edge.node2))) 
@@ -249,7 +357,25 @@ TravGraph::Edge* TravGraph::addEdge(const Edge& edge) {
   return nullptr;
 }
 
-void TravGraph::reset() {
+/**
+ * @brief Resets the visited flag and cost of all the nodes in the graph.
+ *
+ * This function iterates over all the nodes in the `nodes_` map and resets their visited flag
+ * and cost. The visited flag is set to `false` and the cost is set to positive infinity.
+ *
+ * Complexity:
+ *  - Time: O(N), where N is the number of nodes in the graph.
+ *  - Space: O(1)
+ *
+ * Example usage:
+ *
+ * ```cpp
+ * TravGraph graph;
+ * // ... add nodes and edges to the graph
+ * graph.reset();
+ * ```
+ */
+    void TravGraph::reset() {
   for (auto& node : nodes_) {
     node.second.visited = false;
     node.second.cost = std::numeric_limits<double>::infinity();

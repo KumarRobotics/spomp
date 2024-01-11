@@ -10,28 +10,84 @@ namespace spomp {
 
 constexpr double pi = 3.14159265358979323846;
 
-inline int fast_mod(int a, int b) noexcept {
+/**
+ * @brief Calculates the remainder of the division between two integers.
+ *
+ * This function calculates the remainder of the division between the dividend 'a' and the divisor 'b'.
+ * It is an optimized implementation that avoids the division operator to achieve faster performance.
+ *
+ * @param a The dividend.
+ * @param b The divisor.
+ *
+ * @return The remainder of the division between 'a' and 'b'.
+ *
+ * @note This function assumes that 'b' is not zero. If 'b' is zero, the behavior is undefined.
+ */
+    inline int fast_mod(int a, int b) noexcept {
   // This is 3-6 times faster than %
   // Only valid for a < 2*b
   return a < b ? a : a - b;
 }
 
+/**
+ * @brief Converts degrees to radians.
+ *
+ * This function takes a degree value and converts it to radians.
+ *
+ * @param d The angle in degrees.
+ * @return The corresponding angle in radians.
+ */
 inline float deg2rad(float d) noexcept {
   return d * pi / 180;
 }
 
+/**
+ * @brief Converts radians to degrees.
+ *
+ * This function takes a float value representing an angle in radians and converts it to degrees.
+ * The result is returned as a float value.
+ *
+ * @param r The angle in radians.
+ * @return The angle in degrees.
+ */
 inline float rad2deg(float r) noexcept {
   return r * 180 / pi;
 }
 
+/**
+ * @brief Converts Cartesian coordinates to polar coordinates.
+ *
+ * @param cart The Cartesian coordinates in the form of a 2D vector.
+ * @return Eigen::Vector2f The polar coordinates in the form of a 2D vector.
+ */
 inline Eigen::Vector2f cart2polar(const Eigen::Vector2f& cart) {
-  return {cart.norm(), atan2(cart[1], cart[0])};
+  return {cart.norm(), atan2f(cart[1], cart[0])};
 }
 
+/**
+ * @brief Convert polar coordinates to Cartesian coordinates
+ *
+ * This function takes a 2D vector representing polar coordinates and returns a 2D vector
+ * representing Cartesian coordinates.
+ *
+ * @param pol A 2D vector representing polar coordinates, where pol[0] is the radius and
+ *            pol[1] is the angle in radians.
+ * @return A 2D vector representing Cartesian coordinates, where the x-component is pol[0]
+ *         multiplied by the cosine of pol[1] and the y-component is pol[0] multiplied by the
+ *         sine of pol[1].
+ */
 inline Eigen::Vector2f polar2cart(const Eigen::Vector2f& pol) {
-  return {pol[0] * cos(pol[1]), pol[0] * sin(pol[1])};
+  return {pol[0] * cosf(pol[1]), pol[0] * sinf(pol[1])};
 }
 
+/**
+ * @brief Converts an HSV color value to RGB color value.
+ *
+ * This function takes an HSV color value as input and converts it to an RGB color value. The input color values should be in the range [0, 1].
+ *
+ * @param hsv The HSV color value to be converted.
+ * @return The RGB color value corresponding to the input HSV color.
+ */
 // All values in [0, 1]
 inline Eigen::Vector3f hsv2rgb(const Eigen::Vector3f& hsv) {
   // https://www.had2know.org/technology/hsv-rgb-conversion-formula-calculator.html
@@ -70,6 +126,17 @@ inline Eigen::Vector3f hsv2rgb(const Eigen::Vector3f& hsv) {
   return rgb;
 }
 
+/**
+ * @brief Converts a 2D pose to a 3D pose.
+ *
+ * Given a 2D pose, this function converts it to a 3D pose by assuming that the input pose has zero rotation
+ * around the Z-axis. The resulting pose will have the same translation as the input pose and zero rotation around
+ * the Y and X axes.
+ *
+ * @tparam T The scalar type.
+ * @param pose_2 The input 2D pose.
+ * @return The resulting 3D pose.
+ */
 template <typename T>
 inline auto pose22pose3(const Eigen::Transform<T, 2, Eigen::Isometry>& pose_2) {
   using Isometry3T = Eigen::Transform<T, 3, Eigen::Isometry>;
@@ -83,6 +150,18 @@ inline auto pose22pose3(const Eigen::Transform<T, 2, Eigen::Isometry>& pose_2) {
   return pose_3;
 }
 
+/**
+ * \brief Converts a 3D pose to a 2D pose by removing the z-axis information
+ *
+ * This function converts a 3D pose represented by Eigen::Transform to a 2D pose
+ * represented by Eigen::Transform. The z-axis information is removed from the
+ * translation component of the pose, and the rotation component is adjusted
+ * accordingly.
+ *
+ * \tparam T The data type of the pose elements (float, double, etc.)
+ * \param pose_3 The 3D pose to convert
+ * \return The converted 2D pose
+ */
 template <typename T>
 inline auto pose32pose2(const Eigen::Transform<T, 3, Eigen::Isometry>& pose_3) {
   using Isometry2T = Eigen::Transform<T, 2, Eigen::Isometry>;
@@ -96,6 +175,14 @@ inline auto pose32pose2(const Eigen::Transform<T, 3, Eigen::Isometry>& pose_3) {
   return pose_2;
 }
 
+/**
+ * @brief Regularizes an angle between 0 and 2π.
+ *
+ * This function takes an angle as input and normalizes it to be within the range of 0 to 2π.
+ *
+ * @param angle The input angle in radians.
+ * @return The normalized angle between 0 and 2π.
+ */
 inline float regAngle(float angle) {
   if (angle < 0) {
     angle += 2 * pi;
@@ -105,6 +192,15 @@ inline float regAngle(float angle) {
   return angle;
 }
 
+/**
+ * @brief Calculates the norm of the cross product of two 2D vectors.
+ *
+ * This function calculates the norm of the cross product of two 2D vectors (vectors in the XY-plane).
+ *
+ * @param v1 The first input vector.
+ * @param v2 The second input vector.
+ * @return The norm of the cross product of v1 and v2.
+ */
 inline float crossNorm(const Eigen::Vector2f& v1, const Eigen::Vector2f &v2) {
   Eigen::Vector3f v1_3 = Eigen::Vector3f::Zero();
   Eigen::Vector3f v2_3 = Eigen::Vector3f::Zero();
@@ -113,12 +209,20 @@ inline float crossNorm(const Eigen::Vector2f& v1, const Eigen::Vector2f &v2) {
   return v1_3.cross(v2_3).norm();
 }
 
+/**
+ * @class Twist
+ * @brief Simple wrapper class to abstract Twist
+ *
+ * The Twist class is a simple wrapper around a 2D vector representing
+ * a linear and angular motion. It provides convenient methods for accessing
+ * and modifying the linear and angular components of the twist vector.
+ */
 //! Simple wrapper class to abstract Twist
 template <typename T>
 class Twist {
   using Vector2T = Eigen::Matrix<T, 2, 1>;
   public:
-    Twist(const Vector2T& twist) : twist_(twist) {}
+    explicit Twist(const Vector2T& twist) : twist_(twist) {}
     Twist(T lin, T ang) : twist_{lin, ang} {}
     Twist() = default;
 
@@ -169,6 +273,10 @@ class Twist {
 using Twistf = Twist<float>;
 using Twistd = Twist<double>;
 
+/**
+ * @struct AngularProj
+ * @brief Represents an angular projection with a start angle, delta angle, and number of points
+ */
 struct AngularProj {
   float start_angle{};
   float delta_angle{};
@@ -212,6 +320,15 @@ struct AngularProj {
   }
 };
 
+/**
+ * @brief The MapReferenceFrame struct represents a reference frame for a map.
+ *
+ * The MapReferenceFrame struct provides methods for converting coordinates between
+ * the world coordinate system and the image coordinate system based on the map's
+ * resolution, center, and size. It also provides a method for checking if an image
+ * point is within the map boundaries and a method for computing the intersection
+ * region between two map reference frames.
+ */
 struct MapReferenceFrame {
   float res{1};
   Eigen::Vector2f center{0, 0};

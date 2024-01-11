@@ -3,16 +3,25 @@
 
 namespace spomp {
 
-Reachability::Reachability(uint64_t stamp, const Eigen::VectorXf& scan, const Eigen::VectorXi& is_obs, 
-    const AngularProj& proj, const Eigen::Isometry2f& pose) :
+/**
+
+* @class Reachability
+* @brief Represents the reachability of a pose in a 2D space based on a scan
+*/
+    Reachability::Reachability(uint64_t stamp, const Eigen::VectorXf& scan, const Eigen::VectorXi& is_obs,
+                               const AngularProj& proj, const Eigen::Isometry2f& pose) :
   stamp_(stamp),
   scan_(scan),
   is_obs_(is_obs),
   proj_(proj),
   pose_(pose) {}
 
-Reachability::Reachability(uint64_t stamp, const AngularProj& proj, 
-    const Eigen::Isometry2f& pose) :
+/**
+ * @class Reachability
+ * @brief Represents the reachability of a pose in a certain angular projection.
+ */
+    Reachability::Reachability(uint64_t stamp, const AngularProj& proj,
+                               const Eigen::Isometry2f& pose) :
   stamp_(stamp),
   proj_(proj),
   pose_(pose)
@@ -21,19 +30,53 @@ Reachability::Reachability(uint64_t stamp, const AngularProj& proj,
   is_obs_ = Eigen::VectorXi::Zero(proj_.num);
 }
 
-void Reachability::setAzTrav(int ind, float dist, bool is_obs) {
+/**
+ * @brief Sets the azimuth traversal distance and obstacle flag at the given index.
+ *
+ * This function sets the azimuth traversal distance and obstacle flag at the specified index
+ * in the scan array.
+ *
+ * @param ind The index at which to set the azimuth traversal distance and obstacle flag.
+ * @param dist The azimuth traversal distance to set.
+ * @param is_obs The obstacle flag to set.
+ *
+ * @note The index must be within the valid range of the scan array, i.e., between 0 and size - 1.
+ */
+    void Reachability::setAzTrav(int ind, float dist, bool is_obs) {
   if (ind >= 0 && ind < size()) {
     scan_[ind] = dist;
     is_obs_[ind] = is_obs;
   }
 }
 
-float Reachability::maxRange() const {
+/**
+ * @brief Calculates the maximum range value in the given scan.
+ *
+ * This function calculates the maximum range value in the current scan data.
+ * If the size of the scan is less than 1, the function returns 0.
+ *
+ * @return The maximum range value in the scan.
+ */
+    float Reachability::maxRange() const {
   if (size() < 1) return 0;
   return scan_.maxCoeff();
 }
 
-bool Reachability::pointInside(const Eigen::Vector2f& pt) const {
+/**
+ * @brief Checks if a given point is inside the reachability region.
+ *
+ * This function takes a point in the Cartesian coordinate system and checks if it lies
+ * inside the reachability region. It first converts the point to the local coordinate
+ * system using the inverse of the pose, and then converts the point to polar coordinates.
+ * It then retrieves the obstacle at the azimuth angle of the polar coordinate and checks
+ * if the distance from the origin is less than or equal to the range of the obstacle. In
+ * order to always consider the origin as inside the reachability region, the distance
+ * comparison is performed using <= operator.
+ *
+ * @param pt The point to be checked, given in the Cartesian coordinate system.
+ * @return True if the point is inside the reachability region, false otherwise.
+ */
+    bool Reachability::pointInside(const Eigen::Vector2f& pt) const {
   Eigen::Vector2f local_pt = pose_.inverse() * pt;
   Eigen::Vector2f local_pt_polar = cart2polar(local_pt);
 
@@ -42,8 +85,22 @@ bool Reachability::pointInside(const Eigen::Vector2f& pt) const {
   return local_pt_polar[0] <= obs.range;
 }
 
-Reachability::EdgeExperience Reachability::analyzeEdge(const Eigen::Vector2f& start_p, 
-    const Eigen::Vector2f& end_p, const EdgeAnalysisParams& params) const 
+/**
+ * @brief Determines the experience of an edge based on the given start and end points.
+ *
+ * This function analyzes an edge defined by the given start and end points to determine its experience.
+ * The experience can be one of the following:
+ *  - TRAV: The edge is traversable.
+ *  - NOT_TRAV: The edge is not traversable.
+ *  - UNKNOWN: The experience of the edge cannot be determined.
+ *
+ * @param start_p The start point of the edge.
+ * @param end_p The end point of the edge.
+ * @param params The parameters for edge analysis.
+ * @return The experience of the edge.
+ */
+    Reachability::EdgeExperience Reachability::analyzeEdge(const Eigen::Vector2f& start_p,
+                                                           const Eigen::Vector2f& end_p, const EdgeAnalysisParams& params) const
 {
   bool start_in = pointInside(start_p);
   bool end_in = pointInside(end_p);

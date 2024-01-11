@@ -14,7 +14,14 @@ std::string GlobalWrapper::map_frame_{"map"};
 std::vector<std::string> GlobalWrapper::other_robot_list_{};
 std::string GlobalWrapper::this_robot_{"robot"};
 
-GlobalWrapper::GlobalWrapper(ros::NodeHandle& nh) : 
+/**
+ * @brief The GlobalWrapper class
+ *
+ * The GlobalWrapper class is responsible for managing the global navigation module in the system.
+ * It initializes the required publishers, subscribers, and service clients, as well as provides
+ * functions for visualizing the graph and managing global navigation goals.
+ */
+    GlobalWrapper::GlobalWrapper(ros::NodeHandle& nh) :
   nh_(nh), 
   global_(createGlobal(nh)),
   it_(nh),
@@ -34,7 +41,23 @@ GlobalWrapper::GlobalWrapper(ros::NodeHandle& nh) :
   visualizeGraph(ros::Time::now());
 }
 
-Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
+/****************************************************************************************
+ * @brief Creates a Global object with the given parameters.
+ *
+ * The function first initializes various Params objects, such as g_params, tm_params,
+ * tg_params, am_params, mlp_params, and wm_params, with the values obtained from
+ * the ROS NodeHandle object nh using the nh.getParam() function.
+ *
+ * Next, the function parses the robot_list string obtained from nh.getParam() and fills
+ * the other_robot_list_ vector after skipping the current robot name (this_robot_).
+ *
+ * Finally, the function prints the obtained parameter values to the console using the
+ * ROS_INFO_STREAM macro.
+ *
+ * @param nh A reference to the ROS NodeHandle object.
+ * @return A Global object with the given parameters.
+ ****************************************************************************************/
+    Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   Global::Params g_params{};
   TravMap::Params tm_params{};
   TravGraph::Params tg_params{};
@@ -142,7 +165,13 @@ Global GlobalWrapper::createGlobal(ros::NodeHandle& nh) {
   return Global(g_params, tm_params, tg_params, am_params, mlp_params, wm_params);
 }
 
-void GlobalWrapper::initialize() {
+/**
+ * @brief Initializes the GlobalWrapper object.
+ *
+ * This function sets up the necessary subscribers and action server for the GlobalWrapper.
+ * It also starts the ROS node spinner to handle callbacks.
+ */
+    void GlobalWrapper::initialize() {
   // Subscribers
   aerial_map_sub_ = nh_.subscribe("aerial_map", 5, 
       &GlobalWrapper::aerialMapCallback, this);
@@ -172,7 +201,14 @@ void GlobalWrapper::initialize() {
   ros::spin();
 }
 
-void GlobalWrapper::aerialMapCallback(
+/**
+ * @brief Callback function for receiving aerial map messages.
+ *
+ * This function is called whenever a new aerial map message is received. It processes the map message and updates the global map.
+ *
+ * @param map_msg The received aerial map message.
+ */
+    void GlobalWrapper::aerialMapCallback(
     const grid_map_msgs::GridMap::ConstPtr& map_msg) 
 {
   if (map_msg->info.header.stamp.toNSec() <= last_map_stamp_) return;
@@ -195,7 +231,18 @@ void GlobalWrapper::aerialMapCallback(
   visualizeGraph(map_msg->info.header.stamp);
 }
 
-void GlobalWrapper::poseCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg) {
+/**
+ * @brief Callback function to process received pose messages and perform necessary actions.
+ *
+ * This function is the callback for the "pose" topic. It transforms the pose message to the map frame
+ * if it is not already in the map frame. It then sets the state of the waypoint manager using the transformed pose.
+ * It publishes the local goal using the timestamp from the received pose message.
+ * If the state of the waypoint manager is "GOAL_REACHED", it cancels the local planner and, if using an action server,
+ * sets the result as "SUCCESS" and marks the goal as reached.
+ *
+ * @param pose_msg The received pose message.
+ */
+    void GlobalWrapper::poseCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg) {
   auto pose_map_frame = *pose_msg;
   if (pose_map_frame.header.frame_id != map_frame_) {
     try {
@@ -224,14 +271,38 @@ void GlobalWrapper::poseCallback(const geometry_msgs::PoseStamped::ConstPtr& pos
   }
 }
 
-void GlobalWrapper::goalSimpleCallback(
+/**
+* @brief Callback function for setting the goal.
+*
+* This function is called when a new goal message is received.
+* It sets the goal based on the received message.
+*
+* @param goal_msg A const pointer to the received goal message of type geometry_msgs::PoseStamped.
+*
+* @return void
+*/
+    void GlobalWrapper::goalSimpleCallback(
     const geometry_msgs::PoseStamped::ConstPtr& goal_msg) 
 {
   using_action_server_ = false;
   setGoal(*goal_msg);
 }
 
-void GlobalWrapper::reachabilityCallback(
+/**
+ * @brief Callback function for reachability data.
+ *
+ * This function is called when new reachability data is received. It performs the following steps:
+ * - Looks up the panoramic pose at the time of the scan.
+ * - Converts the reachability message to a Reachability object.
+ * - Sets the pose of the Reachability object using the pose32pose2 function.
+ * - Updates the local reachability map using the Reachability object.
+ * - Calls globalNavigateSetFailed function if updating the reachability map fails.
+ * - Visualizes the path, graph, aerial map, and reachability history.
+ * - Prints the timing information.
+ *
+ * @param reachability_msg The received reachability data.
+ */
+    void GlobalWrapper::reachabilityCallback(
     const sensor_msgs::LaserScan::ConstPtr& reachability_msg) 
 {
   // Get pano pose at time of scan
@@ -257,8 +328,20 @@ void GlobalWrapper::reachabilityCallback(
   printTimings();
 }
 
-void GlobalWrapper::otherReachabilityCallback(int robot_id,
-    const LocalReachabilityArray::ConstPtr& reachability_msg) 
+/**
+ * @brief Callback function for receiving other robot's reachability data
+ *
+ * This function is a callback for receiving other robot's reachability data.
+ * It checks if the reachability scan is new (i.e., hasn't been seen before),
+ * and if so, it converts the data to the appropriate format, updates the
+ * global reachability map, and sets the pose and type of the reachability data.
+ * Finally, it updates the visualization of the path and graph if any updates have occurred.
+ *
+ * @param robot_id The ID of the other robot
+ * @param reachability_msg Pointer to the message containing reachability data
+ */
+    void GlobalWrapper::otherReachabilityCallback(int robot_id,
+                                                  const LocalReachabilityArray::ConstPtr& reachability_msg)
 {
   bool updates_occurred = false;
   for (const auto& reach : reachability_msg->reachabilities) {
@@ -282,7 +365,19 @@ void GlobalWrapper::otherReachabilityCallback(int robot_id,
   }
 }
 
-void GlobalWrapper::timeoutTimerCallback(const ros::TimerEvent& event) {
+/**
+ * @brief Executes the callback function for the timeout timer event.
+ *
+ * This function is called when the timeout timer event is triggered. It performs the following actions:
+ *
+ * 1. Cancels the global planner.
+ * 2. Cancels the local planner.
+ * 3. Visualizes the current path.
+ * 4. If an action server is being used, stops the timeout timer and sets the global navigate result to TIMEOUT.
+ *
+ * @param event The timer event that triggered the callback.
+ */
+    void GlobalWrapper::timeoutTimerCallback(const ros::TimerEvent& event) {
   global_.cancel();
   cancelLocalPlanner();
   visualizePath(ros::Time::now());
@@ -294,7 +389,19 @@ void GlobalWrapper::timeoutTimerCallback(const ros::TimerEvent& event) {
   }
 }
 
-void GlobalWrapper::globalNavigateGoalCallback() {
+/**
+* @brief Callback function for the global navigate goal action.
+*
+* This function is called when a new goal is received for the global navigate action server.
+* It retrieves the goal from the action server and attempts to set the goal in the global planner.
+* If setting the goal is not successful and the 'force' flag is set in the goal, the function
+* attempts to reset the graph and set the goal again. If setting the goal is successful, a timer
+* is started based on the timeout duration provided by the global planner. If the timeout duration
+* is greater than 0, a timer is created using ROS timer callbacks. If setting the goal is not
+* successful and the 'force' flag is not set, the function sets an appropriate result status
+* indicating that a path could not be found and marks the action server as aborted.
+*/
+    void GlobalWrapper::globalNavigateGoalCallback() {
   using_action_server_ = true;
   auto goal = global_navigate_as_.acceptNewGoal();
   bool success = setGoal(goal->goal);
@@ -321,7 +428,23 @@ void GlobalWrapper::globalNavigateGoalCallback() {
   }
 }
 
-void GlobalWrapper::globalNavigatePreemptCallback() {
+/**
+ * @brief Callback function for preempting the global navigation.
+ *
+ * This function is called when a preempt event occurs in the global navigation action server.
+ * It cancels the ongoing global navigation, cancels the local planner, visualizes the path,
+ * stops the timeout timer, and sends a preempted result to the action client.
+ *
+ * @note This function assumes the existence of the following member variables and functions:
+ *       - global_: An instance of a class that provides global navigation capabilities.
+ *       - cancelLocalPlanner(): A function that cancels the local planner by sending a goal to the current pose.
+ *       - visualizePath(ros::Time): A function that visualizes the current path.
+ *       - timeout_timer_: A timer object used for timeout handling.
+ *       - global_navigate_as_: An instance of an action server used for global navigation.
+ *
+ * @return None.
+ */
+    void GlobalWrapper::globalNavigatePreemptCallback() {
   // Stop was commanded
   global_.cancel();
   cancelLocalPlanner();
@@ -332,7 +455,14 @@ void GlobalWrapper::globalNavigatePreemptCallback() {
   global_navigate_as_.setPreempted(result);
 }
 
-void GlobalWrapper::globalNavigateSetFailed() {
+/**
+ * @brief Sets the global navigation to a failed state.
+ *
+ * This function cancels the global navigation, cancels the local planner,
+ * visualizes the current path, and if using the action server, it sets the
+ * result to failed and aborts the action.
+ */
+    void GlobalWrapper::globalNavigateSetFailed() {
   global_.cancel();
   cancelLocalPlanner();
   visualizePath(ros::Time::now());
@@ -344,6 +474,22 @@ void GlobalWrapper::globalNavigateSetFailed() {
   }
 }
 
+/**
+ * @brief Sets the goal for the global planner.
+ *
+ * This function sets the goal for the global planner. It first resets the last goal to ensure
+ * that if the same goal is provided again, it will be retransmitted. Then, it checks if the
+ * provided goal is in the map frame. If not, it transforms the goal using the most recent
+ * transform from the odom frame to the map frame. If the transformation fails, an error message
+ * is logged and `false` is returned.
+ *
+ * Finally, the transformed goal position is passed to the `setGoal` function of the `global_` object.
+ * The `visualizePath` and `visualizeGraph` functions are called to visualize the path and graph
+ * associated with the goal. The success status of setting the goal is returned.
+ *
+ * @param goal_msg The goal pose stamped message containing the target position and orientation.
+ * @return `true` if the goal is set successfully, otherwise `false`.
+ */
 // Shared callback for action and simple interfaces
 bool GlobalWrapper::setGoal(
     const geometry_msgs::PoseStamped& goal_msg) 
@@ -371,7 +517,16 @@ bool GlobalWrapper::setGoal(
   return success;
 }
 
-void GlobalWrapper::publishLocalGoal(const ros::Time& stamp) {
+/**
+ * @brief Publishes the local goal if it has changed.
+ *
+ * This function publishes the local goal if there is a new goal compared to the previous one.
+ * It creates a geometry_msgs::PoseStamped message with the local goal and publishes it on the local_goal_pub_ topic.
+ * The local goal message contains the position of the goal in the map frame.
+ *
+ * @param stamp The timestamp for the local goal message.
+ */
+    void GlobalWrapper::publishLocalGoal(const ros::Time& stamp) {
   auto cur_goal = global_.getNextWaypoint();
   if (!cur_goal) return;
 
@@ -389,7 +544,16 @@ void GlobalWrapper::publishLocalGoal(const ros::Time& stamp) {
   }
 }
 
-void GlobalWrapper::cancelLocalPlanner() {
+/**
+ * @brief Cancels the local planner by sending a goal of the current pose.
+ *
+ * The last_goal_ is reset so that if the same goal is received again, it will be retransmitted.
+ * The current position is obtained from the GlobalPlanner object. If the position is not available, the function returns early.
+ * A geometry_msgs::PoseStamped message is created and populated with the current pose information.
+ * The message header is set with the current timestamp and the map_frame_ as the frame_id.
+ * The local goal message is published to the local_goal_pub_ topic.
+ */
+    void GlobalWrapper::cancelLocalPlanner() {
   // Reset last_goal so that if we get same goal as old we retransmit it
   last_goal_.setZero();
 
@@ -406,7 +570,16 @@ void GlobalWrapper::cancelLocalPlanner() {
   local_goal_pub_.publish(local_goal_msg);
 }
 
-void GlobalWrapper::publishReachabilityHistory(const ros::Time& stamp) {
+/**
+ * @brief Publishes the reachability history.
+ *
+ * This function publishes the reachability history if it is available.
+ * It creates a LocalReachabilityArray message and fills it with the reachability data.
+ * The message is then published using the reachability_history_pub_ publisher.
+ *
+ * @param stamp The timestamp to be set in the message header.
+ */
+    void GlobalWrapper::publishReachabilityHistory(const ros::Time& stamp) {
   if (!global_.haveNewReachabilityHistory()) {
     return;
   }
@@ -427,7 +600,12 @@ void GlobalWrapper::publishReachabilityHistory(const ros::Time& stamp) {
   reachability_history_pub_.publish(lra_msg);
 }
 
-void GlobalWrapper::visualizeGraph(const ros::Time& stamp) {
+/**
+ * Visualizes the graph by publishing visualization markers and map images.
+ *
+ * @param stamp The timestamp for the visualization.
+ */
+    void GlobalWrapper::visualizeGraph(const ros::Time& stamp) {
   visualization_msgs::MarkerArray viz_msg;
 
   visualization_msgs::Marker edge_viz;
@@ -483,7 +661,16 @@ void GlobalWrapper::visualizeGraph(const ros::Time& stamp) {
   map_img_viz_pub_.publish(img_msg);
 }
 
-void GlobalWrapper::visualizePath(const ros::Time& stamp) {
+/**
+ * @brief Visualizes a path using ROS
+ *
+ * This method publishes a path visualization using the specified stamp. The path
+ * is obtained from the `global_` object and converted into a `nav_msgs::Path` message.
+ * The path is visualized by publishing the message to the `path_viz_pub_` topic.
+ *
+ * @param stamp The timestamp to be used in the header of the `nav_msgs::Path` message
+ */
+    void GlobalWrapper::visualizePath(const ros::Time& stamp) {
   nav_msgs::Path path_msg;
   path_msg.header.stamp = stamp;
   path_msg.header.frame_id = map_frame_;
@@ -502,7 +689,16 @@ void GlobalWrapper::visualizePath(const ros::Time& stamp) {
   path_viz_pub_.publish(path_msg);
 }
 
-void GlobalWrapper::visualizeAerialMap(const ros::Time& stamp) {
+/**
+ * @brief Visualize the aerial map
+ *
+ * This function takes in a timestamp and publishes the aerial map as an image message.
+ * The aerial map is obtained from the global object and converted to an image message using CvBridge.
+ * The converted image message is then published using the aerial_map_trav_viz_pub_ ROS publisher.
+ *
+ * @param stamp The timestamp for the image message header
+ */
+    void GlobalWrapper::visualizeAerialMap(const ros::Time& stamp) {
   std_msgs::Header header;
   header.stamp = stamp;
   header.frame_id = map_frame_;

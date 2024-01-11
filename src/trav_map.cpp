@@ -7,8 +7,12 @@
 
 namespace spomp {
 
-TravMap::TravMap(const Params& tm_p, const TravGraph::Params& tg_p, 
-    const AerialMapInfer::Params& am_p, const MLPModel::Params& mlp_p) : 
+/**
+ * @class TravMap
+ * @brief Represents the map of a robot's traversal area
+ */
+    TravMap::TravMap(const Params& tm_p, const TravGraph::Params& tg_p,
+                     const AerialMapInfer::Params& am_p, const MLPModel::Params& mlp_p) :
   params_(tm_p), graph_(tg_p)
 {
   auto& tm = TimerManager::getGlobal(true);
@@ -49,7 +53,12 @@ TravMap::TravMap(const Params& tm_p, const TravGraph::Params& tg_p,
   }
 }
 
-void TravMap::loadClasses(const semantics_manager::ClassConfig& class_config) {
+/**
+ * @brief Loads the classes from the given class_config and updates the terrain_lut and MAX_TERRAIN.
+ *
+ * @param class_config The ClassConfig object containing the class configurations.
+ */
+    void TravMap::loadClasses(const semantics_manager::ClassConfig& class_config) {
   int terrain_ind = 0;
   for (const auto& terrain_type : class_config.traversabililty_diff) {
     terrain_lut_.at<uint8_t>(terrain_ind) = terrain_type;
@@ -64,8 +73,16 @@ void TravMap::loadClasses(const semantics_manager::ClassConfig& class_config) {
   }
 }
 
-void TravMap::loadStaticMap(const semantics_manager::MapConfig& map_config, 
-    const semantics_manager::ClassConfig& class_config) 
+/**
+ * @brief Load a static map based on the given map_config and class_config.
+ *        If the map is dynamic, set the dynamic flag and return.
+ *        Otherwise, load the static map and update the map center and class sem.
+ *
+ * @param map_config The map configuration.
+ * @param class_config The class configuration.
+ */
+    void TravMap::loadStaticMap(const semantics_manager::MapConfig& map_config,
+                                const semantics_manager::ClassConfig& class_config)
 {
   map_ref_frame_.res = map_config.resolution;
 
@@ -120,8 +137,15 @@ void TravMap::loadStaticMap(const semantics_manager::MapConfig& map_config,
   std::cout << "\033[36m" << "[SPOMP-Global] Static Map loaded" << "\033[0m" << std::endl;
 }
 
-void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center, 
-    const std::vector<cv::Mat>& other_maps)
+/**
+ * @brief Updates the map with the given parameters and performs various operations on the map data.
+ *
+ * @param map The input map.
+ * @param center The center position of the map.
+ * @param other_maps Other maps for reference.
+ */
+    void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center,
+                            const std::vector<cv::Mat>& other_maps)
 {
   if (!dynamic_) return;
 
@@ -160,8 +184,21 @@ void TravMap::updateMap(const cv::Mat &map, const Eigen::Vector2f& center,
     });
 }
 
-std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,
-    const Eigen::Vector2f& end_p)
+/**
+ * @brief Get the path between two points in the traversal map.
+ *
+ * This function calculates the path between two points in the traversal map
+ * using the A* algorithm implemented in the TravGraph class. The start and end
+ * points are given as Eigen::Vector2f objects. If either of the points is out of
+ * bounds or not visible, an empty list is returned.
+ *
+ * @param start_p The starting point in world coordinates.
+ * @param end_p The ending point in world coordinates.
+ * @return std::list<TravGraph::Node*> The list of nodes representing the path.
+ *         If no valid path is found, an empty list is returned.
+ */
+    std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,
+                                                 const Eigen::Vector2f& end_p)
 {
   if (map_.empty()) {
     return {};
@@ -205,7 +242,14 @@ std::list<TravGraph::Node*> TravMap::getPath(const Eigen::Vector2f& start_p,
   return getPath(*n1, *n2);
 }
 
-bool TravMap::updateLocalReachability(const Reachability& reachability, int robot_id) {
+/**
+ * @brief Updates the local reachability information for a given robot.
+ *
+ * @param reachability The reachability object containing scan data.
+ * @param robot_id The ID of the robot.
+ * @return True if successful, false otherwise.
+ */
+    bool TravMap::updateLocalReachability(const Reachability& reachability, int robot_id) {
   // Return true if we are at least reach_dist_thresh_m away from all prior reach
   auto is_far_from_prev_reach = [&](const Reachability& reach) {
     for (const auto& past_reach : reach_hist_[0]) {
@@ -241,8 +285,15 @@ bool TravMap::updateLocalReachability(const Reachability& reachability, int robo
   }
 }
 
-std::list<TravGraph::Node*> TravMap::getPath(TravGraph::Node& start_n, 
-    TravGraph::Node& end_n) 
+/**
+ * @brief Get the path from the start node to the end node in the graph.
+ *
+ * @param start_n The start node.
+ * @param end_n The end node.
+ * @return std::list<TravGraph::Node*> The path from the start node to the end node.
+ */
+    std::list<TravGraph::Node*> TravMap::getPath(TravGraph::Node& start_n,
+                                                 TravGraph::Node& end_n)
 {
   auto path = graph_.getPath(&start_n, &end_n);
   auto final_path = path;
@@ -262,7 +313,14 @@ std::list<TravGraph::Node*> TravMap::getPath(TravGraph::Node& start_n,
   return final_path;
 }
 
-std::list<TravGraph::Node*> TravMap::prunePath(
+/**
+ * Prunes the given path by removing nodes that can be reached through shorter or lower-cost edges.
+ * It returns a pruned path as a list of nodes.
+ *
+ * @param path The path to be pruned.
+ * @return The pruned path as a list of nodes.
+ */
+    std::list<TravGraph::Node*> TravMap::prunePath(
     const std::list<TravGraph::Node*>& path) 
 {
   std::list<TravGraph::Node*> pruned_path;
@@ -317,7 +375,25 @@ std::list<TravGraph::Node*> TravMap::prunePath(
   return pruned_path;
 }
 
-void TravMap::computeDistMaps() {
+/**
+ * \brief Computes distance maps for the given map.
+ *
+ * This function computes distance maps for the given map using the following steps:
+ * 1. Creates a morphological kernel based on the maximum hole fill size specified in the parameters.
+ * 2. Creates an unknown mask where the map values are equal to 255.
+ * 3. Performs morphology opening on the unknown mask using the morphological kernel.
+ * 4. Initializes a filtered map with all values set to 255.
+ * 5. For each distance map in reverse order:
+ *    a. Creates a traversal map by bitwise ORing the map values less than or equal to the current class threshold and the unknown mask.
+ *    b. Performs morphology closing on the traversal map using the morphological kernel.
+ *    c. Computes the distance transform of the traversal map and stores it in the current distance map.
+ *    d. Sets the unknown mask values to 0 in the current distance map.
+ *    e. Sets the filtered map values to the current class threshold where the distance map values are greater than 0.
+ *    f. Decrements the class threshold.
+ * 6. Updates the map with the filtered map.
+ * 7. Ends the timer for computing distance maps.
+ */
+    void TravMap::computeDistMaps() {
   compute_dist_maps_t_->start();
 
   // Add 1 so if zero we still have valid morph element
@@ -348,7 +424,17 @@ void TravMap::computeDistMaps() {
   compute_dist_maps_t_->end();
 }
 
-void TravMap::rebuildVisibility(const MapReferenceFrame& old_mrf) {
+/**
+* @brief Rebuilds the visibility map based on a new map reference frame.
+*
+* This function rebuilds the visibility map by taking into account a new map reference frame. The old visibility map is copied, and then intersected with the new frame to preserve any
+* overlapping regions. The map is then updated to mark obstacles as -1 and unknown regions as -1. Next, the function iterates through each node in the graph and adds it to the visibility
+* map. It also checks for any overlapping nodes and adds edges to improve connectivity. Finally, the function records the time it takes to rebuild the visibility map.
+*
+* @param old_mrf The old map reference frame.
+* @return void
+*/
+    void TravMap::rebuildVisibility(const MapReferenceFrame& old_mrf) {
   rebuild_visibility_t_->start();
 
   cv::Mat old_vis_map = visibility_map_.clone();
@@ -379,7 +465,16 @@ void TravMap::rebuildVisibility(const MapReferenceFrame& old_mrf) {
   rebuild_visibility_t_->end();
 }
 
-void TravMap::reweightGraph() {
+/**
+ * @brief Reweights the graph by updating edge weights and node visibility.
+ *
+ * This function reweights the graph by updating the weights of each edge.
+ * If an edge is not locked and has not been experienced yet, it retrieves
+ * the class and cost information from the aerial map and updates the edge.
+ * Additionally, it checks the visibility of each node and sets the visibility map
+ * for non-traversable nodes to -1.
+ */
+    void TravMap::reweightGraph() {
   reweight_graph_t_->start();
 
   for (auto& edge : graph_.getEdges()) {
@@ -403,7 +498,35 @@ void TravMap::reweightGraph() {
   reweight_graph_t_->end();
 }
 
-void TravMap::buildGraph() {
+/**
+ * @brief This function builds the graph for the TravMap object.
+ *
+ * The function iterates over the terrain classes from `start_cls` to `TravGraph::Edge::MAX_TERRAIN`
+ * and performs the following steps for each terrain class:
+ *
+ * - Calculates the number of pixels that need to be covered, based on the condition `map_ <= t_cls`, using `cv::countNonZero`
+ * - Clones the distance map of the current terrain class and creates a masked version of it using `cv::Mat::setTo`
+ *   to set the masked pixels to zero (masked pixels are determined by `visibility_map_ >= 0`)
+ * - Performs morphological opening on the masked distance map using a rectangular structuring element `morph_kernel`
+ *   with size `(params_.min_region_size_m * map_ref_frame_.res + 1) x (params_.min_region_size_m * map_ref_frame_.res + 1)`,
+ *   using `cv::morphologyEx`
+ * - Checks if the number of non-zero pixels in the masked distance map is greater than a threshold value
+ *   (`params_.unvis_start_thresh * std::pow(map_ref_frame_.res, 2)`).
+ *   If the number is less than the threshold, the current terrain class is skipped.
+ *
+ * For each iteration, the function performs the following steps as long as the number of non-zero pixels in the masked distance map
+ * is greater than another threshold value (`params_.unvis_stop_thresh * std::pow(map_ref_frame_.res, 2)`):
+ *
+ * - Resets the masked distance map by setting the masked pixels to zero again (`dist_map_masked.setTo`)
+ * - Finds the location of the maximum value and its corresponding coordinates in the masked distance map using `cv::minMaxLoc`
+ * - If the maximum value is zero, indicating that there are no more points to consider, the iteration is stopped
+ * - Adds a new node to the graph at the world coordinates corresponding to the maximum value's coordinates in the image
+ * - Marks the visibility of the maximum value's coordinates in the visibility map by setting the corresponding element
+ *   to the ID of the newly added node (`visibility_map_.at<int32_t>(max_l) = n_ptr->id`)
+ *
+ * The function uses the `build_graph_t_` timer to record the execution time.
+ */
+    void TravMap::buildGraph() {
   build_graph_t_->start();
 
   double min_v, max_v;
@@ -453,7 +576,21 @@ void TravMap::buildGraph() {
   build_graph_t_->end();
 }
 
-TravGraph::Node* TravMap::addNode(const Eigen::Vector2f& pos) {
+/**
+ * @brief Adds a new node to the TravMap.
+ *
+ * This function adds a new node representing a position on the map to the TravMap.
+ *
+ * @param pos The position of the node to be added, specified as a 2D vector of type Eigen::Vector2f.
+ *
+ * @note The added nodes can be used for various operations like path finding or traversal analysis.
+ *
+ * @see TravMap
+ * @see TravMap::getNodeCount
+ * @see TravMap::getNodePosition
+ * @see TravMap::removeNode
+ */
+    TravGraph::Node* TravMap::addNode(const Eigen::Vector2f& pos) {
   TravGraph::Node* n = graph_.addNode(pos);
   auto overlapping_nodes = addNodeToVisibility(*n);
   //std::cout << "=============" << std::endl;
@@ -475,7 +612,14 @@ TravGraph::Node* TravMap::addNode(const Eigen::Vector2f& pos) {
   return n;
 }
 
-void TravMap::addEdge(const TravGraph::Edge& edge) {
+/**
+ * @class TravMap
+ * @brief Represents a map of traveling routes.
+ *
+ * This class provides functionality to add edges to a map, which represents connections between locations.
+ * Each edge is associated with a weight, representing the cost or distance between the connected locations.
+ */
+    void TravMap::addEdge(const TravGraph::Edge& edge) {
   TravGraph::Edge* inserted_edge = graph_.addEdge(edge);
 
   if (inserted_edge) {
@@ -487,7 +631,19 @@ void TravMap::addEdge(const TravGraph::Edge& edge) {
   }
 }
 
-std::map<int, Eigen::Vector2f> TravMap::addNodeToVisibility(const TravGraph::Node& n) {
+/**
+ * @brief Adds a node to the visibility map and returns a map of overlapping nodes.
+ *
+ * This function adds a node to the visibility map and returns a map of overlapping nodes.
+ * The visibility map is updated by casting rays from the given node's position in all directions.
+ * The rays are terminated when they reach the specified visibility distance.
+ * The overlapping nodes are stored in a map where the keys are the IDs of the overlapping nodes
+ * and the values are the positions of the overlapping nodes.
+ *
+ * @param n The node to add to the visibility map.
+ * @return std::map<int, Eigen::Vector2f> A map of overlapping nodes.
+ */
+    std::map<int, Eigen::Vector2f> TravMap::addNodeToVisibility(const TravGraph::Node& n) {
   // Get class of node location
   auto img_loc = map_ref_frame_.world2img(n.pos);
   int node_cls = map_.at<uint8_t>(cv::Point(img_loc[0], img_loc[1]));
@@ -529,7 +685,10 @@ std::map<int, Eigen::Vector2f> TravMap::addNodeToVisibility(const TravGraph::Nod
   return overlapping_nodes;
 }
 
-void TravMap::resetGraphAroundPoint(const Eigen::Vector2f& pt) {
+/**
+*
+*/
+    void TravMap::resetGraphAroundPoint(const Eigen::Vector2f& pt) {
   auto nodes = graph_.getNodesNear(pt, params_.recover_reset_dist_m); 
 
   for (auto& node : nodes) {
@@ -544,7 +703,15 @@ void TravMap::resetGraphAroundPoint(const Eigen::Vector2f& pt) {
   }
 }
 
-void TravMap::resetGraphLocked() {
+/**
+ * @brief Reset the locked status of the edges in the graph.
+ *
+ * This function iterates over each edge in the graph and sets the `is_locked` flag to `false`
+ * for all edges that have a positive `cls` value.
+ *
+ * @note This function modifies the state of the graph.
+ */
+    void TravMap::resetGraphLocked() {
   for (auto& edge : graph_.getEdges()) {
     if (edge.cls > 0) {
       edge.is_locked = false;
@@ -552,7 +719,23 @@ void TravMap::resetGraphLocked() {
   }
 }
 
-cv::Mat TravMap::viz() const {
+/**
+ * Generates a visualization of the TravMap.
+ *
+ * @return A cv::Mat object representing the visualization of the map.
+ *
+ * The visualization is generated by performing the following steps:
+ * 1. If the map is empty, an empty cv::Mat is returned.
+ * 2. A copy of the map is created and scaled to a range of 0-255, representing increasing difficulty.
+ * 3. The scaled map is then color-mapped using the Parula colormap.
+ * 4. Unknown regions in the map (values less than 255) are masked out.
+ * 5. Nodes in the graph are drawn as green circles on the visualization.
+ * 6. Edges in the graph are drawn as colored lines on the visualization.
+ *    - If an edge is locked, it is drawn as a green line if cls is 0, and as a blue line if cls is non-zero.
+ *    - If an edge is unlocked, a color is determined based on its cost and length, and drawn as a line on the visualization.
+ * 7. The origin is drawn as a red circle on the visualization.
+ */
+    cv::Mat TravMap::viz() const {
   cv::Mat viz;
   if (map_.empty()) {
     return viz;
@@ -601,7 +784,16 @@ cv::Mat TravMap::viz() const {
   return viz;
 }
 
-cv::Mat TravMap::viz_visibility() const {
+/**
+ * @brief Generate a visualization of the visibility map.
+ *
+ * This function generates a visualization of the visibility map. The visibility map is a matrix
+ * that represents the visibility of each element in the graph. The generated visualization is a color
+ * map that indicates the level of visibility for each element.
+ *
+ * @return A cv::Mat object representing the generated visualization.
+ */
+    cv::Mat TravMap::viz_visibility() const {
   double min_v, max_v;
   cv::Point min_l, max_l;
   cv::minMaxLoc(visibility_map_, &min_v, &max_v, &min_l, &max_l);

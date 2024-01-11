@@ -3,9 +3,18 @@
 
 namespace spomp {
 
-/*********************************************************
- * AERIAL MAP PRIOR
- *********************************************************/
+/**
+ * @brief Updates the aerial map with new data.
+ *
+ * This function updates the aerial map with the given semantic map, distance maps,
+ * map reference frame, and any other additional maps. It performs deep copies of
+ * the distance maps and the semantic map.
+ *
+ * @param sem_map The semantic map to be updated.
+ * @param dm The vector of distance maps.
+ * @param mrf The map reference frame.
+ * @param other_maps The vector of additional maps.
+ */
 void AerialMapPrior::updateMap(const cv::Mat& sem_map, 
     const std::vector<cv::Mat>& dm, const MapReferenceFrame& mrf,
     const std::vector<cv::Mat>& other_maps)
@@ -19,8 +28,13 @@ void AerialMapPrior::updateMap(const cv::Mat& sem_map,
   map_ref_frame_ = mrf;
 }
 
-AerialMap::EdgeInfo AerialMapPrior::traceEdge(const Eigen::Vector2f& n1, 
-    const Eigen::Vector2f& n2)
+/**
+ * \class AerialMapPrior
+ *
+ * \brief A class used to trace an edge on an aerial map.
+ */
+    AerialMap::EdgeInfo AerialMapPrior::traceEdge(const Eigen::Vector2f& n1,
+                                                  const Eigen::Vector2f& n2)
 {
   auto img_pt1 = map_ref_frame_.world2img(n1);
   auto img_pt2 = map_ref_frame_.world2img(n2);
@@ -33,7 +47,7 @@ AerialMap::EdgeInfo AerialMapPrior::traceEdge(const Eigen::Vector2f& n1,
   for (float cur_dist=0; cur_dist<dist; cur_dist+=0.5) {
     Eigen::Vector2f sample_pt = img_pt1 + dir*cur_dist;
     auto t_cls = map_.at<uint8_t>(cv::Point(sample_pt[0], sample_pt[1]));
-    float dist = 0;
+    //float dist = 0;
     if (t_cls < TravGraph::Edge::MAX_TERRAIN) {
       dist = dist_maps_[t_cls].at<float>(cv::Point(sample_pt[0], sample_pt[1]));
       //std::cout << sample_pt.transpose() << std::endl;
@@ -53,8 +67,8 @@ AerialMap::EdgeInfo AerialMapPrior::traceEdge(const Eigen::Vector2f& n1,
     }
     // Ignore unknwon
   } 
-  float cost = 1/(worst_dist/map_ref_frame_.res + 0.01);
-  float length = dist/map_ref_frame_.res;
+  float cost = 1.0/(worst_dist/map_ref_frame_.res + 0.01);
+  //float length = dist/map_ref_frame_.res;
 
   // We can scale cost however
   // Ideally, want it in range (0, 1)
@@ -66,8 +80,29 @@ AerialMap::EdgeInfo AerialMapPrior::traceEdge(const Eigen::Vector2f& n1,
  *********************************************************/
 int AerialMapInfer::feature_size_{0};
 
-AerialMapInfer::AerialMapInfer(const Params& p, 
-    const MLPModel::Params& mlp_p, int n_cls) : 
+/**
+ * @class AerialMapInfer
+ *
+ * @brief The AerialMapInfer class represents an aerial map inference object.
+ *
+ * This class is responsible for performing inference on an aerial map using a Multi-Layer Perceptron (MLP) model.
+ * It initializes the necessary parameters, updates reachability, and runs the inference thread.
+ *
+ * The class includes the following public methods:
+ * - AerialMapInfer(const Params& p, const MLPModel::Params& mlp_p, int n_cls) : Constructor that initializes the aerial map inference object with the given parameters.
+ *
+ * The class includes the following private member variables:
+ * - params_ : The parameters for the aerial map inference, defined in the Params structure.
+ * - update_reachability_t_ : Timer object for updating reachability.
+ * - feature_size_ : The size of the features used in the inference.
+ * - inference_thread_ : The thread for running the inference.
+ *
+ * @see Params
+ * @see MLPModel
+ * @see TimerManager
+ */
+    AerialMapInfer::AerialMapInfer(const Params& p,
+                                   const MLPModel::Params& mlp_p, int n_cls) :
   params_(p)
 {
   auto& tm = TimerManager::getGlobal(true);
@@ -78,14 +113,35 @@ AerialMapInfer::AerialMapInfer(const Params& p,
   inference_thread_ = std::thread(InferenceThread(*this, mlp_p));
 }
 
-AerialMapInfer::~AerialMapInfer() {
+/**
+ * @brief Destructor for the AerialMapInfer class.
+ *
+ * This destructor is responsible for cleaning up the resources used by the AerialMapInfer object. It sets the exit_threads_flag_ to true
+ * to signal the inference thread to exit and then joins the inference_thread_ to make sure that it has completed before destroying
+ * the object.
+ */
+    AerialMapInfer::~AerialMapInfer() {
   exit_threads_flag_ = true;
   inference_thread_.join();
 }
 
-void AerialMapInfer::updateMap(const cv::Mat& sem_map, 
-    const std::vector<cv::Mat>& dm, const MapReferenceFrame& mrf,
-    const std::vector<cv::Mat>& om)
+/**
+ * @brief Updates the aerial map with new information.
+ *
+ * This function updates the aerial map with new semantic map, distance maps,
+ * and other maps. It also updates the reachability map and probability map based
+ * on the new map reference frame.
+ *
+ * @param sem_map The semantic map as a cv::Mat. If the input is a 3-channel image,
+ *        it is converted to grayscale.
+ * @param dm The vector of distance maps as cv::Mat. Each distance map is cloned
+ *        to avoid race conditions.
+ * @param mrf The new map reference frame.
+ * @param om The vector of other maps.
+ */
+    void AerialMapInfer::updateMap(const cv::Mat& sem_map,
+                                   const std::vector<cv::Mat>& dm, const MapReferenceFrame& mrf,
+                                   const std::vector<cv::Mat>& om)
 {
   {
     std::scoped_lock lock(feature_map_.mtx);
@@ -131,7 +187,16 @@ void AerialMapInfer::updateMap(const cv::Mat& sem_map,
   map_ref_frame_ = mrf;
 }
 
-void AerialMapInfer::updateLocalReachability(const Reachability& reach) {
+/**
+ * @brief Update the local reachability map based on the given Reachability object.
+ *
+ * This function updates the local reachability map by calculating the reachable and non-reachable
+ * areas based on the given Reachability object. The reachability map is updated using the
+ * TravMapDelta matrix, which marks the reachable areas as 1 and non-reachable areas as -1.
+ *
+ * @param reach The Reachability object containing information about the reachability and obstacles.
+ */
+    void AerialMapInfer::updateLocalReachability(const Reachability& reach) {
   update_reachability_t_->start();
 
   Eigen::Vector2f img_center = 
@@ -146,7 +211,7 @@ void AerialMapInfer::updateLocalReachability(const Reachability& reach) {
   for (int i=0; i<thetas.size(); ++i) {
     Eigen::Vector2f ray_dir(-sin(thetas[i]), -cos(thetas[i]));
     auto ray_info = reach.getObsAtInd(i);
-    for (float range=0; range<ray_info.range; range+=1./map_ref_frame_.res) {
+    for (float range=0; range<ray_info.range; range+=1.f/map_ref_frame_.res) {
       Eigen::Vector2f pt = ray_dir*range*map_ref_frame_.res + img_center;
       if (map_ref_frame_.imgPointInMap(pt)) {
         trav_map_delta.at<int16_t>(cv::Point(pt[0], pt[1])) = 1;
@@ -175,8 +240,15 @@ void AerialMapInfer::updateLocalReachability(const Reachability& reach) {
   update_reachability_t_->end();
 }
 
-AerialMap::EdgeInfo AerialMapInfer::traceEdge(const Eigen::Vector2f& n1, 
-    const Eigen::Vector2f& n2)
+/**
+ * @brief Traces an edge between two points on the aerial map and provides information about the edge.
+ *
+ * @param n1 The first point of the edge in world coordinates.
+ * @param n2 The second point of the edge in world coordinates.
+ * @return AerialMap::EdgeInfo The information about the traced edge.
+ */
+    AerialMap::EdgeInfo AerialMapInfer::traceEdge(const Eigen::Vector2f& n1,
+                                                  const Eigen::Vector2f& n2)
 {
   auto img_pt1 = map_ref_frame_.world2img(n1);
   auto img_pt2 = map_ref_frame_.world2img(n2);
@@ -231,7 +303,17 @@ AerialMap::EdgeInfo AerialMapInfer::traceEdge(const Eigen::Vector2f& n1,
 }
 
 
-cv::Mat AerialMapInfer::viz() {
+/**
+ * @brief Generates a visualization of the aerial map infer.
+ *
+ * This function generates a visualization of the aerial map infer by converting
+ * the reachability map to a grayscale image and applying color codes based on
+ * the traversal threshold values. It also overlays the probability map on top of
+ * the reachability map using color mapping.
+ *
+ * @return The visualization of the aerial map infer.
+ */
+    cv::Mat AerialMapInfer::viz() {
   cv::Mat trav_viz;
   constexpr int new_center = std::numeric_limits<uint8_t>::max()/2;
   {
@@ -279,9 +361,19 @@ cv::Mat AerialMapInfer::viz() {
   return trav_viz;
 }
 
-/*********************************************************
- * INFERENCE THREAD
- *********************************************************/
+/**
+ * @brief The InferenceThread class is responsible for performing inference on the aerial map.
+ *
+ * The operator()() method is the main entry point for the inference thread. It performs the following steps:
+ * - Initializes timers for model fitting and updating probability map.
+ * - Enters a loop until the exit_threads_flag of the AerialMapInfer object is set to true.
+ * - Calls the fitModel() method to fit the model.
+ * - Calls the updateProbabilityMap() method to update the probability map.
+ * - Updates the aerial_map_ member variable with the new probability map if its size is compatible.
+ * - Sleeps until the next loop iteration based on the inference_thread_period_ms parameter.
+ * - Returns true when the loop is exited.
+ *
+ */
 bool AerialMapInfer::InferenceThread::operator()() {
   auto& tm = TimerManager::getGlobal(true);
   model_fit_t_ = tm.get("AM_model_fit");
@@ -313,7 +405,13 @@ bool AerialMapInfer::InferenceThread::operator()() {
   return true;
 }
 
-Eigen::VectorXf AerialMapInfer::InferenceThread::getFeatureAtPoint(
+/**
+* @brief Gets the feature vector at a given point from the feature map.
+* @param feat_map The feature map containing the required information.
+* @param pt The point coordinates.
+* @return The feature vector at the given point.
+*/
+    Eigen::VectorXf AerialMapInfer::InferenceThread::getFeatureAtPoint(
     const AerialMapInfer::FeatureMap& feat_map, const cv::Point& pt) 
 {
   Eigen::VectorXf feat = Eigen::VectorXf::Zero(feature_size_);
@@ -355,7 +453,14 @@ Eigen::VectorXf AerialMapInfer::InferenceThread::getFeatureAtPoint(
   return feat;
 }
 
-void AerialMapInfer::InferenceThread::fitModel() {
+/**
+ * @brief Fits the model using the available features and labels.
+ *
+ * This method fits the model using the features and labels obtained from the reachability map and feature map of the aerial map. It creates an array to store the features and a vector
+* to store the labels. Each pixel in the reachability map is checked, and if it meets the conditions, its corresponding feature is added to the features array and its label is added
+* to the labels vector. Finally, the model fit is started, the model is fit using the features and labels, and the model fit is ended.
+ */
+    void AerialMapInfer::InferenceThread::fitModel() {
   // No more features than number of nonzero pixels in trav map
   int max_features;
   Eigen::ArrayXXf features;
@@ -397,7 +502,18 @@ void AerialMapInfer::InferenceThread::fitModel() {
   model_fit_t_->end();
 }
 
-cv::Mat AerialMapInfer::InferenceThread::updateProbabilityMap() {
+/**
+ * @brief Updates the probability map based on the feature map using the trained model.
+ *
+ * This function calculates the probability map by inferring the log probabilities from the trained model
+ * using the feature map. Each non-zero pixel in the feature map is considered as a feature point and its
+ * corresponding log probability is calculated. The calculated probabilities are then stored in the
+ * probability map.
+ *
+ * @return The probability map calculated from the feature map.
+ * If the model is not trained or there are no feature points in the feature map, an empty matrix is returned.
+ */
+    cv::Mat AerialMapInfer::InferenceThread::updateProbabilityMap() {
   cv::Mat prob_map;
   if (!model_.trained()) return prob_map;
 

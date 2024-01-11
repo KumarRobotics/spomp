@@ -4,7 +4,15 @@
 
 namespace spomp {
 
-TerrainPano::TerrainPano(const Params& params) : 
+/**
+ * @class TerrainPano
+ *
+ * @brief This class represents a terrain panorama and provides timers for various operations.
+ *
+ * The TerrainPano class holds a set of timer objects and a Params object for storing configuration parameters.
+ * It is used to measure the time taken for different operations related to terrain panoramas.
+ */
+    TerrainPano::TerrainPano(const Params& params) :
   params_(params)
 {
   auto& tm = TimerManager::getGlobal();
@@ -16,8 +24,17 @@ TerrainPano::TerrainPano(const Params& params) :
   dist_t_ = tm.get("TP_dist");
 }
 
-void TerrainPano::updatePano(const Eigen::ArrayXXf& pano, 
-    const Eigen::Isometry3f& pose) 
+/**
+ * @brief Updates the panorama and pose of the TerrainPano object.
+ *
+ * This function updates the panorama and pose of the TerrainPano object. It calculates the new altitude and azimuth angles, fills any holes in the panorama, computes the point cloud
+*, computes the gradient, thresholds the gradient, and computes the traversability panorama.
+ *
+ * @param pano The input panorama as an Eigen::ArrayXXf.
+ * @param pose The pose of the panorama as an Eigen::Isometry3f.
+ */
+    void TerrainPano::updatePano(const Eigen::ArrayXXf& pano,
+                                 const Eigen::Isometry3f& pose)
 {
   pano_update_t_->start();
 
@@ -43,7 +60,15 @@ void TerrainPano::updatePano(const Eigen::ArrayXXf& pano,
   pano_update_t_->end();
 }
 
-void TerrainPano::fillHoles(Eigen::ArrayXXf& pano) const {
+/**
+ * @brief Fills holes in the given panoramic image.
+ *
+ * This function fills holes in the panoramic image using linear interpolation. It utilizes
+ * multi-threading to improve performance.
+ *
+ * @param pano The panoramic image to fill holes in. The image is modified in place.
+ */
+    void TerrainPano::fillHoles(Eigen::ArrayXXf& pano) const {
   fill_holes_t_->start();
   int gsize = params_.tbb <= 0 ? pano.rows() : params_.tbb;
 
@@ -86,7 +111,16 @@ void TerrainPano::fillHoles(Eigen::ArrayXXf& pano) const {
   fill_holes_t_->end();
 }
 
-float TerrainPano::getObstacleDistAt(const Eigen::Vector2f& pt) const {
+/**
+ * @brief Calculates the obstacle distance at a given point in the terrain panorama.
+ *
+ * If the terrain panorama has no rows, it assumes the point is in free space
+ * and returns the maximum distance.
+ *
+ * @param pt The point at which to calculate the obstacle distance.
+ * @return The obstacle distance at the given point.
+ */
+    float TerrainPano::getObstacleDistAt(const Eigen::Vector2f& pt) const {
   if (rows() < 1) {
     // No pano, assume free space
     return params_.max_distance_m;
@@ -109,7 +143,21 @@ float TerrainPano::getObstacleDistAt(const Eigen::Vector2f& pt) const {
   return 0;
 }
 
-void TerrainPano::computeCloud() {
+/**
+ * @brief Computes the cloud based on the given panoramic image.
+ *
+ * This function initializes the cloud array and then computes the cloud
+ * using the following steps:
+ * 1. Multiply each column of the input panoramic image (pano_) with the corresponding altitude values (alts_c_).
+ * 2. Multiply each column of the resulting cloud array with the sine of the corresponding azimuth values (azs_).
+ * 3. Multiply each column of the resulting cloud array with the cosine of the corresponding azimuth values (azs_).
+ * 4. Multiply each column of the input panoramic image (pano_) with the corresponding altitude values (alts_s_).
+ *
+ * The computation is parallelized using the Intel TBB library.
+ *
+ * @note This function assumes that the cloud_ array, alts_c_, alts_s_, and azs_ have already been initialized.
+ */
+    void TerrainPano::computeCloud() {
   compute_cloud_t_->start();
 
   // Initialize
@@ -133,6 +181,14 @@ void TerrainPano::computeCloud() {
   compute_cloud_t_->end();
 }
 
+/**
+ * @brief Compute the gradient across the panorama.
+ *
+ * This function calculates the gradient across the panorama based on LiDAR measurements.
+ * It computes the horizontal and vertical gradient for each pixel in the panorama.
+ *
+ * @return An Eigen Array representing the gradient across the panorama.
+ */
 //! Compute the gradient across the panorama
 Eigen::ArrayXXf TerrainPano::computeGradient() const {
   compute_grad_t_->start();
@@ -194,6 +250,15 @@ Eigen::ArrayXXf TerrainPano::computeGradient() const {
   return (grad_h.pow(2) + grad_v.pow(2)).sqrt();
 }
 
+/**
+ * @brief Thresholds the gradient into obstacles and filters
+ * @param grad_pano The input panoramic gradient matrix
+ * @return The thresholded panoramic matrix
+ *
+ * This function takes the gradient of a panoramic image and applies a threshold
+ * to classify each pixel as an obstacle or non-obstacle. It also performs a
+ * filtering step to remove small obstacles.
+ */
 //! Threshold the gradient into obstacles and filter
 Eigen::ArrayXXi TerrainPano::threshold(const Eigen::ArrayXXf& grad_pano) const {
   thresh_t_->start();
@@ -240,7 +305,14 @@ Eigen::ArrayXXi TerrainPano::threshold(const Eigen::ArrayXXf& grad_pano) const {
   return thresh_pano;
 }
 
-Eigen::ArrayXXf TerrainPano::distance(const Eigen::ArrayXXi& obs_pano) const {
+/**
+ * @brief Calculates the distance from each cell in obs_pano to the nearest obstacle in pano_ along altitude and azimuth.
+ * The distance is stored in the full_dist array.
+ *
+ * @param obs_pano The input panoramic image that represents obstacles.
+ * @return An Eigen::ArrayXXf matrix representing the distance from each cell in obs_pano to the nearest obstacle along altitude and azimuth.
+ */
+    Eigen::ArrayXXf TerrainPano::distance(const Eigen::ArrayXXi& obs_pano) const {
   dist_t_->start();
 
   // The sqrt(2) makes things come out to the max_distance when combined
@@ -316,8 +388,17 @@ Eigen::ArrayXXf TerrainPano::distance(const Eigen::ArrayXXi& obs_pano) const {
   return full_dist;
 }
 
-int TerrainPano::getWindow(float dist_m, int row_i, int col_i,
-    const Eigen::ArrayXXf& pano)
+/**
+ * @brief Calculates the number of columns required in a window of a terrain panorama, given a distance, row index, column index, and the panorama matrix.
+ *
+ * @param dist_m The distance in meters.
+ * @param row_i The row index of the desired point in the panorama matrix.
+ * @param col_i The column index of the desired point in the panorama matrix.
+ * @param pano The panorama matrix.
+ * @return The number of columns required in the window.
+ */
+    int TerrainPano::getWindow(float dist_m, int row_i, int col_i,
+                               const Eigen::ArrayXXf& pano)
 {
   float arc_length = pano(row_i, col_i) * 2 * pi / pano.cols();
   return dist_m / arc_length;

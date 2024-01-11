@@ -8,8 +8,15 @@ namespace spomp {
 // Static members
 Eigen::Array3Xf Keyframe::projection_;
 
-Keyframe::Keyframe(uint64_t stamp, const Eigen::Isometry3d& pose, 
-    const cv::Mat& d_p, const cv::Mat& i_p, const cv::Mat& s_p) :
+/**
+ * @brief Represents a keyframe in a 3D reconstruction system
+ *
+ * This class stores information about a keyframe, including its timestamp, pose, and panoramic images.
+ *
+ * @note This class assumes the availability of the Eigen and OpenCV libraries.
+ */
+    Keyframe::Keyframe(uint64_t stamp, const Eigen::Isometry3d& pose,
+                       const cv::Mat& d_p, const cv::Mat& i_p, const cv::Mat& s_p) :
   stamp_(stamp),
   pose_(pose),
   depth_pano_(d_p),
@@ -26,7 +33,7 @@ PointCloudArray Keyframe::getPointCloud() const {
 
   int sparse_ind = 0;
   int dense_ind = 0;
-  const float* range_ptr = nullptr;
+  const float* range_ptr;
   const uint16_t* intensity_ptr = nullptr;
   const uint8_t* sem_ptr = nullptr;
   for (int y=0; y<depth_pano_.rows; ++y) {
@@ -62,7 +69,16 @@ PointCloudArray Keyframe::getPointCloud() const {
   return cloud;
 }
 
-void Keyframe::setIntrinsics(float fov, const cv::Size& size) {
+/**
+ * @brief Set the intrinsic parameters for keyframe projection.
+ *
+ * This function calculates the projection matrix for the keyframe based on the given field of view (fov) and image size.
+ * It uses the AngularProj struct to map the spherical coordinates to a rectangular grid.
+ *
+ * @param fov The field of view in degrees.
+ * @param size The size of the image.
+ */
+    void Keyframe::setIntrinsics(float fov, const cv::Size& size) {
   if (projection_.size() > 0) {
     return;
   }

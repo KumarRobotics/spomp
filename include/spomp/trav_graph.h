@@ -10,6 +10,9 @@
 
 namespace spomp {
 
+/**
+*
+*/
 /*!
  * Traversability graph representation
  */
@@ -49,6 +52,10 @@ class TravGraph {
       }
     };
 
+    /**
+     * @struct Edge
+     * @brief Represents an edge between two nodes in a graph
+     */
     struct Edge {
       static int MAX_TERRAIN;
 

@@ -5,9 +5,23 @@
 
 namespace spomp {
 
-Remote::Remote(int wait_ms) : wait_ms_(wait_ms) {}
+/**
+ * @class Remote
+ * @brief A class to represent a remote.
+ *
+ * This class provides functionality to control a remote device.
+ */
+    Remote::Remote(int wait_ms) : wait_ms_(wait_ms) {}
 
-bool Remote::wait() {
+/**
+ * @brief Wait for user input and perform actions based on the pressed key.
+ *
+ * This function displays an image with a counter or a message depending on the value of the counter.
+ * It waits for user input and performs actions based on the pressed key.
+ *
+ * @return True if the program should continue, false if it should stop.
+ */
+    bool Remote::wait() {
   cv::Mat img = cv::Mat::zeros(50, 200, CV_8UC1);
   std::string text = std::to_string(counter_);
   if (counter_ < 0) {
@@ -17,7 +31,7 @@ bool Remote::wait() {
       1, cv::Scalar(255));
   cv::imshow("remote", img);
 
-  int key_id = 0;
+  int key_id;
   do {
     if (paused_) {
       key_id = cv::waitKey(-1);

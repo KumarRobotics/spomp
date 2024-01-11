@@ -3,20 +3,41 @@
 
 namespace spomp {
 
-Mapper::Mapper(const Params& m_p, const PoseGraph::Params& pg_p, 
-    const MetricMap::Params& mm_p) 
+/**
+ * @class Mapper
+ * @brief The Mapper class represents a mapper object that creates a map based on received sensor data.
+ */
+    Mapper::Mapper(const Params& m_p, const PoseGraph::Params& pg_p,
+                   const MetricMap::Params& mm_p)
 {
   pose_graph_thread_ = std::thread(PoseGraphThread(*this, {pg_p}));
   map_thread_ = std::thread(MapThread(*this, {mm_p}));
 }
 
-Mapper::~Mapper() {
+/**
+* @brief Destructor for the Mapper class.
+*
+* This destructor is responsible for cleaning up the Mapper object. It sets the exit_threads_flag_
+* to true, which signals the pose_graph_thread_ and map_thread_ to exit. It then joins the threads,
+* allowing them to complete any remaining work before the Mapper object is destroyed.
+*/
+    Mapper::~Mapper() {
   exit_threads_flag_ = true;
   pose_graph_thread_.join();
   map_thread_.join();
 }
 
-void Mapper::addKeyframe(const Keyframe& k) {
+/**
+ * @brief Adds a new keyframe to the Mapper.
+ *
+ * This function checks if the new keyframe is far enough from the last keyframe in terms of translation.
+ * If the distance between the poses of the new keyframe and the last keyframe is greater than the specified distance,
+ * the intrinsic parameters of the Keyframe class are set, the last keyframe pose is updated to the pose of the new keyframe,
+ * and the new keyframe is added to the list of frames in the keyframe_input_ struct.
+ *
+ * @param k The keyframe to be added.
+ */
+    void Mapper::addKeyframe(const Keyframe& k) {
   if ((k.getPose().inverse() * last_keyframe_pose_).translation().norm() > 
       params_.dist_between_keyframes_m) 
   {
@@ -27,13 +48,23 @@ void Mapper::addKeyframe(const Keyframe& k) {
   }
 }
 
-void Mapper::addPrior(const StampedPrior& p) {
+/**
+ * @brief Adds a StampedPrior to the mapper's list of priors.
+ *
+ * @param p The StampedPrior to be added.
+ */
+    void Mapper::addPrior(const StampedPrior& p) {
   last_prior_ = p;
   std::scoped_lock lock(prior_input_.mtx);
   prior_input_.priors.emplace_back(p);
 }
 
-void Mapper::addSemantics(const StampedSemantics& s) {
+/**
+ * @brief Adds a StampedSemantics object to the list of sem_panos in the SemanticsInput structure.
+ *
+ * @param s The StampedSemantics object to be added.
+ */
+    void Mapper::addSemantics(const StampedSemantics& s) {
   std::scoped_lock lock(semantics_input_.mtx);
   semantics_input_.sem_panos.emplace_back(s);
 }
@@ -50,7 +81,23 @@ std::vector<Eigen::Isometry3d> Mapper::getGraph() {
   return poses;
 }
 
-Eigen::Isometry3d Mapper::getOdomCorrection() {
+/**
+ * @brief Function to retrieve the odometry correction
+ *
+ * This function returns the odometry correction as an Eigen::Isometry3d object.
+ * The correction is determined based on the value of the 'correct_odom_per_frame'
+ * flag in the params_ object.
+ *
+ * If 'correct_odom_per_frame' is not set, the function retrieves the stored
+ * odometry correction from the keyframes_.odom_corr member variable and returns it.
+ *
+ * If 'correct_odom_per_frame' is set, the function calculates the odometry correction
+ * based on the last prior pose and the inverse of the last prior local pose. The
+ * result is then returned.
+ *
+ * @return Eigen::Isometry3d - The odometry correction
+ */
+    Eigen::Isometry3d Mapper::getOdomCorrection() {
   Eigen::Isometry3d corr;
   if (!params_.correct_odom_per_frame) {
     std::shared_lock key_lock(keyframes_.mtx);
@@ -62,15 +109,28 @@ Eigen::Isometry3d Mapper::getOdomCorrection() {
   return corr;
 }
 
-long Mapper::stamp() {
+/**
+ * @brief Get the most recent timestamp of the keyframes.
+ *
+ * This function retrieves the timestamp of the latest keyframe in the keyframes container.
+ * If there are no keyframes, it will return 0.
+ *
+ * @return The timestamp of the most recent keyframe, or 0 if there are no keyframes.
+ */
+    long Mapper::stamp() {
   std::shared_lock key_lock(keyframes_.mtx);
   if (keyframes_.frames.size() < 1) return 0;
   return keyframes_.frames.rbegin()->first;
 }
 
-/*********************************************************
- * POSE GRAPH THREAD
- *********************************************************/
+/**
+ * @brief This function is the main loop of a thread that performs pose graph operations.
+ *
+ * The function runs a loop until the `exit_threads_flag_` of the `mapper_` object is set to true.
+ * Inside the loop, the function calls several helper functions to perform various operations on the pose graph.
+ *
+ * @return Always returns true.
+ */
 bool Mapper::PoseGraphThread::operator()() {
   auto& tm = TimerManager::getGlobal(true);
   parse_buffer_t_ = tm.get("PG_parse_buffer");
@@ -97,7 +157,15 @@ bool Mapper::PoseGraphThread::operator()() {
   return true;
 }
 
-void Mapper::PoseGraphThread::parseBuffer() {
+/**
+ * @brief Parses the keyframe and prior buffers and updates the PoseGraph.
+ *
+ * This function parses the keyframe buffer and the prior buffer, and updates the PoseGraph accordingly.
+ * After parsing the keyframe buffer, it adds the keyframes to the PoseGraph, updates their poses based on relative motion,
+ * and adds them to the keyframes container in the Mapper object.
+ * After parsing the prior buffer, it adds the priors to the PoseGraph.
+ */
+    void Mapper::PoseGraphThread::parseBuffer() {
   parse_buffer_t_->start();
   {
     // Service keyframe buffer
@@ -129,7 +197,18 @@ void Mapper::PoseGraphThread::parseBuffer() {
   parse_buffer_t_->end();
 }
 
-void Mapper::PoseGraphThread::parseSemanticsBuffer() {
+/**
+ * @brief Parses the semantic buffer and matches semantic panos to corresponding keyframes.
+ *
+ * This function iterates through the semantic panos in the input buffer and tries to match them with
+ * the corresponding keyframes in the mapper's keyframe list. If a match is found, the semantic information
+ * is set on the keyframe. If no match is found, the semantic pano is removed from the buffer.
+ *
+ * @note It is assumed that semantic panos will always arrive later than the corresponding keyframes.
+ *
+ * @note Locks are used to ensure thread safety while accessing the semantic buffer and keyframes.
+ */
+    void Mapper::PoseGraphThread::parseSemanticsBuffer() {
   parse_semantics_buffer_t_->start();
 
   std::scoped_lock sem_lock(mapper_.semantics_input_.mtx);
@@ -164,7 +243,17 @@ void Mapper::PoseGraphThread::parseSemanticsBuffer() {
   parse_semantics_buffer_t_->end();
 }
 
-void Mapper::PoseGraphThread::updateKeyframes() {
+/**
+ * \brief Update keyframes in the pose graph.
+ *
+ * This function updates the poses of the keyframes in the pose graph based on the latest information
+ * from the pose graph. It retrieves the poses at each keyframe timestamp from the pose graph and sets
+ * the corresponding keyframe pose in the frames container. It also updates the odometry correction in
+ * the keyframes container.
+ *
+ * \note This function assumes that the update_keyframes_t_ timer has been started before calling this function.
+ */
+    void Mapper::PoseGraphThread::updateKeyframes() {
   update_keyframes_t_->start();
   std::unique_lock key_lock(mapper_.keyframes_.mtx);
 
@@ -180,9 +269,9 @@ void Mapper::PoseGraphThread::updateKeyframes() {
   update_keyframes_t_->end();
 }
 
-/*********************************************************
- * MAP THREAD
- *********************************************************/
+/**
+ * @brief The MapThread class is responsible for mapping the keyframes and updating the map.
+ */
 bool Mapper::MapThread::operator()() {
   auto& tm = TimerManager::getGlobal(true);
   get_keyframes_to_compute_t_ = tm.get("M_get_keyframes_to_compute");
@@ -212,7 +301,22 @@ bool Mapper::MapThread::operator()() {
   return true;
 }
 
-std::vector<Keyframe> Mapper::MapThread::getKeyframesToCompute() {
+/**
+ * @brief Retrieves a vector of keyframes to be computed.
+ *
+ * This function retrieves keyframes from the `keyframes_` container in the `Mapper` class
+ * that need to be computed. Keyframes are selected based on whether they require a map update,
+ * are optimized, and have semantic data (if required). The function also checks if the map needs
+ * to be rebuilt, in which case all keyframes are considered. The map pose of each selected keyframe
+ * is updated. A copy of each selected keyframe is added to the `keyframes_to_compute` vector.
+ *
+ * If the map needs to be rebuilt, the `keyframes_to_compute` vector is cleared and the `map_`
+ * is cleared. All keyframes are then added to the `keyframes_to_compute` vector after updating their
+ * map poses.
+ *
+ * @return The vector of keyframes to be computed.
+ */
+    std::vector<Keyframe> Mapper::MapThread::getKeyframesToCompute() {
   get_keyframes_to_compute_t_->start();
   // Shared lock because we are updating map pose in keyframe, but we only ever do
   // that in this thread, so still safe to be "read-only"
@@ -252,7 +356,14 @@ std::vector<Keyframe> Mapper::MapThread::getKeyframesToCompute() {
   return keyframes_to_compute;
 }
 
-void Mapper::MapThread::resizeMap(const std::vector<Keyframe>& frames) {
+/**
+ * @brief Resizes the map based on the given frames.
+ *
+ * This method calculates the minimum and maximum coordinates of the frames and resizes the map to fit those coordinates.
+ *
+ * @param frames The vector of Keyframes.
+ */
+    void Mapper::MapThread::resizeMap(const std::vector<Keyframe>& frames) {
   resize_map_t_->start();
 
   Eigen::Vector2d min = Eigen::Vector2d::Constant(std::numeric_limits<double>::max());
@@ -269,7 +380,19 @@ void Mapper::MapThread::resizeMap(const std::vector<Keyframe>& frames) {
   resize_map_t_->end();
 }
 
-void Mapper::MapThread::updateMap(const std::vector<Keyframe>& frames) {
+/**
+ * @brief Update the map with a vector of Keyframes.
+ *
+ * This function updates the map with the point clouds from
+ * each keyframe in the given vector. It iterates over each
+ * keyframe, retrieves its point cloud and timestamp, and
+ * adds the cloud to the map using the addCloud() function of
+ * the MetricMap class.
+ *
+ * @param frames A vector of Keyframes that contain the point
+ *               clouds to be added to the map.
+ */
+    void Mapper::MapThread::updateMap(const std::vector<Keyframe>& frames) {
   update_map_t_->start();
   for (const auto& frame : frames) {
     map_.addCloud(frame.getPointCloud(), frame.getStamp());
@@ -277,7 +400,15 @@ void Mapper::MapThread::updateMap(const std::vector<Keyframe>& frames) {
   update_map_t_->end();
 }
 
-void Mapper::MapThread::exportMap() {
+/**
+ * @brief Export the map to ROS message format
+ *
+ * This function exports the map to ROS message format using the exportROSMsg function of the MetricMap class.
+ * It also locks the map_messages mutex to ensure thread safety when accessing and updating the map_messages grid_map.
+ *
+ * @note This function should be called from a separate thread.
+ */
+    void Mapper::MapThread::exportMap() {
   export_map_t_->start();
   {
     std::scoped_lock<std::mutex> lock(mapper_.map_messages_.mtx);

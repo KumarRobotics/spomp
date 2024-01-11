@@ -9,7 +9,14 @@ std::string MapperWrapper::odom_frame_{"odom"};
 std::string MapperWrapper::map_frame_{"map"};
 int MapperWrapper::viz_thread_period_ms_{1000};
 
-MapperWrapper::MapperWrapper(ros::NodeHandle& nh) : 
+/**
+ * @class MapperWrapper
+ * @brief Wrapper class for a ROS node that implements mapping functionality.
+ *
+ * This class provides a wrapper for a ROS node that performs mapping using different library functions.
+ * It initializes the necessary components, subscribes to relevant topics, and publishes mapping results.
+ */
+    MapperWrapper::MapperWrapper(ros::NodeHandle& nh) :
   nh_(nh),
   it_(nh),
   mapper_(createMapper(nh)) 
@@ -94,7 +101,18 @@ Mapper MapperWrapper::createMapper(ros::NodeHandle& nh) {
   return Mapper(m_params, pg_params, mm_params);
 }
 
-void MapperWrapper::initialize() {
+/**
+ * @brief Initializes the MapperWrapper class.
+ *
+ * This function sets up the subscribers and timers used by the MapperWrapper class.
+ * - Subscribes to the "pano/img" topic with camera_info.
+ * - Subscribes to the "global_est" topic.
+ * - Subscribes to the "pose" topic.
+ * - Subscribes to the "pano/sem" topic.
+ * - Creates a timer for visualization, with a period specified by viz_thread_period_ms_.
+ * - Calls the ros::spin() function to start the ROS event loop.
+ */
+    void MapperWrapper::initialize() {
   // Subscribers
   pano_sub_ = it_.subscribeCamera("pano/img", 1, &MapperWrapper::panoCallback, this);
   est_sub_ = nh_.subscribe("global_est", 1, &MapperWrapper::globalEstCallback, this);
@@ -108,8 +126,21 @@ void MapperWrapper::initialize() {
   ros::spin();
 }
 
-void MapperWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
-    const sensor_msgs::CameraInfo::ConstPtr& info_msg) 
+/**
+* @brief Function that is called when a new panoramic image is received
+*
+* This function takes in a sensor_msgs::Image and a sensor_msgs::CameraInfo and processes them to create a keyframe
+* for the mapper. The function extracts the camera pose from the CameraInfo message, converts the input image to OpenCV format,
+* splits the image into separate channels, rescales the depth channel using the depth scale from the CameraInfo message,
+* and finally adds the keyframe to the Mapper.
+*
+* @param img_msg  Pointer to the sensor_msgs::Image message that contains the panoramic image
+* @param info_msg  Pointer to the sensor_msgs::CameraInfo message that contains the camera information
+*
+* @return void
+*/
+    void MapperWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
+                                     const sensor_msgs::CameraInfo::ConstPtr& info_msg)
 {
   Eigen::Isometry3d pano_pose;
   pano_pose.affine() = 
@@ -131,7 +162,15 @@ void MapperWrapper::panoCallback(const sensor_msgs::Image::ConstPtr& img_msg,
                        cv::Mat() /* semantics (empty for now) */});
 }
 
-void MapperWrapper::globalEstCallback(
+/**
+ * @brief globalEstCallback function for receiving global estimation callback
+ *
+ * This function is called whenever a global estimation message is received.
+ * It processes the received message and updates the mapper object with the prior information.
+ *
+ * @param est_msg The received global estimation message
+ */
+    void MapperWrapper::globalEstCallback(
     const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& est_msg)
 {
   if (!initialized_odom_corr_) {
@@ -168,19 +207,42 @@ void MapperWrapper::globalEstCallback(
   }
 }
 
-void MapperWrapper::odomCallback(
+/**
+ * @brief Callback function for the odometry topic
+ *
+ * This function is a callback for the odometry topic and stores the received odometry message in the odom_buf_ buffer.
+ *
+ * @param[in] odom_msg Pointer to the received odometry message
+ */
+    void MapperWrapper::odomCallback(
     const geometry_msgs::PoseStamped::ConstPtr &odom_msg)
 {
   odom_buf_.push_back(odom_msg);
 }
 
-void MapperWrapper::semPanoCallback(const sensor_msgs::Image::ConstPtr& sem_img_msg) {
+/**
+ * @brief This function is a callback function for the semPano topic.
+ *        It receives a sensor_msgs::Image::ConstPtr as a parameter, and performs the following actions:
+ *        - Converts the received image message to CV image format using cv_bridge::toCvCopy()
+ *        - Calls the addSemantics() function of the mapper_ object, passing the timestamp and the converted image
+ * @param sem_img_msg A constant pointer to the received sensor_msgs::Image message
+ * @return void
+ */
+    void MapperWrapper::semPanoCallback(const sensor_msgs::Image::ConstPtr& sem_img_msg) {
   auto sem_pano = cv_bridge::toCvCopy(
       sem_img_msg, sensor_msgs::image_encodings::MONO8);
   mapper_.addSemantics({sem_img_msg->header.stamp.toNSec(), sem_pano->image});
 }
 
-void MapperWrapper::visualize(const ros::TimerEvent& timer) {
+/**
+ * @brief Visualize method for the MapperWrapper class.
+ *
+ * This method is triggered by a timer event. It starts the visualization and publishes the grid map message.
+ * It also visualizes the pose graph and prints the global timer information.
+ *
+ * @param timer The timer event information.
+ */
+    void MapperWrapper::visualize(const ros::TimerEvent& timer) {
   viz_t_->start();
   ros::Time stamp;
   stamp.fromNSec(mapper_.stamp());
@@ -192,7 +254,14 @@ void MapperWrapper::visualize(const ros::TimerEvent& timer) {
       TimerManager::getGlobal(true) << "\033[0m");
 }
 
-void MapperWrapper::vizPoseGraph(const ros::Time& stamp) {
+/**
+ * @brief Visualize the pose graph.
+ *
+ * This function creates markers for visualizing the trajectory and key poses in the pose graph.
+ *
+ * @param stamp The timestamp to be used for the marker headers.
+ */
+    void MapperWrapper::vizPoseGraph(const ros::Time& stamp) {
   visualization_msgs::MarkerArray marker_array;
   visualization_msgs::Marker traj_marker, key_marker;
 
@@ -242,8 +311,18 @@ void MapperWrapper::vizPoseGraph(const ros::Time& stamp) {
   graph_viz_pub_.publish(marker_array);
 }
 
-void MapperWrapper::publishOdomCorrection(const Eigen::Isometry3d& corr, 
-    const ros::Time& stamp) 
+/**
+ * @brief Publishes odometry correction
+ *
+ * This function publishes the odometry correction as a transform
+ * message using the ROS tf library. It takes the corrected odometry
+ * transform (corr) and the timestamp (stamp) as input parameters.
+ *
+ * @param corr The corrected odometry transform
+ * @param stamp The timestamp of the correction
+ */
+    void MapperWrapper::publishOdomCorrection(const Eigen::Isometry3d& corr,
+                                              const ros::Time& stamp)
 {
   geometry_msgs::TransformStamped corr_msg = Eigen2ROS(corr);
   corr_msg.header.stamp = stamp;
