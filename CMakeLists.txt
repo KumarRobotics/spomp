@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 17)
 ## Export compile_commands.json for semantic autocompletion
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -148,6 +148,7 @@ if(TBB_FOUND AND GTSAM_FOUND AND mlpack_FOUND AND Armadillo_FOUND)
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
+message(STATUS "All Dependencies found")
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
